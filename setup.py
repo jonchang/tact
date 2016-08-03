@@ -3,7 +3,7 @@ Adds tips to a backbone phylogeny using taxonomy simulated with birth-death mode
 """
 from setuptools import find_packages, setup
 
-dependencies = ['click']
+dependencies = ['click', 'dendropy', 'scipy', 'numpy']
 
 setup(
     name='simtaxer',
@@ -21,7 +21,9 @@ setup(
     install_requires=dependencies,
     entry_points={
         'console_scripts': [
-            'simtaxer = simtaxer.cli:main',
+            'simtaxer_build_taxonomic_tree = simtaxer.cli_taxonomy:main',
+            'simtaxer_add_taxa = simtaxer.cli_add_taxa:main',
+            'simtaxer_check_results = simtaxer.cli_check_trees:main',
         ],
     },
     classifiers=[
@@ -35,14 +37,14 @@ setup(
         # 'Development Status :: 7 - Inactive',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: POSIX',
         'Operating System :: MacOS',
         'Operating System :: Unix',
         'Operating System :: Windows',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 3',
+        #'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ]
 )
