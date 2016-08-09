@@ -86,14 +86,15 @@ def crown_capture_probability(n, k):
     This equation is taken from: Sanderson, M. J. 1996. How many taxa must
     be sampled to identify the root node of a large clade? Systematic Biology 45:168-173
     """
+    if n < k:
+        raise Exception("n must be greater than or equal to k (n={}, k={})".format(n, k))
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
 
 def get_monophyletic_node(tree, species):
     mrca = tree.mrca(taxon_labels=species)
     if not mrca:
         return None
-    new = set([x.taxon.label for x in mrca.leaf_iter()])
-    if mrca and species.issuperset(new):
+    if mrca and species.issuperset(get_tip_labels(mrca)):
         return mrca
 
 def get_birth_death_for_node(node, sampfrac):
