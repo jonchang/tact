@@ -409,17 +409,17 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
             promises = []
             for acc_nodes in buckets:
                 promises.append(mrca.pool.map_async(fn, acc_nodes, len(acc_nodes)))
-                for promise in promises:
-                    results = promise.get()
-                    for result in results:
-                        progress.update(1)
-                        if result is not None:
-                            taxon_node, taxon_bitmask, birth, death = result
-                            if birth is not None and death is not None:
-                                backbone_node = backbone_tree.mrca(leafset_bitmask=taxon_bitmask & backbone_bitmask)
-                                if backbone_node:
-                                    backbone_node.annotations.add_new("birth", birth)
-                                    backbone_node.annotations.add_new("death", death)
+            for promise in promises:
+                results = promise.get()
+                for result in results:
+                    progress.update(1)
+                    if result is not None:
+                        taxon_node, taxon_bitmask, birth, death = result
+                        if birth is not None and death is not None:
+                            backbone_node = backbone_tree.mrca(leafset_bitmask=taxon_bitmask & backbone_bitmask)
+                            if backbone_node:
+                                backbone_node.annotations.add_new("birth", birth)
+                                backbone_node.annotations.add_new("death", death)
     diff = time() - start_time
     if diff > 1:
         logger.info("FastMRCA calculation time: {:.1f} seconds".format(diff))
