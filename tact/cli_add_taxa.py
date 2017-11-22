@@ -367,7 +367,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
 
     start_time = time()
 
-    if cores == or nnodes < 500:
+    if cores == 1 or nnodes < 500:
         if cores == 1:
             logger.debug("Not using parallel algorithm since cores=1")
         else:
