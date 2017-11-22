@@ -48,10 +48,10 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
         else:
             taxonomy_target = anc
             backbone_target = backbone_node
-            logger.info("    {}: got valid node: {}".format(taxonomy_node.label, taxonomy_target.label))
+            logger.info("    {}: will instead assign these taxa to {}".format(taxonomy_node.label, taxonomy_target.label))
             break
     else:
-        logger.warning("couldn't find valid taxonomy node in ancestor chain for {} ({})".format(taxonomy_node.label, " => ".join(seen)))
+        logger.warning("Couldn't find valid taxonomy node in ancestor chain for {} ({})".format(taxonomy_node.label, " => ".join(seen)))
         return None
     seen.pop() # ignore last node
     for x in seen:
@@ -77,10 +77,8 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     if num_new_times is None:
         num_new_times = n_total - n_extant
     new_ccp = ccp = crown_capture_probability(n_total, n_extant)
-    # If we have a single or doubleton then go up the taxonomy to get a
-    # new node with hopefully better sampling
-    while n_extant <= 2 or new_ccp < min_ccp:
-        logger.info("    {}: backtracking due to poor sampling (n={}, ccp={:.2f}, min_ccp={})".format(taxonomy_node.label, n_extant, new_ccp, min_ccp))
+    while new_ccp < min_ccp:
+        logger.info("    {}: has poor sampling, checking ancestors (ccp {:.2f} < min_ccp {})".format(taxonomy_node.label, new_ccp, min_ccp))
         taxonomy_node, backbone_node = search_ancestors_for_valid_backbone_node(taxonomy_node, get_tip_labels(backbone_tree), ccp=min_ccp)
         n_extant = len(backbone_node.leaf_nodes())
         n_total = len(taxonomy_node.leaf_nodes())
@@ -112,6 +110,7 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=N
         new_node.annotations.add_new("creation_method", "fill_new_taxa")
         new_node.age = new_age
         new_leaf = new_node.new_child(taxon=namespace.require_taxon(new_species), edge_length=new_age)
+        new_leaf.annotations.add_new("creation_method", "fill_new_taxa")
         new_leaf.age = 0
         node = graft_node(node, new_node, stem)
 
