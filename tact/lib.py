@@ -12,20 +12,38 @@ import dendropy
 from scipy.optimize import minimize
 
 def get_bd(r, a):
+    """Converts turnover and relative extinction to birth and death rates."""
     r = float(r)
-    a = float(a)
-    b = r / (1 + a)
+    b = r / (1 + float(a))
     d = b - r
     return b, d
 
 def optim_bd(ages, sampling):
-    """optimizes birth death using scipy"""
+    """Optimizes birth death using Scipy"""
     return minimize(lambda x: lik_constant(x, sampling, ages), [1., 0.02], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
 
 
-# from: TreePar::LikConstant
 def lik_constant(vec, rho, t, root=1, survival=1):
-    """vec: birth and death, rho: sampling, t: split times"""
+    """
+    Calculates the likelihood of a constant-rate birth-death process, conditioned
+    on the waiting times of a phylogenetic tree and degree of incomplete sampling.
+
+    Based off of the R function TreePar::LikConstant written by Tanja Stadler.
+
+    T. Stadler. On incomplete sampling under birth-death models and connections
+    to the sampling-based coalescent. Jour. Theo. Biol. 261: 58-66, 2009.
+
+    Positional arguments:
+    vec -- a two element list of birth and death
+    rho -- sampling fraction
+    t -- vector of waiting times
+
+    Keyword arguments:
+    root -- include the root or not? (default: 1)
+    survival -- assume survival of the process (default: 1)
+
+    Returns a likelihood. Or FLOAT_MAX.
+    """
     try:
         l = vec[0]
         m = vec[1]
@@ -53,6 +71,7 @@ def p0(t, l, m, rho):
         return float(p0_exact(t, l, m, rho))
 
 def p1_exact(t, l, m, rho):
+    """Exact version of p1 using Decimal math."""
     t = D(t)
     l = D(l)
     m = D(m)
@@ -66,6 +85,7 @@ def p1(t, l, m, rho):
         return float(p1_exact(t, l, m, rho))
 
 def intp1_exact(t, l, m):
+    """Exact version of intp1 using Decimal math."""
     l = D(l)
     m = D(m)
     t = D(t)
@@ -83,14 +103,17 @@ def crown_capture_probability(n, k):
     Calculate the probability that a sample of `k` taxa from a clade
     of `n` total taxa includes a root node, under a Yule process.
 
-    This equation is taken from: Sanderson, M. J. 1996. How many taxa must
-    be sampled to identify the root node of a large clade? Systematic Biology 45:168-173
+    This equation is taken from:
+
+    Sanderson, M. J. 1996. How many taxa must be sampled to identify
+    the root node of a large clade? Systematic Biology 45:168-173
     """
     if n < k:
         raise Exception("n must be greater than or equal to k (n={}, k={})".format(n, k))
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
 
 def get_monophyletic_node(tree, species):
+    """Returns the node or None that is the MRCA of the `species` in `tree`."""
     mrca = tree.mrca(taxon_labels=species)
     if not mrca:
         return None
@@ -98,6 +121,10 @@ def get_monophyletic_node(tree, species):
         return mrca
 
 def get_birth_death_for_node(node, sampfrac):
+    """
+    Estimates the birth and death rates for the subtree descending from
+    `node` with sampling fraction `sampfrac`.
+    """
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
     ages += [node.age]
     return optim_bd(ages, sampfrac)
@@ -130,19 +157,42 @@ def get_tree(path, namespace=None):
     return tree
 
 def is_binary(node):
+    """Is the subtree under `node` a fully bifurcating tree?"""
     for x in node.preorder_internal_node_iter():
         if len(x.child_nodes()) != 2:
             return False
     return True
-
 
 def get_short_branches(node):
     for edge in edge_iter(node):
         if edge.length <= 0.001:
             yield edge
 
-
+# From TreeSim::corsim
+# N. Cusimano, T. Stadler, S. Renner. A new method for handling missing species in diversification analysis applicable to randomly or non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
+    """
+    Simulates new speciation events in an incomplete phylogeny assuming a
+    constnat-rate birth-death process.
+
+    Adapted from the R function TreeSim::corsim written by Tanja Stadler.
+
+    N. Cusimano, T. Stadler, S. Renner. A new method for handling missing
+    species in diversification analysis applicable to randomly or
+    non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
+
+    Positional arguments:
+    ages -- vector of waiting times
+    birth -- birth rate
+    death -- death rate
+    missing -- number of missing taxa to simulate
+
+    Keyword arguments:
+    told -- maximum simulated age (default: `max(ages)`)
+    tyoung -- minimum simulated age bound (default: `0`)
+
+    Returns a vector of simulated waiting times.
+    """
     if told is None:
         told = max(ages)
     assert max(ages) <= told
