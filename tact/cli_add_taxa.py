@@ -12,8 +12,6 @@ import Queue
 import functools
 import itertools
 import logging
-import math
-import multiprocessing
 import operator
 import random
 import sys
@@ -27,11 +25,11 @@ import click
 
 # Internal
 from .lib import optim_bd, is_binary, get_short_branches, get_tip_labels, get_monophyletic_node, crown_capture_probability, edge_iter, get_new_times
+from . import fastmrca
 
 global invalid_map
 invalid_map = {}
 def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
-    global mrca
     global invalid_map
     seen = []
     target_node = None
@@ -41,7 +39,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
             anc = invalid_map[anc.label]
         full_tax = get_tip_labels(anc)
         extant_tax = full_tax.intersection(backbone_tips)
-        backbone_node = mrca.get(extant_tax)
+        backbone_node = fastmrca.get(extant_tax)
         seen.append(anc.label)
         if backbone_node is None:
             logger.info("    {}: not monophyletic!".format(anc.label))
@@ -233,85 +231,6 @@ def get_min_age(node):
     except ValueError:
         return 0.0
 
-# These are for the MRCA object but we have to put them here since they
-# otherwise can't be pickled for parallel processing. Argh!
-def chunks(l, n):
-    """Yield successive n-sized chunks from l."""
-    l = list(l)
-    for i in xrange(0, len(l), n):
-        yield l[i:i + n]
-
-def _fastmrca_getter(tn, x):
-    taxa = tn.get_taxa(labels=x)
-    bitmask = 0L
-    for taxon in taxa:
-        bitmask |= tn.taxon_bitmask(taxon)
-    return bitmask
-
-
-## GLOBALS
-global mrca
-
-class FastMRCA(object):
-    def __init__(self, tree, max_singlethread_taxa=None, cores=multiprocessing.cpu_count()):
-        self.tree = tree
-        self.cores = cores
-        self.pool = multiprocessing.Pool(processes=cores)
-        self.maxtax = max_singlethread_taxa
-        if self.maxtax is None:
-            self.maxtax = self.autotune()
-            logger.info("FastMRCA autotuned parameters: single-thread cutoff is {}".format(self.maxtax))
-
-    def autotune(self):
-        tn = self.tree.taxon_namespace
-        ntax = self.cores * self.cores
-        while True:
-            if ntax > len(tn):
-                return len(tn)
-            st = []
-            mt = []
-            for i in range(3):
-                labels = [tx.label for tx in random.sample(tn, ntax)]
-                start_time = time()
-                tn.taxa_bitmask(labels=labels)
-                st.append(time() - start_time)
-                start_time = time()
-                self.bitmask(labels)
-                mt.append(time() - start_time)
-            # Get median times
-            st_s = st[1]
-            mt_s = mt[1]
-            if mt_s - st_s < 0.75:
-                # Single-thread performs ~0.75s worse
-                logger.debug("FastMRCA: maxtax={} st={} mt={}".format(ntax, st_s, mt_s))
-                return ntax
-            else:
-                logger.debug("FastMRCA: maxtax={} st={} mt={}".format(ntax, st_s, mt_s))
-                ntax = ntax * 4
-
-    def bitmask(self, labels):
-        tn = self.tree.taxon_namespace
-        if len(labels) < self.maxtax:
-            return tn.taxa_bitmask(labels=labels)
-        start_time = time()
-        f = functools.partial(_fastmrca_getter, tn)
-        full_bitmask = 0L
-        for res in self.pool.map(f, chunks(labels, int(math.ceil(len(labels) / self.cores))), chunksize=1):
-            full_bitmask |= res
-        logger.debug("Parallel FastMRCA: n={}, t={:.1f}s".format(len(labels), time() - start_time))
-        return full_bitmask
-
-    def get(self, labels):
-        mrca = self.tree.mrca(taxon_labels=labels)
-        labels = set(labels)
-        if not mrca:
-            return None
-        if mrca and labels.issuperset(get_tip_labels(mrca)):
-            return mrca
-
-    def __del__(self):
-        self.pool.terminate()
-
 def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node):
     taxon = taxon_node.label
     if not taxon:
@@ -330,10 +249,9 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node)
     else:
         return (taxon_node, None, None, None)
 
-def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=multiprocessing.cpu_count()):
-    global mrca
+def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     tree_tips = get_tip_labels(backbone_tree)
-    backbone_bitmask = mrca.bitmask(tree_tips)
+    backbone_bitmask = fastmrca.bitmask(tree_tips)
     all_possible_tips = get_tip_labels(taxonomy_tree)
 
     nnodes = len(taxonomy_tree.internal_nodes(exclude_seed_node=True))
@@ -351,13 +269,8 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
             backbone_node.annotations.add_new("birth", birth)
             backbone_node.annotations.add_new("death", death)
 
-    if cores == 1 or nnodes < 500:
-        if cores == 1:
-            logger.debug("Not using parallel algorithm since cores=1")
-        else:
-            # guess at reasonable number of tips to parallelize for
-            logger.debug("Not using parallel algorithm since number of nodes {} is less than 500".format(nnodes))
-
+    if fastmrca.cores == 1 or nnodes < 500:
+        logger.debug("Precomputing rates serially since cores=1 ({}) or nnodes < 500 ({})".format(fastmrca.cores, nnodes))
         with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Calculating rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
             for node in progress:
                 annotate_result_node(process_node(backbone_tree, backbone_bitmask, all_possible_tips, node))
@@ -372,10 +285,10 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
         buckets = []
         tips_per_node = [(len(x.leaf_nodes()), x) for x in taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True)]
         queue = Queue.PriorityQueue()
-        for x in range(max(int(cores/4), 2)):
+        for x in range(max(int(fastmrca.cores/4), 2)):
             buckets.append([])
             queue.put((0, x))
-        sums = [0] * cores
+        sums = [0] * fastmrca.cores
 
         for ntips, node in sorted(tips_per_node, key=operator.itemgetter(1), reverse=True):
             _, i = queue.get()
@@ -384,7 +297,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
             queue.put((sums[i], i))
 
         buckets.sort(key=lambda x: len(x))
-        logger.debug("Parallel worker assignments ({} cores): {}".format(len(buckets), [len(x) for x in buckets]))
+        logger.debug("Precomputing rates in parallel, worker assignments ({} cores): {}".format(len(buckets), [len(x) for x in buckets]))
 
         progress = click.progressbar(label="Calculating rates", length=nnodes, show_pos=True)
 
@@ -392,7 +305,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
         promises = []
         fn = functools.partial(process_node, backbone_tree, backbone_bitmask, all_possible_tips)
         for acc_nodes in buckets:
-            promises.append(mrca.pool.map_async(fn, acc_nodes, len(acc_nodes)))
+            promises.append(fastmrca.pool.map_async(fn, acc_nodes, len(acc_nodes)))
 
         # Ideally we would asynchronously resolve promises but this
         # doesn't work for some reason, so just resolve them in order
@@ -405,7 +318,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
 
     diff = time() - start_time
     if diff > 1:
-        logger.info("FastMRCA calculation time: {:.1f} seconds".format(diff))
+        logger.debug("FastMRCA calculation time: {:.1f} seconds".format(diff))
 
 def update_tree_view(tree):
     # Stuff that DendroPy needs to keep a consistent view of the phylgoeny
@@ -426,7 +339,6 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
-    global mrca
 
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)
@@ -480,13 +392,10 @@ For more details, run:
 
     full_clades = set()
 
-    if cores is None:
-        cores = multiprocessing.cpu_count()
+    fastmrca.initialize(tree)
+    logger.debug("FastMRCA autotuned parameters: single-thread cutoff is {}".format(fastmrca.maxtax))
 
-    mrca = FastMRCA(tree, max_singlethread_taxa=cores*cores*4, cores=cores)
-    logger.debug("Parallel MRCA algorithm will be used for clades with more than {} tips".format(cores*cores*4))
-
-    run_precalcs(taxonomy, tree, min_ccp, cores=cores)
+    run_precalcs(taxonomy, tree, min_ccp)
 
     initial_length = len(tree_tips)
 
@@ -528,7 +437,7 @@ For more details, run:
             logger.info("    {}: all species already present in tree".format(taxon))
             continue
 
-        node = mrca.get(extant_species)
+        node = fastmrca.get(extant_species)
         if not node:
             logger.info("    {}: is not monophyletic".format(taxon))
             continue
@@ -585,7 +494,7 @@ For more details, run:
 
         # Taxon spray
         logger.info("    {}: adding {} new species".format(taxon, len(species.difference(extant_species))))
-        node = mrca.get(extant_species)
+        node = fastmrca.get(extant_species)
         birth, death, ccp, times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp)
         fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff
@@ -597,7 +506,7 @@ For more details, run:
             raise ValueError("Tree is not binary!")
         bar_update()
 
-    del mrca
+    fastmrca.cleanup()
     assert(is_binary(tree.seed_node))
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick")
