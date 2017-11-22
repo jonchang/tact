@@ -1,4 +1,4 @@
-# simtaxer
+# TACT - Taxonomy addition for complete trees
 
 Adds tips to a backbone phylogeny using taxonomy simulated with birth-death models
 
@@ -17,5 +17,5 @@ Simply run:
 
 To use it:
 
-    $ simtaxer --help
+    $ tact --help
 

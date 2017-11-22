@@ -6,9 +6,9 @@ from setuptools import find_packages, setup
 dependencies = ['click', 'dendropy', 'scipy', 'numpy']
 
 setup(
-    name='simtaxer',
+    name='tact',
     version='0.1.0',
-    url='https://github.com/jonchang/python-simtaxer',
+    url='https://github.com/jonchang/tact',
     license='BSD',
     author='Jonathan Chang',
     author_email='jonathan.chang@ucla.edu',
@@ -21,9 +21,9 @@ setup(
     install_requires=dependencies,
     entry_points={
         'console_scripts': [
-            'simtaxer_build_taxonomic_tree = simtaxer.cli_taxonomy:main',
-            'simtaxer_add_taxa = simtaxer.cli_add_taxa:main',
-            'simtaxer_check_results = simtaxer.cli_check_trees:main',
+            'tact_build_taxonomic_tree = tact.cli_taxonomy:main',
+            'tact_add_taxa = tact.cli_add_taxa:main',
+            'tact_check_results = tact.cli_check_trees:main',
         ],
     },
     classifiers=[
@@ -37,7 +37,7 @@ setup(
         # 'Development Status :: 7 - Inactive',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'License :: OSI Approved :: BSD License',
         'Operating System :: POSIX',
         'Operating System :: MacOS',
         'Operating System :: Unix',

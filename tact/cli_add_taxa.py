@@ -38,20 +38,20 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     target_node = None
     for anc in taxonomy_node.ancestor_iter():
         if anc.label in invalid_map:
-            logger.debug("cache HIT on invalid_map for {} ({} => {})".format(taxonomy_node.label, anc.label, invalid_map[anc.label].label))
+            logger.debug("Cache HIT on invalid_map for {} ({} => {})".format(taxonomy_node.label, anc.label, invalid_map[anc.label].label))
             anc = invalid_map[anc.label]
         full_tax = get_tip_labels(anc)
         extant_tax = full_tax.intersection(backbone_tips)
         backbone_node = mrca.get(extant_tax)
         seen.append(anc.label)
         if backbone_node is None:
-            logger.debug("...{} not monophyletic...".format(anc.label))
+            logger.info("    {}: not monophyletic!".format(anc.label))
         elif crown_capture_probability(len(full_tax), len(extant_tax)) < ccp:
-            logger.debug("...{} fails crown threshold ({} < {})...".format(anc.label, crown_capture_probability(len(full_tax), len(extant_tax)), ccp))
+            logger.info("    {}: fails crown threshold ({} < {})".format(anc.label, crown_capture_probability(len(full_tax), len(extant_tax)), ccp))
         else:
             taxonomy_target = anc
             backbone_target = backbone_node
-            logger.debug("...got valid node: {}".format(taxonomy_target.label))
+            logger.info("    {}: got valid node: {}".format(taxonomy_node.label, taxonomy_target.label))
             break
     else:
         logger.warning("couldn't find valid taxonomy node in ancestor chain for {} ({})".format(taxonomy_node.label, " => ".join(seen)))
@@ -83,18 +83,18 @@ def get_new_branching_times2(backbone_node, taxonomy_node, backbone_tree, told=N
     # If we have a single or doubleton then go up the taxonomy to get a
     # new node with hopefully better sampling
     while n_extant <= 2 or new_ccp < min_ccp:
-        logger.debug("backtracking from {} due to poor sampling".format(taxonomy_node.label))
+        logger.info("    {}: backtracking due to poor sampling (n={}, ccp={:.2f}, min_ccp={})".format(taxonomy_node.label, n_extant, new_ccp, min_ccp))
         taxonomy_node, backbone_node = search_ancestors_for_valid_backbone_node(taxonomy_node, get_tip_labels(backbone_tree), ccp=min_ccp)
         n_extant = len(backbone_node.leaf_nodes())
         n_total = len(taxonomy_node.leaf_nodes())
         new_ccp = crown_capture_probability(n_total, n_extant)
     sampling = n_extant / n_total
     if backbone_node.annotations.get_value("birth"):
-        #logger.debug("cache hit on b/d rates for {}".format(taxonomy_node.label))
+        #logger.debug("    {}: Cache HIT on birth/death rates".format(taxonomy_node.label))
         birth = backbone_node.annotations.get_value("birth")
         death = backbone_node.annotations.get_value("death")
     else:
-        logger.debug("cache MISS on b/d rates for {}".format(taxonomy_node.label))
+        logger.debug("    {}: Cache MISS on birth/death rates".format(taxonomy_node.label))
         birth, death = get_birth_death_rates(backbone_node, sampling)
         backbone_node.annotations.add_new("birth", birth)
         backbone_node.annotations.add_new("death", death)
@@ -286,7 +286,7 @@ class FastMRCA(object):
         self.maxtax = max_singlethread_taxa
         if self.maxtax is None:
             self.maxtax = self.autotune()
-            logger.info("Autotuned parameters: single-thread cutoff is {}".format(self.maxtax))
+            logger.info("FastMRCA autotuned parameters: single-thread cutoff is {}".format(self.maxtax))
 
     def autotune(self):
         tn = self.tree.taxon_namespace
@@ -309,10 +309,10 @@ class FastMRCA(object):
             mt_s = mt[1]
             if mt_s - st_s < 0.75:
                 # Single-thread performs ~0.75s worse
-                logger.debug("maxtax={} st={} mt={}".format(ntax, st_s, mt_s))
+                logger.debug("FastMRCA: maxtax={} st={} mt={}".format(ntax, st_s, mt_s))
                 return ntax
             else:
-                logger.debug("maxtax={} st={} mt={}".format(ntax, st_s, mt_s))
+                logger.debug("FastMRCA: maxtax={} st={} mt={}".format(ntax, st_s, mt_s))
                 ntax = ntax * 4
 
     def bitmask(self, labels):
@@ -324,7 +324,7 @@ class FastMRCA(object):
         full_bitmask = 0L
         for res in self.pool.map(f, chunks(labels, int(ceil(len(labels) / self.cores))), chunksize=1):
             full_bitmask |= res
-        logger.debug("parallel fastMRCA: n={}, t={:.1f}s".format(len(labels), time() - start_time))
+        logger.debug("Parallel FastMRCA: n={}, t={:.1f}s".format(len(labels), time() - start_time))
         return full_bitmask
 
     def get(self, labels):
@@ -346,35 +346,15 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node)
     species = get_tip_labels(taxon_node)
     all_bitmask = backbone_tree.taxon_namespace.taxa_bitmask(labels=species)
     extant_bitmask = all_bitmask & backbone_bitmask
+    if extant_bitmask is None or extant_bitmask == 0:
+        # clade doesn't exist?
+        return (taxon_node, None, None, None)
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     if mrca:
         birth, death = get_birth_death_rates(mrca, len(mrca.leaf_nodes()) / len(taxon_node.leaf_nodes()))
         return (taxon_node, all_bitmask, birth, death)
     else:
         return (taxon_node, None, None, None)
-
-def run_precalcs2(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=None):
-    global mrca
-    tree_tips = get_tip_labels(backbone_tree)
-    backbone_bitmask = mrca.bitmask(tree_tips)
-    all_possible_tips = get_tip_labels(taxonomy_tree)
-    nnodes = len(taxonomy_tree.internal_nodes(exclude_seed_node=True))
-    start_time = time()
-    with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Calculating bd rates", length=nnodes, show_pos=True) as progress:
-        for taxon_node in progress:
-            taxon = taxon_node.label
-            if not taxon:
-                continue
-            species = get_tip_labels(taxon_node)
-            all_bitmask = mrca.bitmask(species)
-            extant_bitmask = all_bitmask & backbone_bitmask
-            mrca_node = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
-            if mrca_node:
-                birth, death = get_birth_death_rates(mrca_node, len(mrca_node.leaf_nodes()) / len(taxon_node.leaf_nodes()))
-                if birth is not None and death is not None:
-                    mrca_node.annotations.add_new("birth", birth)
-                    mrca_node.annotations.add_new("death", death)
-    logger.info("time elapsed: {:.1f} seconds".format(time() - start_time))
 
 def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=multiprocessing.cpu_count()):
     global mrca
@@ -383,50 +363,66 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
     all_possible_tips = get_tip_labels(taxonomy_tree)
 
     nnodes = len(taxonomy_tree.internal_nodes(exclude_seed_node=True))
-
-    tips_per_node = [(len(x.leaf_nodes()), x) for x in taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True)]
     buckets = []
-    queue = PriorityQueue()
-    for x in range(max(int(cores/4), 2)):
-        buckets.append([])
-        queue.put((0, x))
-    sums = [0] * cores
 
-    for ntips, node in sorted(tips_per_node, key=operator.itemgetter(1), reverse=True):
-        _, i = queue.get()
-        buckets[i].append(node)
-        sums[i] += ntips
-        queue.put((sums[i], i))
+    start_time = time()
 
-    buckets.sort(key=lambda x: len(x))
+    if cores == or nnodes < 500:
+        if cores == 1:
+            logger.debug("Not using parallel algorithm since cores=1")
+        else:
+            # guess at reasonable number of tips to parallelize for
+            logger.debug("Not using parallel algorithm since number of nodes {} is less than 500".format(nnodes))
+        def isf(item):
+            if item:
+                return item.label
+            return None
+        with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Calculating rates", length=nnodes, show_pos=True, item_show_func=isf) as progress:
+            for node in progress:
+                result = process_node(backbone_tree, backbone_bitmask, all_possible_tips, node)
+                if result is not None:
+                    taxon_node, taxon_bitmask, birth, death = result
+                    if birth is not None and death is not None:
+                        backbone_node = backbone_tree.mrca(leafset_bitmask=taxon_bitmask & backbone_bitmask)
+                        if backbone_node:
+                            backbone_node.annotations.add_new("birth", birth)
+                            backbone_node.annotations.add_new("death", death)
+    else:
+        tips_per_node = [(len(x.leaf_nodes()), x) for x in taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True)]
+        queue = PriorityQueue()
+        for x in range(max(int(cores/4), 2)):
+            buckets.append([])
+            queue.put((0, x))
+        sums = [0] * cores
 
-    logger.debug("Parallel worker assignments ({} cores): {}".format(len(buckets), [len(x) for x in buckets]))
+        for ntips, node in sorted(tips_per_node, key=operator.itemgetter(1), reverse=True):
+            _, i = queue.get()
+            buckets[i].append(node)
+            sums[i] += ntips
+            queue.put((sums[i], i))
 
-    with click.progressbar(label="Calculating birth/death rates", length=nnodes, show_pos=True) as progress:
-        full_results = []
-        def cb(results):
-            full_results.extend(results)
-            progress.update(len(results))
-        fn = functools.partial(process_node, backbone_tree, backbone_bitmask, all_possible_tips)
-        #pool = multiprocessing.Pool(cores)
-        start_time = time()
-        promises = []
-        for acc_nodes in buckets:
-            promises.append(mrca.pool.map_async(fn, acc_nodes, chunksize=len(acc_nodes), callback=cb))
-        [x.wait() for x in promises]
-        #pool.close()
-        #pool.join()
-        for result in full_results:
-            if result is not None:
-                taxon_node, taxon_bitmask, birth, death = result
-                if birth is not None and death is not None:
-                    backbone_node = backbone_tree.mrca(leafset_bitmask=taxon_bitmask & backbone_bitmask)
-                    if backbone_node:
-                        backbone_node.annotations.add_new("birth", birth)
-                        backbone_node.annotations.add_new("death", death)
+        buckets.sort(key=lambda x: len(x))
+        logger.debug("Parallel worker assignments ({} cores): {}".format(len(buckets), [len(x) for x in buckets]))
+
+        with click.progressbar(label="Calculating rates", length=nnodes, show_pos=True) as progress:
+            fn = functools.partial(process_node, backbone_tree, backbone_bitmask, all_possible_tips)
+            promises = []
+            for acc_nodes in buckets:
+                promises.append(mrca.pool.map_async(fn, acc_nodes, len(acc_nodes)))
+                for promise in promises:
+                    results = promise.get()
+                    for result in results:
+                        progress.update(1)
+                        if result is not None:
+                            taxon_node, taxon_bitmask, birth, death = result
+                            if birth is not None and death is not None:
+                                backbone_node = backbone_tree.mrca(leafset_bitmask=taxon_bitmask & backbone_bitmask)
+                                if backbone_node:
+                                    backbone_node.annotations.add_new("birth", birth)
+                                    backbone_node.annotations.add_new("death", death)
     diff = time() - start_time
-    if diff > 5:
-        logger.info("time elapsed: {:.1f} seconds".format(diff))
+    if diff > 1:
+        logger.info("FastMRCA calculation time: {:.1f} seconds".format(diff))
 
 @click.command()
 @click.option("--taxonomy", help="a taxonomy tree", type=click.File("rb"), required=True)
@@ -434,7 +430,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, cores=
 @click.option("--outgroups", help="comma separated list of outgroup taxa to ignore")
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
-@click.option("--cores", help="number of cores to use for parallel operations", type=int)
+@click.option("--cores", help="maximum number of cores to use for parallel operations", type=int)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 @click.option("--log", "log_file", help="if verbose output is enabled, send it to this file instead of standard output")
 def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_file):
@@ -456,7 +452,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
 
 
 
-    logger.info("reading taxonomy")
+    logger.info("Reading taxonomy".format(taxonomy))
     taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick")
     tn = taxonomy.taxon_namespace
     tn.is_mutable = True
@@ -465,15 +461,31 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
         tn.new_taxa(outgroups)
     tn.is_mutable = False
 
-    logger.info("reading tree")
-    tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="force-rooted", taxon_namespace=tn)
+    logger.info("Reading backbone".format(backbone))
+    try:
+        tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="force-rooted", taxon_namespace=tn)
+    except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
+        logger.error("DendroPy error: {}".format(e.message))
+        print """
+DendroPy error: {}
+
+This usually indicates your backbone has species that are not present in your
+taxonomy. Outgroups not in the taxonomy can be excluded with the argument:
+
+    tact_add_taxa --outgroups outgroup_speciesA,outgroup_speciesB
+
+For more details, run:
+
+    tact_add_taxa --help
+""".format(e.message)
+        sys.exit(1)
     tree.encode_bipartitions()
     tree.calc_node_ages()
 
     tree_tips = get_tip_labels(tree)
     all_possible_tips = get_tip_labels(taxonomy)
 
-    logger.info("{} tips to add".format(len(tree_tips.symmetric_difference(all_possible_tips))))
+    logger.info("Backbone needs to add {} tips".format(len(tree_tips.symmetric_difference(all_possible_tips))))
 
     full_clades = set()
 
@@ -481,7 +493,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
         cores = multiprocessing.cpu_count()
 
     mrca = FastMRCA(tree, max_singlethread_taxa=cores*cores*4, cores=cores)
-    logger.debug("fastmrca loaded")
+    logger.debug("Parallel MRCA algorithm will be used for clades with more than {} tips".format(cores*cores*4))
 
     run_precalcs(taxonomy, tree, min_ccp, cores=cores)
 
@@ -493,30 +505,29 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
         else:
             return ""
 
-    with click.progressbar(taxonomy.postorder_internal_node_iter(exclude_seed_node=True), label="Adding taxa to tree", length=len(all_possible_tips) - initial_length, show_pos=True, item_show_func=isf) as bar:
+    with click.progressbar(taxonomy.postorder_internal_node_iter(exclude_seed_node=True), label="Adding taxa", length=len(all_possible_tips) - initial_length, show_pos=True, item_show_func=isf) as bar:
         for taxon_node in bar:
             taxon = taxon_node.label
             if not taxon:
                 continue
-            spaces = taxon_node.level() * "  "
             species = get_tip_labels(taxon_node)
             extant_species = tree_tips.intersection(species)
-            logger.info("{}{} ({}/{})... ({} remain)".format(spaces, taxon, len(extant_species), len(species), len(all_possible_tips) - len(tree_tips)))
+            logger.info("**  {} ({}/{})  **".format(taxon, len(extant_species), len(species)))
 
             clades_to_generate = full_clades.intersection([x.label for x in taxon_node.postorder_internal_node_iter(exclude_seed_node=True)])
             to_remove = set([])
 
             if extant_species:
                 if extant_species == species:
-                    logger.debug("{}  => all species accounted for".format(spaces))
+                    logger.debug("    {}: all species accounted for".format(taxon))
                     continue
                 if tree_tips.issuperset(species):
-                    logger.info("{}  => all species already present in tree".format(spaces))
+                    logger.info("    {}: all species already present in tree".format(taxon))
                     continue
 
                 node = mrca.get(extant_species)
                 if not node:
-                    logger.info(spaces + "  => not monophyletic")
+                    logger.info("    {}: is not monophyletic".format(taxon))
                     continue
 
                 clade_sizes = [(clade, len(taxonomy.find_node_with_label(clade).leaf_nodes())) for clade in clades_to_generate]
@@ -526,16 +537,16 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
                     full_node = taxonomy.find_node_with_label(clade)
                     full_node_species = get_tip_labels(full_node)
                     if tree_tips.issuperset(full_node_species):
-                        logger.info("{}  => skipping {} as all species already present in tree".format(spaces, clade))
+                        logger.info("    {}: skipping clade {} as all species already present in tree".format(taxon, clade))
                         full_clades.remove(clade)
                         continue
                     #birth, death, ccp, times = get_new_branching_times(node, len(species), len(species) + len(full_node_species), tyoung=get_min_age(node), min_ccp=min_ccp)
                     birth, death, ccp, times = get_new_branching_times2(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
-                    logger.info("{}  => adding {} (n={})".format(spaces, clade, clade_size))
+                    logger.info("    {}: adding clade {} (n={})".format(taxon, clade, clade_size))
                     #logger.info("b {} => {}, d {} => {}, ccp {} => {}, times {} => {}".format(birth1, birth, death1, death, ccp1, ccp, times1, times))
 
                     if is_fully_locked(node):
-                        logger.info("{}  => {} is fully locked, attaching to stem".format(spaces, taxon))
+                        logger.info("    {}: clade {} is fully locked, so attaching to stem".format(taxon, taxon))
                         # must attach to stem for this clade, so generate a time on the stem lineage
                         _, _, _, times2 = get_new_branching_times2(node, taxon_node, tree, min_ccp=min_ccp, told=node.parent_node.age, tyoung=node.age, num_new_times=1)
                         #_, _, _, times2 = get_new_branching_times(node, len(species), len(species) + 1, told=node.parent_node.age, tyoung=node.age, min_ccp=min_ccp)
@@ -562,7 +573,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
                 if len(extant_species) == len(species):
                     raise Exception("enough species are present but mismatched?")
 
-                logger.info("{}  => adding {} new species".format(spaces, len(species.difference(extant_species))))
+                logger.info("    {}: adding {} new species".format(taxon, len(species.difference(extant_species))))
                 node = mrca.get(extant_species)
                 birth1, death1, ccp1, times1 = get_new_branching_times(node, len(extant_species), len(species), tyoung=get_min_age(node), min_ccp=min_ccp)
                 birth, death, ccp, times = get_new_branching_times2(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp)
@@ -577,15 +588,13 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
                 assert(is_binary(node))
             else:
                 # create clade from whole cloth
+                logger.debug("    {}: no species sampled, will create later".format(taxon))
                 full_clades.add(taxon)
             bar.pos = len(tree_tips) - initial_length; bar.update(0)
 
     del mrca
     assert(is_binary(tree.seed_node))
     tree.ladderize()
-    for leaf in tree.leaf_node_iter():
-        if leaf.edge.length <= 0.001:
-            logger.info("warning: taxon {} has extremely short branch ({})".format(leaf.taxon.label, leaf.edge.length))
     tree.write(path=output + ".newick.tre", schema="newick")
     tree.write(path=output + ".nexus.tre", schema="nexus")
 
