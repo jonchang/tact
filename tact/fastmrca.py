@@ -30,6 +30,8 @@ def initialize(phy, max_singlethread_taxa=None, nproc=multiprocessing.cpu_count(
     cores = nproc
     pool = multiprocessing.Pool(processes=cores)
     maxtax = max_singlethread_taxa
+    if not maxtax and cores == 1:
+        maxtax = float('inf')
     if not maxtax:
         maxtax = autotune()
 
