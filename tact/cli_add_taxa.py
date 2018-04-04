@@ -44,15 +44,18 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
         if backbone_node is None:
             logger.info("    {}: ancestor {} not monophyletic!".format(taxonomy_node.label, anc.label))
         elif crown_capture_probability(len(full_tax), len(extant_tax)) < ccp:
-            logger.info("    {}: ancestor {} fails crown threshold ({} < {})".format(taxonomy_node.label, anc.label, crown_capture_probability(len(full_tax), len(extant_tax)), ccp))
+            logger.info("    {}: ancestor {} fails crown threshold ({} < {}); using stem".format(taxonomy_node.label, anc.label, crown_capture_probability(len(full_tax), len(extant_tax)), ccp))
+            taxonomy_target = anc
+            backbone_target = backbone_node.parent_node
+            break
         else:
             taxonomy_target = anc
             backbone_target = backbone_node
             logger.info("    {}: will instead assign these taxa to {}".format(taxonomy_node.label, taxonomy_target.label))
             break
     else:
-        logger.warning("Couldn't find valid taxonomy node in ancestor chain for {} ({})".format(taxonomy_node.label, " => ".join(seen)))
-        return None
+        logger.error("Couldn't find valid taxonomy node in ancestor chain for {} ({})".format(taxonomy_node.label, " => ".join(seen)))
+        sys.exit(1)
     seen.pop() # ignore last node
     for x in seen:
         invalid_map[x] = taxonomy_target
@@ -77,12 +80,20 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     if num_new_times is None:
         num_new_times = n_total - n_extant
     new_ccp = ccp = crown_capture_probability(n_total, n_extant)
-    while new_ccp < min_ccp:
-        logger.info("    {}: has poor sampling, checking ancestors (ccp {:.2f} < min_ccp {})".format(taxonomy_node.label, new_ccp, min_ccp))
-        taxonomy_node, backbone_node = search_ancestors_for_valid_backbone_node(taxonomy_node, get_tip_labels(backbone_tree), ccp=min_ccp)
-        n_extant = len(backbone_node.leaf_nodes())
-        n_total = len(taxonomy_node.leaf_nodes())
-        new_ccp = crown_capture_probability(n_total, n_extant)
+    if new_ccp < min_ccp:
+        full_tax = get_tip_labels(taxonomy_node)
+        extant_tax = full_tax.intersection(get_tip_labels(backbone_node))
+        mrca_node = fastmrca.get(extant_tax)
+        if mrca_node is not None:
+            logger.info("    {}: is monophyletic but has poor sampling; using stem (ccp {:.2f} < min_ccp {})".format(taxonomy_node.label, new_ccp, min_ccp))
+            backbone_node = backbone_node.parent_node
+        else:
+            while new_ccp < min_ccp:
+                logger.info("    {}: is not monophyletic and has poor sampling, checking ancestors (ccp {:.2f} < min_ccp {})".format(taxonomy_node.label, new_ccp, min_ccp))
+                taxonomy_node, backbone_node = search_ancestors_for_valid_backbone_node(taxonomy_node, get_tip_labels(backbone_tree), ccp=min_ccp)
+                n_extant = len(backbone_node.leaf_nodes())
+                n_total = len(taxonomy_node.leaf_nodes())
+                new_ccp = crown_capture_probability(n_total, n_extant)
     sampling = n_extant / n_total
     if backbone_node.annotations.get_value("birth"):
         #logger.debug("    {}: Cache HIT on birth/death rates".format(taxonomy_node.label))
@@ -102,8 +113,9 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     return birth, death, ccp, times
 
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
-    if stem:
-        node = node.parent_node
+    # lol, graft_node already accounts for this so don't do it here!!
+    #if stem:
+        #node = node.parent_node
 
     for new_species, new_age in itertools.izip(new_taxa, times):
         new_node = dendropy.Node()
