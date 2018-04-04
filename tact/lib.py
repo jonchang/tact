@@ -8,10 +8,15 @@ import random
 from math import log, exp, ceil
 from decimal import Decimal as D
 import itertools
+import subprocess
 
 import dendropy
 import numpy as np
 
+# Initialize grid for birthdeath grid search
+births = np.linspace(sys.float_info.epsilon, 5, num=100)
+deaths = np.linspace(0, 5, num=100)
+params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
 
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""
@@ -20,11 +25,16 @@ def get_bd(r, a):
     d = b - r
     return b, d
 
-births = np.linspace(sys.float_info.epsilon, 5, num=100)
-deaths = np.linspace(0, 5, num=100)
-params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
+def optim_bd_r(ages, sampling):
+    """Optimizes birth death using TreePar and R"""
+    script = """cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = "L-BFGS-B")$par, " dum")"""
+    fmt = script.format(birth=1, death=0.02, ages=",".join([str(x) for x in ages]), sampling = sampling)
+    output = subprocess.check_output(["Rscript", "--vanilla", "--default-packages=base,stats", "-e", fmt], stderr=subprocess.STDOUT)
+    b, d, _ = output.split(None, 2)
+    return float(b), float(d)
 
 def optim_bd_grid(ages, sampling):
+    """Optimizes birth death using a grid search"""
     res = [lik_constant(x, sampling, ages) for x in params]
     #import pdb; pdb.set_trace()
     return params[np.argmin(res)]
@@ -37,6 +47,7 @@ def update_multiplier_freq(q, d=1.1):
     return new_q
 
 def optim_bd(ages, sampling):
+    """Optimizes birth death using a cheap MCMC-like algorithm"""
     new_vec = [0, 0]
     ages = np.sort(np.array(ages))[::-1]
     mm = max(ages)
@@ -54,7 +65,7 @@ def optim_bd(ages, sampling):
     #import pdb; pdb.set_trace()
     return vec
 
-def optim_bd_old(ages, sampling):
+def optim_bd_scipy(ages, sampling):
     """Optimizes birth death using Scipy"""
     from scipy.optimize import minimize
     return minimize(lambda x: lik_constant(x, sampling, ages), [1., 0.02], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
