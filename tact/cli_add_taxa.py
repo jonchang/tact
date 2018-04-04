@@ -42,9 +42,9 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
         backbone_node = fastmrca.get(extant_tax)
         seen.append(anc.label)
         if backbone_node is None:
-            logger.info("    {}: not monophyletic!".format(anc.label))
+            logger.info("    {}: ancestor {} not monophyletic!".format(taxonomy_node.label, anc.label))
         elif crown_capture_probability(len(full_tax), len(extant_tax)) < ccp:
-            logger.info("    {}: fails crown threshold ({} < {})".format(anc.label, crown_capture_probability(len(full_tax), len(extant_tax)), ccp))
+            logger.info("    {}: ancestor {} fails crown threshold ({} < {})".format(taxonomy_node.label, anc.label, crown_capture_probability(len(full_tax), len(extant_tax)), ccp))
         else:
             taxonomy_target = anc
             backbone_target = backbone_node

@@ -7,9 +7,11 @@ import sys
 import random
 from math import log, exp, ceil
 from decimal import Decimal as D
+import itertools
 
 import dendropy
-from scipy.optimize import minimize
+import numpy as np
+
 
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""
@@ -18,10 +20,54 @@ def get_bd(r, a):
     d = b - r
     return b, d
 
+births = np.linspace(sys.float_info.epsilon, 5, num=100)
+deaths = np.linspace(0, 5, num=100)
+params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
+
+def optim_bd_grid(ages, sampling):
+    res = [lik_constant(x, sampling, ages) for x in params]
+    #import pdb; pdb.set_trace()
+    return params[np.argmin(res)]
+
+def update_multiplier_freq(q, d=1.1):
+    u = np.random.uniform(0, 1, 2)
+    l = 2*log(d)
+    m = np.exp(l*(u-.5))
+    new_q = q * m
+    return new_q
+
 def optim_bd(ages, sampling):
+    new_vec = [0, 0]
+    ages = np.sort(np.array(ages))[::-1]
+    mm = max(ages)
+    if mm < 0.0000001:
+        vec = [1, 0.02]
+    else:
+        vec = [len(ages) / mm, 0.02]
+    likelihood = get_lik(vec, sampling, ages)
+    for x in xrange(100):
+        new_vec = update_multiplier_freq(vec)
+        new_likelihood = get_lik(new_vec, sampling, ages)
+        if (new_likelihood - likelihood) * 100 >= log(np.random.random()):
+            likelihood = new_likelihood
+            vec = new_vec
+    #import pdb; pdb.set_trace()
+    return vec
+
+def optim_bd_old(ages, sampling):
     """Optimizes birth death using Scipy"""
+    from scipy.optimize import minimize
     return minimize(lambda x: lik_constant(x, sampling, ages), [1., 0.02], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
 
+
+def get_lik(vec, rho, x):
+    l = vec[0]
+    m = vec[1]
+    root=1
+    lik1= (root + 1) * np.log(p1(x[0], l, m, rho))
+    lik2= np.sum(np.log(l * p1(x[1:], l, m, rho)))
+    lik3= - (root + 1) * np.log(1 - p0(x[0], l, m, rho))
+    return lik1+lik2+lik3
 
 def lik_constant(vec, rho, t, root=1, survival=1):
     """
@@ -80,7 +126,7 @@ def p1_exact(t, l, m, rho):
 
 def p1(t, l, m, rho):
     try:
-        return rho*(l-m)**2 * exp(-(l-m)*t)/(rho*l+(l*(1-rho)-m)*exp(-(l-m)*t))**2
+        return rho*(l-m)**2 * np.exp(-(l-m)*t)/(rho*l+(l*(1-rho)-m)*np.exp(-(l-m)*t))**2
     except OverflowError:
         return float(p1_exact(t, l, m, rho))
 

@@ -41,13 +41,14 @@ def autotune():
     global tree
     global cores
     tn = tree.taxon_namespace
-    ntax = cores * cores
+    ntax = max(cores * cores, 1024)
     while True:
         if ntax > len(tn):
             return len(tn)
         st = []
         mt = []
         for i in range(5):
+            logger.debug("FastMRCA iteration={}, ntax={}".format(i, ntax))
             labels = [tx.label for tx in random.sample(tn, ntax)]
             start_time = time()
             tn.taxa_bitmask(labels=labels)
