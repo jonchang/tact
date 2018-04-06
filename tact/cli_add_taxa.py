@@ -16,6 +16,7 @@ import operator
 import random
 import sys
 from time import time
+import collections
 
 logger = logging.getLogger(__name__)
 
@@ -335,6 +336,16 @@ def update_tree_view(tree):
     tree.update_bipartitions()
     return get_tip_labels(tree)
 
+def compute_node_depths(tree):
+    res = dict()
+    for leaf in tree.leaf_node_iter():
+        cnt = 0
+        for anc in leaf.ancestor_iter():
+            if anc.label:
+                cnt += 1
+        res[leaf.taxon.label] = cnt
+    return res
+
 @click.command()
 @click.option("--taxonomy", help="a taxonomy tree", type=click.File("rb"), required=True)
 @click.option("--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("rb"), required=True)
@@ -363,7 +374,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
 
 
     logger.info("Reading taxonomy".format(taxonomy))
-    taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick")
+    taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick", rooting="default-rooted")
     tn = taxonomy.taxon_namespace
     tn.is_mutable = True
     if outgroups:
@@ -371,10 +382,21 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_fil
         tn.new_taxa(outgroups)
     tn.is_mutable = False
 
+    # Check for equal depth of all nodes
+    node_depths = compute_node_depths(taxonomy)
+    stats = collections.defaultdict(int)
+    for v in node_depths.itervalues():
+        stats[v] += 1
+    if len(stats) > 1:
+        logger.warn("The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:")
+        for k in sorted(stats.keys()):
+            logger.warn("* {} tips have {} ranked ancestors".format(stats[k], k))
+        logger.warn("If TACT-added tips are intruding into otherwise-monophyletic clades this should be corrected.")
+
     logger.info("Reading backbone".format(backbone))
 
     try:
-        tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="force-rooted", taxon_namespace=tn)
+        tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted", taxon_namespace=tn)
     except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
         logger.error("DendroPy error: {}".format(e.message))
         print """
