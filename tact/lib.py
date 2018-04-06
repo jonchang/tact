@@ -62,7 +62,6 @@ def optim_bd(ages, sampling):
         if (new_likelihood - likelihood) * 100 >= log(np.random.random()):
             likelihood = new_likelihood
             vec = new_vec
-    #import pdb; pdb.set_trace()
     return vec
 
 def optim_bd_scipy(ages, sampling):
