@@ -129,8 +129,6 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=N
     if list(get_short_branches(node)):
         logger.warn("{} short branches detected".format(len(list(get_short_branches(node)))))
 
-    node.locked = None
-
     return node
 
 def graft_node(graft_recipient, graft, stem=False):
@@ -510,6 +508,8 @@ For more details, run:
         fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff
         tree_tips = update_tree_view(tree)
+        # Reacquire the potentially new MRCA of this clade, with everything added
+        node = fastmrca.get(species)
         # Since only monophyletic nodes get to here, lock this clade
         lock_clade(node)
         if not is_binary(node):
