@@ -268,6 +268,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     all_possible_tips = get_tip_labels(taxonomy_tree)
 
     nnodes = len(taxonomy_tree.internal_nodes(exclude_seed_node=True))
+    full_results = list()
 
     start_time = time()
 
@@ -277,6 +278,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
         taxon_node, taxon_bitmask, birth, death = result
         if birth is None or death is None:
             return
+        full_results.append((taxon_node.label, birth, death))
         backbone_node = backbone_tree.mrca(leafset_bitmask=taxon_bitmask & backbone_bitmask)
         if backbone_node:
             backbone_node.annotations.add_new("birth", birth)
@@ -332,6 +334,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     diff = time() - start_time
     if diff > 1:
         logger.debug("FastMRCA calculation time: {:.1f} seconds".format(diff))
+    return full_results
 
 def update_tree_view(tree):
     # Stuff that DendroPy needs to keep a consistent view of the phylgoeny
@@ -429,7 +432,12 @@ For more details, run:
     fastmrca.initialize(tree)
     logger.debug("FastMRCA autotuned parameters: single-thread cutoff is {}".format(fastmrca.maxtax))
 
-    run_precalcs(taxonomy, tree, min_ccp)
+    precalc_res = run_precalcs(taxonomy, tree, min_ccp)
+    with open(output + ".rates.csv", "w") as wfile:
+        wfile.write("taxon,birth,death\n")
+        for row in precalc_res:
+            wfile.write(",".join([str(x) for x in row]) + "\n")
+
 
     initial_length = len(tree_tips)
 
