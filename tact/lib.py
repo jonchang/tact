@@ -253,7 +253,8 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
     """
     if told is None:
         told = max(ages)
-    assert max(ages) <= told
+    if len(ages) > 0:
+        assert max(ages) <= told
     if tyoung is None:
         tyoung = 0
 

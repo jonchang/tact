@@ -68,7 +68,6 @@ def get_birth_death_rates(node, sampfrac):
 
 def get_ages(node):
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
-    ages += [node.age]
     return ages
 
 def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
