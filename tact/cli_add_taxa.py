@@ -65,7 +65,10 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
 
 def get_birth_death_rates(node, sampfrac):
     if len(node.child_nodes()) == 0: # is a tip
-        return [math.log(1. / sampfrac) / node.parent_node.age, 0] # M-S estimate of rates
+        if sampfrac == 1:
+            return [1. / node.parent_node.age, 0]
+        else:
+            return [math.log(1. / sampfrac) / node.parent_node.age, 0] # M-S estimate of rates
     return optim_bd(get_ages(node), sampfrac)
 
 def get_ages(node):
