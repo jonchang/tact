@@ -48,6 +48,7 @@ def update_multiplier_freq(q, d=1.1):
 
 def optim_bd(ages, sampling):
     """Optimizes birth death using a cheap MCMC-like algorithm"""
+    return optim_bd_scipy(ages, sampling)
     new_vec = [0, 0]
     ages = np.sort(np.array(ages))[::-1]
     mm = max(ages)
@@ -67,7 +68,8 @@ def optim_bd(ages, sampling):
 def optim_bd_scipy(ages, sampling):
     """Optimizes birth death using Scipy"""
     from scipy.optimize import minimize
-    return minimize(lambda x: lik_constant(x, sampling, ages), [1., 0.02], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
+    init_b = log(float(len(ages))/sampling) / max(ages)
+    return minimize(lambda x: lik_constant(x, sampling, ages), [init_b, 0.0], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
 
 
 def get_lik(vec, rho, x):
