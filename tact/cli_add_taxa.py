@@ -64,11 +64,6 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     return (taxonomy_target, backbone_target)
 
 def get_birth_death_rates(node, sampfrac):
-    if len(node.child_nodes()) == 0: # is a tip
-        if sampfrac == 1:
-            return [1. / node.parent_node.age, 0]
-        else:
-            return [math.log(1. / sampfrac) / node.parent_node.age, 0] # M-S estimate of rates
     return optim_bd(get_ages(node), sampfrac)
 
 def get_ages(node):
@@ -247,7 +242,7 @@ def get_min_age(node):
     except ValueError:
         return 0.0
 
-def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node):
+def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node, ccp):
     taxon = taxon_node.label
     if not taxon:
         # ignore unlabeled ranks
@@ -260,7 +255,11 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node)
         return (taxon_node, None, None, None)
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     if mrca:
-        birth, death = get_birth_death_rates(mrca, len(mrca.leaf_nodes()) / len(taxon_node.leaf_nodes()))
+        extant = len(mrca.leaf_nodes())
+        total = len(taxon_node.leaf_nodes())
+        if total == 1 or extant > total or crown_capture_probability(total, extant) < ccp:
+            return (taxon_node, None, None, None)
+        birth, death = get_birth_death_rates(mrca, extant / total)
         return (taxon_node, all_bitmask, birth, death)
     else:
         return (taxon_node, None, None, None)
@@ -291,7 +290,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
         logger.debug("Precomputing rates serially since cores=1 ({}) or nnodes < 500 ({})".format(fastmrca.cores, nnodes))
         with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Calculating rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
             for node in progress:
-                annotate_result_node(process_node(backbone_tree, backbone_bitmask, all_possible_tips, node))
+                annotate_result_node(process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp))
     else:
         # While it would be incredibly easy to just run pool.unordered_imap
         # on everything, in practice this doesn't work because of the huge
@@ -321,7 +320,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
 
         # Submit to the pool and keep track of promises...
         promises = []
-        fn = functools.partial(process_node, backbone_tree, backbone_bitmask, all_possible_tips)
+        fn = functools.partial(process_node, backbone_tree, backbone_bitmask, all_possible_tips, min_ccp)
         for acc_nodes in buckets:
             promises.append(fastmrca.pool.map_async(fn, acc_nodes, len(acc_nodes)))
 
