@@ -68,7 +68,10 @@ def optim_bd(ages, sampling):
 def optim_bd_scipy(ages, sampling):
     """Optimizes birth death using Scipy"""
     from scipy.optimize import minimize
-    init_b = log(float(len(ages))/sampling) / max(ages)
+    if max(ages) < 0.000001:
+        init_b = 1e-3
+    else:
+        init_b = log(float(len(ages))/sampling) / max(ages)
     return minimize(lambda x: lik_constant(x, sampling, ages), [init_b, 0.0], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
 
 
