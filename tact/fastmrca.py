@@ -27,9 +27,9 @@ def initialize(phy, max_singlethread_taxa=None, nproc=multiprocessing.cpu_count(
     global pool
     global maxtax
     tree = phy
-    cores = nproc
+    cores = 1
     pool = multiprocessing.Pool(processes=cores)
-    maxtax = max_singlethread_taxa
+    maxtax = 1000000
     if not maxtax and cores == 1:
         maxtax = float('inf')
     if not maxtax:
