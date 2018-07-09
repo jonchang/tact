@@ -3,7 +3,7 @@ Adds tips to a backbone phylogeny using taxonomy simulated with birth-death mode
 """
 from setuptools import find_packages, setup
 
-dependencies = ['click', 'dendropy', 'numpy']
+dependencies = ['click', 'dendropy', 'numpy', 'scipy']
 
 setup(
     name='tact',
