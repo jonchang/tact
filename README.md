@@ -1,5 +1,7 @@
 # TACT - Taxonomy addition for complete trees
 
+[![Build Status](https://travis-ci.com/jonchang/tact.svg?token=CAAYReeKsDcnZM7jk2wY&branch=master)](https://travis-ci.com/jonchang/tact)
+
 Adds tips to a backbone phylogeny using taxonomy simulated with birth-death models
 
 
@@ -17,5 +19,6 @@ Simply run:
 
 To use it:
 
-    $ tact --help
+    $ tact_build_taxonomy --help
+    $ tact_add_taxa --help
 
