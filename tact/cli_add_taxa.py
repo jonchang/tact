@@ -265,14 +265,14 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
     if mrca:
         extant = len(mrca.leaf_nodes())
         total = len(taxon_node.leaf_nodes())
+        if extant > total:
+            logger.warn("MRCA: {} has {} extant species but should have {} total species".format(taxon, extant, total))
+            mrca_rates[taxon] = (birth, death, 0, "from {} (extant exceeds total)".format(parent))
+            return
         ccp = crown_capture_probability(total, extant)
         if total == 1:
             logger.debug("MRCA: {} is a singleton".format(taxon))
             mrca_rates[taxon] = (birth, death, ccp, "from {} (singleton)".format(parent))
-            return
-        if extant > total:
-            logger.warn("MRCA: {} has {} extant species but should have {} total species".format(taxon, extant, total))
-            mrca_rates[taxon] = (birth, death, ccp, "from {} (extant exceeds total)".format(parent))
             return
         if ccp < min_ccp:
             logger.debug("MRCA: {} has crown capture probability {} < {} ({}/{} species)".format(taxon, ccp, min_ccp, extant, total))
