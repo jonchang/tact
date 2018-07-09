@@ -510,7 +510,8 @@ For more details, run:
 
             # Generate a new tree
             new_tree = create_clade(tn, full_node_species, times)
-            new_node = graft_node(node, new_tree.seed_node, is_fully_locked(node))
+            # Update our current MRCA node (because we might have attached to stem)
+            node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp)
             # Stuff that DendroPy needs to keep a consistent view of the phylgoeny
             tree.calc_node_ages()
             tree.update_bipartitions()
@@ -519,8 +520,6 @@ For more details, run:
             extant_species = tree_tips.intersection(species)
             # We've added this clade so pop it off our stack
             full_clades.remove(clade)
-            if not is_binary(new_node):
-                raise ValueError("New grafted node is not binary!")
             if not is_binary(node):
                 raise ValueError("Tree is not binary!")
             bar_update()
