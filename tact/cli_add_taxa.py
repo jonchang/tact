@@ -512,8 +512,8 @@ For more details, run:
                 logger.info("    {}: skipping clade {} as all species already present in tree".format(taxon, clade))
                 full_clades.remove(clade)
                 continue
-            birth, death, times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
             logger.info("    {}: adding clade {} (n={})".format(taxon, clade, len(full_node.leaf_nodes())))
+            birth, death, times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
 
             if is_fully_locked(node):
                 logger.info("    {}: clade {} is fully locked, so attaching to stem".format(taxon, taxon))
