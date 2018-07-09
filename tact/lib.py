@@ -171,6 +171,8 @@ def crown_capture_probability(n, k):
     """
     if n < k:
         raise Exception("n must be greater than or equal to k (n={}, k={})".format(n, k))
+    if n == 1 and k == 1:
+        return 0 # not technically correct but it works for our purposes
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
 
 def get_monophyletic_node(tree, species):
