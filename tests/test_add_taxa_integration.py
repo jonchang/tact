@@ -13,6 +13,8 @@ def run_tact(script_runner, datadir, stem):
     assert result.returncode == 0
     output = stem + ".newick.tre"
     tacted = Tree.get(path=output, schema="newick")
+    ss = tacted.as_ascii_plot()
+    sys.stderr.write(ss)
     return (tacted, taxed, bbone)
 
 @pytest.mark.parametrize("execution_number", range(2))
@@ -21,8 +23,6 @@ def run_tact(script_runner, datadir, stem):
 def test_monophyly(script_runner, execution_number, datadir, stem):
     tacted, taxed, bbone = run_tact(script_runner, datadir, stem)
     extant = set([x.taxon.label for x in bbone.leaf_nodes()])
-    ss = tacted.as_ascii_plot()
-    sys.stderr.write(ss)
     for node in taxed.postorder_internal_node_iter(exclude_seed_node=True):
         label = node.label
         expected = set([x.taxon.label for x in node.leaf_nodes()])
