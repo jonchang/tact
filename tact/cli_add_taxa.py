@@ -83,11 +83,16 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     taxon = taxonomy_node.label
     birth, death, ccp, source = mrca_rates[taxon]
     if ccp < min_ccp:
-        new_told = backbone_node.parent_node.age
-        if told is not None:
-            logger.debug("    {}: tmax {} => {} because ccp {} < {}".format(taxon, told, new_told, ccp, min_ccp))
+        if backbone_node.parent_node:
+            new_told = backbone_node.parent_node.age
+            if told is not None:
+                logger.debug("    {}: tmax {} => {} because ccp {:.2f} < {}".format(taxon, told, new_told, ccp, min_ccp))
+            else:
+                logger.debug("    {}: tmax set to {} because ccp {:.2f} < {}".format(taxon, new_told, ccp, min_ccp))
         else:
-            logger.debug("    {}: tmax set to {} because ccp {} < {}".format(taxon, new_told, ccp, min_ccp))
+            # TODO: check for a root edge and graft a fake node above that
+            new_told = backbone_node.age
+            logger.debug("    {}: tmax set to {} because even though ccp {:.2f} < {} clade is tree root".format(taxon, new_told, ccp, min_ccp))
         told = new_told
     n_extant = len(backbone_node.leaf_nodes())
     n_total = len(taxonomy_node.leaf_nodes())
