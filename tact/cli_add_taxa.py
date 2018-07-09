@@ -110,6 +110,7 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     if len(original_backbone_node.leaf_nodes()) == 1 and told is None:
         # attach to stem in the case of a singleton
         told = original_backbone_node.parent_node.age
+    logger.debug("Getting {} new times for clade {}, b={}, d={}, tmax={}, tmin={}".format(num_new_times, original_taxonomy_node.label, birth, death, told, tyoung))
     times = get_new_times(get_ages(original_backbone_node), birth, death, num_new_times, told, tyoung)
     return birth, death, ccp, times
 
@@ -361,21 +362,18 @@ def compute_node_depths(tree):
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
 @click.option("--cores", help="maximum number of cores to use for parallel operations", type=int)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-@click.option("--log", "log_file", help="if verbose output is enabled, send it to this file instead of standard output")
-def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose, log_file):
+def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
 
+    logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)
     elif verbose == 1:
         logger.setLevel(logging.INFO)
     else:
         logger.setLevel(logging.WARNING)
-    if log_file:
-        logger.addHandler(logging.FileHandler(log_file))
-    else:
         logger.addHandler(logging.StreamHandler())
 
 
