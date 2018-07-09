@@ -37,7 +37,7 @@ def test_monophyly(script_runner, execution_number, datadir, stem):
         assert expected == actual
 
 @pytest.mark.parametrize('execution_number', range(2))
-@pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch", "stem"])
+@pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch"])
 @pytest.mark.script_launch_mode('subprocess')
 def test_short_branch(script_runner, execution_number, datadir, stem):
     tacted, taxed, bbone = run_tact(script_runner, datadir, stem)
