@@ -71,6 +71,6 @@ def test_short_branch_problems(script_runner, execution_number):
 
     n_short = 0
     for leaf in tacted.leaf_node_iter():
-        if leaf.edge.length < 0.5:
+        if leaf.edge.length < 0.1:
             n_short += 1
-    assert n_short < 10
+    assert n_short < 15
