@@ -262,27 +262,27 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
         mrca_rates[taxon] = (birth, death, 0.0, "from {} (unsampled)".format(parent))
         return
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
-    if mrca:
-        extant = len(mrca.leaf_nodes())
-        total = len(taxon_node.leaf_nodes())
-        if extant > total:
-            logger.warn("MRCA: {} has {} extant species but should have {} total species".format(taxon, extant, total))
-            mrca_rates[taxon] = (birth, death, 0, "from {} (extant exceeds total)".format(parent))
-            return
-        ccp = crown_capture_probability(total, extant)
-        if total == 1:
-            logger.debug("MRCA: {} is a singleton".format(taxon))
-            mrca_rates[taxon] = (birth, death, ccp, "from {} (singleton)".format(parent))
-            return
-        if ccp < min_ccp:
-            logger.debug("MRCA: {} has crown capture probability {} < {} ({}/{} species)".format(taxon, ccp, min_ccp, extant, total))
-            mrca_rates[taxon] = (birth, death, ccp, "from {} (crown capture probability)".format(parent))
-            return
-        birth, death = get_birth_death_rates(mrca, extant / total)
-        mrca_rates[taxon] = (birth, death, ccp, "computed")
-    else:
+    if not species.issuperset(get_tip_labels(mrca)):
         logger.debug("MRCA: {} not monophyletic in backbone".format(taxon))
         mrca_rates[taxon] = (birth, death, 0.0, "from {} (not monophyletic)".format(parent))
+        return
+    extant = len(mrca.leaf_nodes())
+    total = len(taxon_node.leaf_nodes())
+    if extant > total:
+        logger.warn("MRCA: {} has {} extant species but should have {} total species".format(taxon, extant, total))
+        mrca_rates[taxon] = (birth, death, 0, "from {} (extant exceeds total)".format(parent))
+        return
+    ccp = crown_capture_probability(total, extant)
+    if total == 1:
+        logger.debug("MRCA: {} is a singleton".format(taxon))
+        mrca_rates[taxon] = (birth, death, ccp, "from {} (singleton)".format(parent))
+        return
+    if ccp < min_ccp:
+        logger.debug("MRCA: {} has crown capture probability {} < {} ({}/{} species)".format(taxon, ccp, min_ccp, extant, total))
+        mrca_rates[taxon] = (birth, death, ccp, "from {} (crown capture probability)".format(parent))
+        return
+    birth, death = get_birth_death_rates(mrca, extant / total)
+    mrca_rates[taxon] = (birth, death, ccp, "computed")
 
 def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     global mrca_rates
