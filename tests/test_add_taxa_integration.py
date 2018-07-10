@@ -41,7 +41,7 @@ def test_monophyly(script_runner, execution_number, datadir, stem):
         assert expected == actual
 
 @pytest.mark.parametrize('execution_number', execution_number)
-@pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch"])
+@pytest.mark.parametrize("stem", ["weirdness", "short_branch"])
 @pytest.mark.script_launch_mode('subprocess')
 def test_short_branch(script_runner, execution_number, datadir, stem):
     tacted, taxed, bbone = run_tact(script_runner, datadir, stem)
@@ -49,7 +49,7 @@ def test_short_branch(script_runner, execution_number, datadir, stem):
     for leaf in tacted.leaf_node_iter():
         if leaf.edge.length < 0.1:
             n_short += 1
-    assert n_short <= 16
+    assert n_short <= 15
 
 
 @pytest.mark.parametrize('execution_number', execution_number)
