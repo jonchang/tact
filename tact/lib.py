@@ -116,10 +116,8 @@ def p1(t, l, m, rho):
     # Optimized version of p1 using common subexpression elimination and strength reduction from
     # exponentiation to multiplication. /thinking face emoji
     try:
-        lmt = exp(-(l-m)*t)
-        t1 = rho * (l - m)
-        t2 = rho * l + (l * (1 - rho) - m) * lmt
-        return t1 * t1 * lmt/t2 * t2
+        ert = np.exp(-(l-m)*t, dtype=np.float64)
+        return rho * (l - m)**2 * ert/(rho*l+(l*(1-rho)-m)*ert)**2
     except OverflowError:
         return float(p1_exact(t, l, m, rho))
 
