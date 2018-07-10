@@ -295,9 +295,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         except ZeroDivisionError:
             temp = 0.0
         xnew = 1 / (death - birth) * log((1 - (r + temp) * const * birth) / (1 - (r + temp) * const * death))
-        ages.append(xnew)
         only_new.append(xnew)
-        ages.sort(reverse=True)
         missing -= 1
     only_new.sort(reverse=True)
     return only_new

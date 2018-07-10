@@ -21,6 +21,11 @@ import collections
 import csv
 
 logger = logging.getLogger(__name__)
+# Speed up logging for pypy
+logging._srcfile = None
+logging.logThreads = 0
+logging.logProcesses = 0
+logging.logMultiprocessing = 0
 
 # Third party
 import dendropy
