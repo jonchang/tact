@@ -116,7 +116,7 @@ def p1(t, l, m, rho):
     # Optimized version of p1 using common subexpression elimination and strength reduction from
     # exponentiation to multiplication. /thinking face emoji
     try:
-        lmt = np.exp(-(l-m)*t)
+        lmt = exp(-(l-m)*t)
         t1 = rho * (l - m)
         t2 = rho * l + (l * (1 - rho) - m) * lmt
         return t1 * t1 * lmt/t2 * t2
