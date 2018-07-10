@@ -246,7 +246,7 @@ def is_fully_locked(node):
 
 def get_min_age(node):
     try:
-        return min([x.head_node.age for x in edge_iter(node) if x.label is not "locked"])
+        return min([x.head_node.age for x in edge_iter(node) if x.label != "locked"])
     except ValueError:
         return 0.0
 
