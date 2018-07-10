@@ -530,7 +530,7 @@ For more details, run:
             times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
 
             if is_fully_locked(node):
-                logger.info("    {}: clade {} is fully locked, so attaching to stem".format(taxon, taxon))
+                logger.info("    {}: is fully locked, so attaching to stem".format(taxon))
                 # Must attach to stem for this clade, so generate a time on the stem lineage
                 times2 = get_new_branching_times(node, taxon_node, tree, min_ccp=min_ccp, told=node.parent_node.age, tyoung=node.age, num_new_times=1)
                 # Drop the oldest time and add on our new time on the stem lineage
