@@ -311,7 +311,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
 
     if fastmrca.cores == 1 or nnodes < 500:
         logger.debug("Precomputing rates serially since cores=1 ({}) or nnodes < 500 ({})".format(fastmrca.cores, nnodes))
-        with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Calculating rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
+        with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
             for node in progress:
                 # updates global mrca_rates as a side effect
                 process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death)
@@ -340,7 +340,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
         buckets.sort(key=lambda x: len(x))
         logger.debug("Precomputing rates in parallel, worker assignments ({} cores): {}".format(len(buckets), [len(x) for x in buckets]))
 
-        progress = click.progressbar(label="Calculating rates", length=nnodes, show_pos=True)
+        progress = click.progressbar(label="Rates", length=nnodes, show_pos=True)
 
         # Submit to the pool and keep track of promises...
         promises = []
@@ -466,7 +466,7 @@ For more details, run:
 
     initial_length = len(tree_tips)
 
-    bar = click.progressbar(label="Adding taxa",
+    bar = click.progressbar(label="TACT",
             length=len(all_possible_tips) - initial_length,
             show_pos=True,
             item_show_func=lambda x: x)
@@ -512,7 +512,6 @@ For more details, run:
             lock_clade(node)
             logger.info("    {}: all species already present in tree".format(taxon))
             continue
-
 
         clade_ranks = [(clade, taxonomy.find_node_with_label(clade).level()) for clade in clades_to_generate]
 
