@@ -103,13 +103,16 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     if len(backbone_node.leaf_nodes()) == 1 and told is None:
         # attach to stem in the case of a singleton
         told = backbone_node.parent_node.age
-        logger.debug("    {}: tmax set to {} because taxon is singleton".format(taxon, told))
+        logger.debug("    {}: tmax set to {:.2f} because taxon is singleton".format(taxon, told))
     if told is None:
         told = max(ages)
-        logger.debug("    {}: tmax set to {} because of max age".format(taxon, told))
-    logger.debug("    {}: {} new times: b={}, d={}, tmax={}, tmin={}".format(taxon, num_new_times, birth, death, told, tyoung))
+        logger.debug("    {}: tmax set to {:.2f} because of max age".format(taxon, told))
+    logger.debug("    {}: {} new times: b={:.2f}, d={:.2f}, tmax={:.2f}, tmin={:.2f}".format(taxon, num_new_times, birth, death, told, tyoung))
     times = get_new_times(ages, birth, death, num_new_times, told, tyoung)
-    logger.debug(("    {}: " + ", ".join(["{:.2f}" for x in times])).format(taxon, *times))
+    if len(times) > 5:
+        logger.debug("    {}: {:.2f}..{:.2f}".format(taxon, times[0], times[-1]))
+    else:
+        logger.debug(("    {}: " + ", ".join(["{:.2f}" for x in times])).format(taxon, *times))
     return times
 
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
@@ -285,7 +288,7 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
         mrca_rates[taxon] = (birth, death, ccp, "from {} (singleton)".format(parent))
         return
     if ccp < min_ccp:
-        logger.debug("MRCA: {} has crown capture probability {} < {} ({}/{} species)".format(taxon, ccp, min_ccp, extant, total))
+        logger.debug("MRCA: {} has crown capture probability {:.2f} < {:.2f} ({}/{} species)".format(taxon, ccp, min_ccp, extant, total))
         mrca_rates[taxon] = (birth, death, ccp, "from {} (crown capture probability)".format(parent))
         return
     birth, death = get_birth_death_rates(mrca, extant / total)
@@ -304,6 +307,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     extant_bitmask = backbone_bitmask & backbone_tree.taxon_namespace.taxa_bitmask(labels=all_possible_tips)
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     root_birth, root_death = get_birth_death_rates(root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips))
+    logger.debug("Computing root birth and death rates.")
 
     if fastmrca.cores == 1 or nnodes < 500:
         logger.debug("Precomputing rates serially since cores=1 ({}) or nnodes < 500 ({})".format(fastmrca.cores, nnodes))
