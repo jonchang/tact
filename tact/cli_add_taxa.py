@@ -230,7 +230,8 @@ def create_clade(namespace, species, ages):
     [x.annotations.add_new("creation_method", "create_clade") for x in tree.preorder_node_iter()]
     assert is_binary(tree.seed_node.child_nodes()[0])
     tree.set_edge_lengths_from_node_ages(error_on_negative_edge_lengths=True)
-    lock_clade(tree.seed_node)
+    # Lock the child of the seed node so that things can still attach to the stem of this new clade
+    lock_clade(tree.seed_node.child_nodes()[0])
     if list(get_short_branches(tree.seed_node)):
         logger.warn("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
     return tree
@@ -395,7 +396,6 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
-
     logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)

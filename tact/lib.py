@@ -14,6 +14,9 @@ import dendropy
 import numpy as np
 from scipy.optimize import minimize
 
+# Raise on overflow
+np.seterr(all='raise')
+
 # Initialize grid for birthdeath grid search
 births = np.linspace(sys.float_info.epsilon, 5, num=100)
 deaths = np.linspace(0, 5, num=100)
@@ -75,7 +78,7 @@ def optim_bd_scipy(ages, sampling):
         init_r = 1e-3
     else:
         init_r = log(float(len(ages))/sampling) / max(ages)
-    bounds = ((sys.float_info.min, None), (0, 1 - sys.float_info.epsilon))
+    bounds = ((1e-6, None), (0, 1 - 1e-6))
     return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
 
 def optim_bd(ages, sampling):
@@ -100,7 +103,7 @@ def p0_exact(t, l, m, rho):
 def p0(t, l, m, rho):
     try:
         return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
-    except OverflowError:
+    except FloatingPointError:
         return float(p0_exact(t, l, m, rho))
 
 def p1_exact(t, l, m, rho):
