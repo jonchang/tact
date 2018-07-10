@@ -228,8 +228,15 @@ def create_clade(namespace, species, ages):
     return tree
 
 def lock_clade(node):
+    pre = count_locked(node)
     for edge in edge_iter(node):
         edge.label = "locked"
+    post = count_locked(node)
+    if pre != post:
+        logger.debug("locking clade: {} => {}".format(pre, post))
+
+def count_locked(node):
+    sum([x.label == "locked" for x in edge_iter(node)])
 
 def is_fully_locked(node):
     return all([x.label == "locked" for x in edge_iter(node)])
