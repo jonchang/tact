@@ -26,6 +26,9 @@ def get_bd(r, a):
     d = b - r
     return b, d
 
+def get_ra(b, d):
+    return (b - d, d / b)
+
 def optim_bd_r(ages, sampling):
     """Optimizes birth death using TreePar and R"""
     script = """cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = "L-BFGS-B")$par, " dum")"""
@@ -65,13 +68,18 @@ def optim_bd_mcmc(ages, sampling):
             vec = new_vec
     return vec
 
+def wrapped_lik_constant(x, sampling, ages):
+    return lik_constant(get_bd(*x), sampling, ages)
+
+
 def optim_bd_scipy(ages, sampling):
     """Optimizes birth death using Scipy"""
     if max(ages) < 0.000001:
-        init_b = 1e-3
+        init_r = 1e-3
     else:
-        init_b = log(float(len(ages))/sampling) / max(ages)
-    return minimize(lambda x: lik_constant(x, sampling, ages), [init_b, 0.0], bounds=((sys.float_info.epsilon, None), (0, None)), method="TNC")["x"].tolist()
+        init_r = log(float(len(ages))/sampling) / max(ages)
+    bounds = ((sys.float_info.min, None), (0, 1 - sys.float_info.epsilon))
+    return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
 
 def optim_bd(ages, sampling):
     return optim_bd_scipy(ages, sampling)
