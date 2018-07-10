@@ -304,10 +304,10 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     start_time = time()
 
     # Compute the rate of the root taxonomic node to use as a default value...
+    logger.debug("Computing root birth and death rates.")
     extant_bitmask = backbone_bitmask & backbone_tree.taxon_namespace.taxa_bitmask(labels=all_possible_tips)
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     root_birth, root_death = get_birth_death_rates(root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips))
-    logger.debug("Computing root birth and death rates.")
 
     if fastmrca.cores == 1 or nnodes < 500:
         logger.debug("Precomputing rates serially since cores=1 ({}) or nnodes < 500 ({})".format(fastmrca.cores, nnodes))
