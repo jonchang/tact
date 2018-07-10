@@ -4,12 +4,14 @@ import os
 
 from dendropy import Tree
 
+execution_number = range(5)
+
 def run_tact(script_runner, datadir, stem):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
     taxed = Tree.get(path=taxonomy, schema="newick")
     bbone = Tree.get(path=backbone, schema="newick")
-    result = script_runner.run("tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", stem)
+    result = script_runner.run("tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", stem, "-vv")
     assert result.returncode == 0
     output = stem + ".newick.tre"
     tacted = Tree.get(path=output, schema="newick")
@@ -17,7 +19,7 @@ def run_tact(script_runner, datadir, stem):
     sys.stderr.write(ss)
     return (tacted, taxed, bbone)
 
-@pytest.mark.parametrize("execution_number", range(2))
+@pytest.mark.parametrize("execution_number", execution_number)
 @pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch", "stem"])
 @pytest.mark.script_launch_mode('subprocess')
 def test_monophyly(script_runner, execution_number, datadir, stem):
@@ -36,7 +38,7 @@ def test_monophyly(script_runner, execution_number, datadir, stem):
         actual = set([x.taxon.label for x in mrca.leaf_nodes()])
         assert expected == actual
 
-@pytest.mark.parametrize('execution_number', range(2))
+@pytest.mark.parametrize('execution_number', execution_number)
 @pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch"])
 @pytest.mark.script_launch_mode('subprocess')
 def test_short_branch(script_runner, execution_number, datadir, stem):
@@ -46,3 +48,10 @@ def test_short_branch(script_runner, execution_number, datadir, stem):
         if leaf.edge.length < 0.1:
             n_short += 1
     assert n_short < 15
+
+
+@pytest.mark.parametrize('execution_number', execution_number)
+@pytest.mark.parametrize("stem", ["weirdness"])
+@pytest.mark.script_launch_mode('subprocess')
+def test_stem_clade_attachment(script_runner, execution_number, datadir, stem):
+    tacted, taxed, bbone = run_tact(script_runner, datadir, "weirdness")
