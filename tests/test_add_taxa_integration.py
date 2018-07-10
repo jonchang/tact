@@ -49,7 +49,7 @@ def test_short_branch(script_runner, execution_number, datadir, stem):
     for leaf in tacted.leaf_node_iter():
         if leaf.edge.length < 0.1:
             n_short += 1
-    assert n_short <= 15
+    assert n_short <= 16
 
 
 @pytest.mark.parametrize('execution_number', execution_number)

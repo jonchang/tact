@@ -85,7 +85,58 @@ def get_lik(vec, rho, x):
     lik3= - (root + 1) * np.log(1 - p0(x[0], l, m, rho))
     return lik1+lik2+lik3
 
-def lik_constant(vec, rho, t, root=1, survival=1):
+def p0_exact(t, l, m, rho):
+    t = D(t)
+    l = D(l)
+    m = D(m)
+    rho = D(rho)
+    return D(1) - rho * (l - m) / (rho * l + (l * (D(1) - rho) - m) * (-(l - m) * t).exp())
+
+def p0(t, l, m, rho):
+    try:
+        return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
+    except OverflowError:
+        return float(p0_exact(t, l, m, rho))
+
+def p1_exact(t, l, m, rho):
+    """Exact version of p1 using Decimal math."""
+    t = D(t)
+    l = D(l)
+    m = D(m)
+    rho = D(rho)
+    return rho*(l-m)**D(2) * (-(l-m)*t).exp()/(rho*l+(l*(1-rho)-m)*(-(l-m)*t).exp())**D(2)
+
+def p1_orig(t, l, m, rho):
+    try:
+        return rho*(l-m)**2 * np.exp(-(l-m)*t)/(rho*l+(l*(1-rho)-m)*np.exp(-(l-m)*t))**2
+    except OverflowError:
+        return float(p1_exact(t, l, m, rho))
+
+def p1(t, l, m, rho):
+    # Optimized version of p1 using common subexpression elimination and strength reduction from
+    # exponentiation to multiplication. /thinking face emoji
+    try:
+        lmt = np.exp(-(l-m)*t)
+        t1 = rho * (l - m)
+        t2 = rho * l + (l * (1 - rho) - m) * lmt
+        return t1 * t1 * lmt/t2 * t2
+    except OverflowError:
+        return float(p1_exact(t, l, m, rho))
+
+def intp1_exact(t, l, m):
+    """Exact version of intp1 using Decimal math."""
+    l = D(l)
+    m = D(m)
+    t = D(t)
+    return (D(1) - (-(l - m) * t).exp())/(l - m * (-(l - m) * t).exp())
+
+def intp1(t, l, m):
+    try:
+        return (1 - exp(-(l - m) * t))/(l - m * exp(-(l - m) * t))
+    except OverflowError:
+        return float(intp1_exact(t, l, m))
+
+def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
     """
     Calculates the likelihood of a constant-rate birth-death process, conditioned
     on the waiting times of a phylogenetic tree and degree of incomplete sampling.
@@ -111,53 +162,13 @@ def lik_constant(vec, rho, t, root=1, survival=1):
         m = vec[1]
         t.sort(reverse=True)
         lik = (root + 1) * log(p1(t[0], l, m, rho))
-        for i in range(1, len(t)):
-            lik += log(l) + log(p1(t[i], l, m, rho))
+        for tt in t[1:]:
+            lik += log(l) + log(p1(tt, l, m, rho))
         if survival == 1:
             lik -= (root + 1) * log(1 - p0(t[0], l, m, rho))
         return -lik
     except ValueError:
         return sys.float_info.max
-
-def p0_exact(t, l, m, rho):
-    t = D(t)
-    l = D(l)
-    m = D(m)
-    rho = D(rho)
-    return D(1) - rho * (l - m) / (rho * l + (l * (D(1) - rho) - m) * (-(l - m) * t).exp())
-
-def p0(t, l, m, rho):
-    try:
-        return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
-    except OverflowError:
-        return float(p0_exact(t, l, m, rho))
-
-def p1_exact(t, l, m, rho):
-    """Exact version of p1 using Decimal math."""
-    t = D(t)
-    l = D(l)
-    m = D(m)
-    rho = D(rho)
-    return rho*(l-m)**D(2) * (-(l-m)*t).exp()/(rho*l+(l*(1-rho)-m)*(-(l-m)*t).exp())**D(2)
-
-def p1(t, l, m, rho):
-    try:
-        return rho*(l-m)**2 * np.exp(-(l-m)*t)/(rho*l+(l*(1-rho)-m)*np.exp(-(l-m)*t))**2
-    except OverflowError:
-        return float(p1_exact(t, l, m, rho))
-
-def intp1_exact(t, l, m):
-    """Exact version of intp1 using Decimal math."""
-    l = D(l)
-    m = D(m)
-    t = D(t)
-    return (D(1) - (-(l - m) * t).exp())/(l - m * (-(l - m) * t).exp())
-
-def intp1(t, l, m):
-    try:
-        return (1 - exp(-(l - m) * t))/(l - m * exp(-(l - m) * t))
-    except OverflowError:
-        return float(intp1_exact(t, l, m))
 
 
 def crown_capture_probability(n, k):
