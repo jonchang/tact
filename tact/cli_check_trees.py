@@ -63,7 +63,7 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
 @click.option("--output", type=click.File("wb"), help="Output CSV file report (defaults to standard output)", default="-")
 @click.option("--cores", help="number of parallel cores to use", default=multiprocessing.cpu_count(), type=int)
 @click.option("--chunksize", help="number of tree nodes to allocate to each core", type=int)
-def main(simtaxed, backbone, taxonomy, output, cores, chunksize):
+def main(simulated, backbone, taxonomy, output, cores, chunksize):
     """
     Check a SIMULATED phylogeny for consistency with its backbone source tree and a taxonomy.
 
@@ -77,19 +77,19 @@ def main(simtaxed, backbone, taxonomy, output, cores, chunksize):
     click.echo("Taxonomy OK", err=True)
 
     r1 = pool.apply_async(get_tree, [backbone, tn])
-    r2 = pool.apply_async(get_tree, [simtaxed, tn])
+    r2 = pool.apply_async(get_tree, [simulated, tn])
 
     backbone = r1.get()
     click.echo("Backbone OK", err=True)
-    simtaxed = r2.get()
+    simulated = r2.get()
     click.echo("Simulated OK", err=True)
 
     bb_tips = get_tip_labels(backbone)
-    st_tips = get_tip_labels(simtaxed)
+    st_tips = get_tip_labels(simulated)
     all_possible_tips = get_tip_labels(taxonomy)
 
     # Start calculating ASAP
-    wrap = functools.partial(analyze_taxon, bb_tips, st_tips, backbone, simtaxed)
+    wrap = functools.partial(analyze_taxon, bb_tips, st_tips, backbone, simulated)
     nnodes = len(taxonomy.internal_nodes(exclude_seed_node=True))
     if chunksize is None:
         chunksize = max(5, math.ceil(nnodes / cores / 10))
@@ -109,7 +109,8 @@ def main(simtaxed, backbone, taxonomy, output, cores, chunksize):
 
     with click.progressbar(it, length=nnodes) as prog:
         for result in prog:
-            writer.writerow(result)
+            if result:
+                writer.writerow(result)
 
 if __name__ == '__main__':
     main()

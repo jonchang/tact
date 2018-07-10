@@ -17,6 +17,8 @@ def run_tact(script_runner, datadir, stem):
     tacted = Tree.get(path=output, schema="newick")
     ss = tacted.as_ascii_plot()
     sys.stderr.write(ss)
+    result = script_runner.run("tact_check_results", output, "--taxonomy", taxonomy, "--backbone", backbone, "--output", stem + ".check.csv", "--cores=1")
+    assert result.returncode == 0
     return (tacted, taxed, bbone)
 
 @pytest.mark.parametrize("execution_number", execution_number)
@@ -47,7 +49,7 @@ def test_short_branch(script_runner, execution_number, datadir, stem):
     for leaf in tacted.leaf_node_iter():
         if leaf.edge.length < 0.1:
             n_short += 1
-    assert n_short < 15
+    assert n_short <= 15
 
 
 @pytest.mark.parametrize('execution_number', execution_number)
