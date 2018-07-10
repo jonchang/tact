@@ -110,7 +110,7 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     logger.debug("    {}: {} new times: b={}, d={}, tmax={}, tmin={}".format(taxon, num_new_times, birth, death, told, tyoung))
     times = get_new_times(ages, birth, death, num_new_times, told, tyoung)
     logger.debug(("    {}: " + ", ".join(["{:.2f}" for x in times])).format(taxon, *times))
-    return birth, death, times
+    return times
 
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
     # lol, graft_node already accounts for this so don't do it here!!
@@ -517,12 +517,12 @@ For more details, run:
                 full_clades.remove(clade)
                 continue
             logger.info("    {}: adding clade {} (n={})".format(taxon, clade, len(full_node.leaf_nodes())))
-            birth, death, times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
+            times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
 
             if is_fully_locked(node):
                 logger.info("    {}: clade {} is fully locked, so attaching to stem".format(taxon, taxon))
                 # Must attach to stem for this clade, so generate a time on the stem lineage
-                _, _, times2 = get_new_branching_times(node, taxon_node, tree, min_ccp=min_ccp, told=node.parent_node.age, tyoung=node.age, num_new_times=1)
+                times2 = get_new_branching_times(node, taxon_node, tree, min_ccp=min_ccp, told=node.parent_node.age, tyoung=node.age, num_new_times=1)
                 # Drop the oldest time and add on our new time on the stem lineage
                 times.sort()
                 times.pop()
@@ -556,7 +556,7 @@ For more details, run:
         # Taxon spray
         logger.info("    {}: adding {} new species".format(taxon, len(species.difference(extant_species))))
         node = fastmrca.get(extant_species)
-        birth, death, times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp)
+        times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp)
         fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff
         tree_tips = update_tree_view(tree)
