@@ -277,7 +277,8 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
                 temp = ranks[i] * (intp1(times[i-1], birth, death) - intp1(times[i], birth, death))
                 distrranks.append(temp)
             try:
-                distrranks = [x/sum(distrranks) for x in distrranks]
+                dsum = sum(distrranks)
+                distrranks = [x/dsum for x in distrranks]
                 for i in range(1, len(distrranks)):
                     distrranks[i] = distrranks[i] + distrranks[i-1]
                 r = random.uniform(0, 1)
