@@ -567,11 +567,9 @@ For more details, run:
         logger.info("    {}: adding {} new species".format(taxon, len(species.difference(extant_species))))
         node = fastmrca.get(extant_species)
         times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp)
-        fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
+        node = fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff
         tree_tips = update_tree_view(tree)
-        # Reacquire the potentially new MRCA of this clade, with everything added
-        node = fastmrca.get(species)
         # Since only monophyletic nodes get to here, lock this clade
         lock_clade(node)
         if not is_binary(node):
