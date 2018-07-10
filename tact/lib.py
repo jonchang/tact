@@ -21,10 +21,7 @@ params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
 
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""
-    r = float(r)
-    b = r / (1 + float(a))
-    d = b - r
-    return b, d
+    return -r / (a-1), -a*r/(a-1)
 
 def get_ra(b, d):
     return (b - d, d / b)
