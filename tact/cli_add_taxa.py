@@ -484,20 +484,24 @@ For more details, run:
             bar_update()
             continue
 
+        # Check for monophyly for this node
+        node = fastmrca.get(extant_species)
+        if not node:
+            logger.info("    {}: is not monophyletic".format(taxon))
+            continue
+
         if extant_species == species:
-            # Everything sampled, so skip this
+            # Everything sampled and monophyletic, so skip this
+            lock_clade(node)
             logger.debug("    {}: all species accounted for".format(taxon))
             continue
 
         if tree_tips.issuperset(species):
             # XXX: Does this check ever get triggered?
+            lock_clade(node)
             logger.info("    {}: all species already present in tree".format(taxon))
             continue
 
-        node = fastmrca.get(extant_species)
-        if not node:
-            logger.info("    {}: is not monophyletic".format(taxon))
-            continue
 
         clade_ranks = [(clade, taxonomy.find_node_with_label(clade).level()) for clade in clades_to_generate]
 
