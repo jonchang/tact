@@ -527,7 +527,8 @@ For more details, run:
                 full_clades.remove(clade)
                 continue
             logger.info("    {}: adding clade {} (n={})".format(taxon, clade, len(full_node.leaf_nodes())))
-            times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp, num_new_times=len(full_node_species))
+            # Generate all times needed to attach to the main clade
+            times = get_new_branching_times(node, taxon_node, tree, tyoung=0, min_ccp=min_ccp, num_new_times=len(full_node_species))
 
             if is_fully_locked(node):
                 logger.info("    {}: is fully locked, so attaching to stem".format(taxon))
@@ -537,6 +538,16 @@ For more details, run:
                 times.sort()
                 times.pop()
                 times.append(times2.pop())
+            else:
+                # Even if the main clade isn't fully locked, it might have a constraint on a valid attachment point
+                min_age = get_min_age(node)
+                if min_age > 0 and max(times) < min_age:
+                    logger.info("    {}: has a minimum age constraint {:.2f} but oldest generated time was {:.2f}".format(taxon, min_age, max(times)))
+                    times2 = get_new_branching_times(node, taxon_node, tree, tyoung=min_age, min_ccp=min_ccp, num_new_times=1)
+                    # Drop the oldest time and add on our new time on the stem lineage
+                    times.sort()
+                    times.pop()
+                    times.append(times2.pop())
 
             # Generate a new tree
             new_tree = create_clade(tn, full_node_species, times)
