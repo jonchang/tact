@@ -77,7 +77,8 @@ def optim_bd_scipy(ages, sampling):
     if max(ages) < 0.000001:
         init_r = 1e-3
     else:
-        init_r = log(float(len(ages))/sampling) / max(ages)
+        # Magallon-Sanderson crown estimator
+        init_r = (log((len(ages) + 1)/sampling) - log(2)) / max(ages)
     bounds = ((1e-6, None), (0, 1 - 1e-6))
     return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
 
