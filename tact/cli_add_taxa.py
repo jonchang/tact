@@ -297,7 +297,9 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
         logger.debug("MRCA: {} has crown capture probability {:.2f} < {:.2f} ({}/{} species)".format(taxon, ccp, min_ccp, extant, total))
         mrca_rates[taxon] = (birth, death, ccp, "from {} (crown capture probability)".format(parent))
         return
-    birth, death = get_birth_death_rates(mrca, extant / total)
+    sf = extant / total
+    birth, death = get_birth_death_rates(mrca, sf)
+    logger.debug("MRCA: {} b={}, d={}, sf={}, ccp={}".format(taxon, birth, death, sf, ccp))
     mrca_rates[taxon] = (birth, death, ccp, "computed")
 
 def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
