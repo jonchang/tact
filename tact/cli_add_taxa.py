@@ -600,8 +600,3 @@ For more details, run:
 
 if __name__ == '__main__':
     main()
-
-"""
-tmp = tree.extract_tree_with_taxa([x.taxon for x in node.leaf_iter()])
-tmp.write_to_path("tmp.tre", schema="newick")
-"""
