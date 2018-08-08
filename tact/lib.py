@@ -40,7 +40,6 @@ def optim_bd_r(ages, sampling):
 def optim_bd_grid(ages, sampling):
     """Optimizes birth death using a grid search"""
     res = [lik_constant(x, sampling, ages) for x in params]
-    #import pdb; pdb.set_trace()
     return params[np.argmin(res)]
 
 def update_multiplier_freq(q, d=1.1):
@@ -123,7 +122,7 @@ def p1_orig(t, l, m, rho):
 
 def p1(t, l, m, rho):
     # Optimized version of p1 using common subexpression elimination and strength reduction from
-    # exponentiation to multiplication. /thinking face emoji
+    # exponentiation to multiplication.
     try:
         ert = np.exp(-(l-m)*t, dtype=np.float64)
         return rho * (l - m)**2 * ert/(rho*l+(l*(1-rho)-m)*ert)**2
@@ -250,8 +249,7 @@ def get_short_branches(node):
         if edge.length <= 0.001:
             yield edge
 
-# From TreeSim::corsim
-# N. Cusimano, T. Stadler, S. Renner. A new method for handling missing species in diversification analysis applicable to randomly or non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
+# TODO: This could probably be optimized
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
     """
     Simulates new speciation events in an incomplete phylogeny assuming a

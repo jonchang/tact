@@ -121,10 +121,6 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     return times
 
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
-    # lol, graft_node already accounts for this so don't do it here!!
-    #if stem:
-        #node = node.parent_node
-
     for new_species, new_age in itertools.izip(new_taxa, times):
         new_node = dendropy.Node()
         new_node.annotations.add_new("creation_method", "fill_new_taxa")
