@@ -79,7 +79,7 @@ def bitmask(labels):
     if len(labels) < maxtax:
         return tn.taxa_bitmask(labels=labels)
     f = functools.partial(fastmrca_getter, tn)
-    full_bitmask = 0L
+    full_bitmask = 0
     for res in pool.map(f, chunks(labels, int(math.ceil(len(labels) / cores))), chunksize=1):
         full_bitmask |= res
     return full_bitmask
@@ -101,13 +101,13 @@ def cleanup():
 def chunks(l, n):
     """Yield successive `n`-sized chunks from `l`."""
     l = list(l)
-    for i in xrange(0, len(l), n):
+    for i in range(0, len(l), n):
         yield l[i:i + n]
 
 def fastmrca_getter(tn, x):
     """Helper function for submitting stuff to the pool."""
     taxa = tn.get_taxa(labels=x)
-    bitmask = 0L
+    bitmask = 0
     for taxon in taxa:
         bitmask |= tn.taxon_bitmask(taxon)
     return bitmask

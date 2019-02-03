@@ -56,6 +56,8 @@ def test_short_branch(script_runner, execution_number, datadir, stem):
 @pytest.mark.script_launch_mode('subprocess')
 def test_stem_clade_attachment(script_runner, execution_number, datadir):
     tacted, taxed, bbone = run_tact(script_runner, datadir, "stem2")
+    tacted.calc_node_ages()
+    tacted.update_bipartitions()
     node = tacted.mrca(taxon_labels=["c1", "c2", "c3", "c4", "c5"])
     ages = [x.age < 15.16 for x in node.postorder_internal_node_iter()]
     assert any(ages)

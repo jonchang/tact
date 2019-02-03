@@ -59,7 +59,7 @@ def optim_bd_mcmc(ages, sampling):
     else:
         vec = [len(ages) / mm, 0.02]
     likelihood = get_lik(vec, sampling, ages)
-    for x in xrange(100):
+    for x in range(100):
         new_vec = update_multiplier_freq(vec)
         new_likelihood = get_lik(new_vec, sampling, ages)
         if (new_likelihood - likelihood) * 100 >= log(np.random.random()):
