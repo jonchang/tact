@@ -6,9 +6,10 @@
 
 # Pragmata
 from __future__ import division
+from __future__ import print_function
 
 # Python standard library
-import Queue
+from queue import PriorityQueue
 import functools
 import itertools
 import logging
@@ -121,7 +122,7 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     return times
 
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
-    for new_species, new_age in itertools.izip(new_taxa, times):
+    for new_species, new_age in zip(new_taxa, times):
         new_node = dendropy.Node()
         new_node.annotations.add_new("creation_method", "fill_new_taxa")
         new_node.age = new_age
@@ -131,7 +132,7 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=N
         node = graft_node(node, new_node, stem)
 
     if list(get_short_branches(node)):
-        logger.warn("{} short branches detected".format(len(list(get_short_branches(node)))))
+        logger.warning("{} short branches detected".format(len(list(get_short_branches(node)))))
 
     return node
 
@@ -229,7 +230,7 @@ def create_clade(namespace, species, ages):
     # Lock the child of the seed node so that things can still attach to the stem of this new clade
     lock_clade(tree.seed_node.child_nodes()[0])
     if list(get_short_branches(tree.seed_node)):
-        logger.warn("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
+        logger.warning("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
     return tree
 
 def lock_clade(node):
@@ -281,7 +282,7 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
     extant = len(mrca.leaf_nodes())
     total = len(taxon_node.leaf_nodes())
     if extant > total:
-        logger.warn("MRCA: {} has {} extant species but should have {} total species".format(taxon, extant, total))
+        logger.warning("MRCA: {} has {} extant species but should have {} total species".format(taxon, extant, total))
         mrca_rates[taxon] = (birth, death, 0, "from {} (extant exceeds total)".format(parent))
         return
     ccp = crown_capture_probability(total, extant)
@@ -329,7 +330,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
         # the same number of tips (not nodes!)
         buckets = []
         tips_per_node = [(len(x.leaf_nodes()), x) for x in taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True)]
-        queue = Queue.PriorityQueue()
+        queue = PriorityQueue()
         for x in range(max(int(fastmrca.cores/4), 2)):
             buckets.append([])
             queue.put((0, x))
@@ -383,8 +384,8 @@ def compute_node_depths(tree):
     return res
 
 @click.command()
-@click.option("--taxonomy", help="a taxonomy tree", type=click.File("rb"), required=True)
-@click.option("--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("rb"), required=True)
+@click.option("--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True)
+@click.option("--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("r"), required=True)
 @click.option("--outgroups", help="comma separated list of outgroup taxa to ignore")
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
@@ -417,13 +418,13 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose):
     # Check for equal depth of all nodes
     node_depths = compute_node_depths(taxonomy)
     stats = collections.defaultdict(int)
-    for v in node_depths.itervalues():
+    for v in node_depths.values():
         stats[v] += 1
     if len(stats) > 1:
-        logger.warn("The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:")
+        logger.warning("The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:")
         for k in sorted(stats.keys()):
-            logger.warn("* {} tips have {} ranked ancestors".format(stats[k], k))
-        logger.warn("If TACT-added tips are intruding into otherwise-monophyletic clades this should be corrected.")
+            logger.warning("* {} tips have {} ranked ancestors".format(stats[k], k))
+        logger.warning("If TACT-added tips are intruding into otherwise-monophyletic clades this should be corrected.")
 
     logger.info("Reading backbone".format(backbone))
 
@@ -431,7 +432,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose):
         tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted", taxon_namespace=tn)
     except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
         logger.error("DendroPy error: {}".format(e.message))
-        print """
+        print("""
 DendroPy error: {}
 
 This usually indicates your backbone has species that are not present in your
@@ -442,7 +443,7 @@ taxonomy. Outgroups not in the taxonomy can be excluded with the argument:
 For more details, run:
 
     tact_add_taxa --help
-""".format(e.message)
+""".format(e.message))
         sys.exit(1)
 
     tree.encode_bipartitions()
@@ -461,7 +462,7 @@ For more details, run:
     with open(output + ".rates.csv", "w") as wfile:
         writer = csv.writer(wfile)
         writer.writerow(("taxon", "birth", "death", "ccp", "source"))
-        for key, value in run_precalcs(taxonomy, tree, min_ccp).iteritems():
+        for key, value in run_precalcs(taxonomy, tree, min_ccp).items():
             row = [key]
             row.extend(value)
             writer.writerow(row)
@@ -596,7 +597,7 @@ For more details, run:
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick")
     tree.write(path=output + ".nexus.tre", schema="nexus")
-    print
+    print()
 
 if __name__ == '__main__':
     main()

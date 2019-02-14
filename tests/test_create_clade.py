@@ -17,7 +17,7 @@ from tact.cli_add_taxa import create_clade, count_locked, edge_iter
     ).map(dict))
 def test_create_clade(data):
     spp = data.keys()
-    ages = data.values()
+    ages = list(data.values())
     assume(len(set(ages)) == len(ages))
     tn = TaxonNamespace(spp, label="taxa")
     clade = create_clade(tn, spp, ages)
