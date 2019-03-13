@@ -98,14 +98,8 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
     # amount of time so we want the root to be running for the longest.
     it = pool.imap_unordered(wrap, taxonomy.preorder_internal_node_iter(exclude_seed_node=True), chunksize=chunksize)
 
-
     writer = csv.writer(output)
     writer.writerow("node taxonomy_tips backbone_tips simulated_tips backbone_monophyletic simulated_monophyletic backbone_birth simulated_birth backbone_death simulated_death warnings".split())
-
-    if cores > 1:
-        click.echo("Checking %d nodes with %d nodes per core" % (nnodes, chunksize))
-    else:
-        click.echo("Checking %d nodes" % nnodes)
 
     with click.progressbar(it, length=nnodes) as prog:
         for result in prog:

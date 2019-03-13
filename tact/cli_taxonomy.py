@@ -74,9 +74,8 @@ def main(taxonomy, output, schema):
     Each rank must be named (i.e., there should be no empty cells in the
     spreadsheet) and unique.
 
-    This script makes **many** assumptions about its input for speed;
-    consider using the R function `ape::as.phylo.formula` with the
-    `collapse = FALSE` option if this doesn't meet your requirements.
+    This script makes **many** assumptions about its input for speed. Check
+    the example taxonomy in the examples/ folder for guidance.
     """
     taxonomy = build_taxonomic_tree(taxonomy)
     taxonomy.write_to_path(output, schema=schema)
