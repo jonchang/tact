@@ -1,5 +1,4 @@
 import csv
-import itertools
 
 import dendropy
 import click
@@ -25,7 +24,7 @@ def build_taxonomic_tree(filename):
     with open(filename, "rU") as rfile:
         reader = csv.reader(rfile)
 
-        rank_names = reader.next()
+        rank_names = next(reader)
         rank_names.pop() # assume last column is species name
         rank_order = dict(zip(rank_names, range(len(rank_names))))
 
@@ -34,7 +33,7 @@ def build_taxonomic_tree(filename):
         tn = tree.taxon_namespace
         tn.is_mutable = True
 
-        row = reader.next()
+        row = next(reader)
         for col in row:
             if col:
                 node = node.new_child(taxon=tn.new_taxon(col))
@@ -44,7 +43,7 @@ def build_taxonomic_tree(filename):
         known_nodes = dict()
         with click.progressbar(enumerate(reader), label="Generating taxonomy", length=lines) as rf:
             for idx, row in rf:
-                for prev, cur in itertools.izip(reversed(stack), reversed(row)):
+                for prev, cur in zip(reversed(stack), reversed(row)):
                     if prev == cur and prev != "" and cur != "":
                         break
                     else:
@@ -67,11 +66,17 @@ def build_taxonomic_tree(filename):
 @click.option("--output", help="name of the output taxonomic tree", required=True, type=click.Path(writable=True))
 @click.option("--schema", help="format of the output taxonomic tree", default="newick", type=click.Choice(["newick", "nexus", "nexml"]))
 def main(taxonomy, output, schema):
-    """This script generates a taxonomic tree from TAXONOMY.
+    """Generates a taxonomic tree from TAXONOMY.
 
     TAXONOMY is formatted as a CSV file where each column is a taxonomic
     rank (from most inclusive to least inclusive, with the last column as the
-    species name) and each row is a separate species.
+    species name) and each row is a separate species. The CSV must be sorted.
+    Each rank must be named (i.e., there should be no empty cells in the
+    spreadsheet) and unique.
+
+    This script makes **many** assumptions about its input for speed;
+    consider using the R function `ape::as.phylo.formula` with the
+    `collapse = FALSE` option if this doesn't meet your requirements.
     """
     taxonomy = build_taxonomic_tree(taxonomy)
     taxonomy.write_to_path(output, schema=schema)
