@@ -4,16 +4,25 @@
 
 Adds tips to a backbone phylogeny using taxonomy simulated with birth-death models
 
-
 # Installation
 
-If you don't use `pipsi`, you're missing out.
-Here are [installation instructions](https://github.com/mitsuhiko/pipsi#readme).
+TACT requires Python 3. We recommend using the PyPy 3 implementation as it can significantly speed up TACT analyses, particularly on large datasets. In addition, TACT depends on the click, DendroPy, NumPy, and SciPy packages.
 
-Simply run:
+## Homebrew
 
-    $ pipsi install .
+Using Homebrew is the recommended way to install TACT. [Install Homebrew on macOS](https://brew.sh) or [Install Homebrew on Linux or Windows 10](https://docs.brew.sh/Homebrew-on-Linux). Once Homebrew has been installed, run
 
+    brew install jonchang/biology/tact
+
+## pipx
+
+If you are unable or unwilling to use Homebrew, the next recommended (but unsupported) way to install TACT is via `pipx`. [Install `pipx`](https://github.com/pipxproject/pipx#install-pipx), then run:
+
+    pipx install --spec git+https://github.com/jonchang/tact.git tact
+
+## Other
+
+Other ways of installing TACT, including unpacking the tarball somewhere or directly using `pip`, are neither supported nor recommended.
 
 # Example
 
