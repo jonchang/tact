@@ -14,7 +14,7 @@ addons:
 before_install:
     - pip install poetry
 install:
-    - poetry install -v
+    - poetry install -vv
     - pip install tox-travis
 script:
     - tox
