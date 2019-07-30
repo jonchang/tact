@@ -6,7 +6,7 @@ Adds tips to a backbone phylogeny using taxonomy simulated with birth-death mode
 
 # Installation
 
-TACT requires Python 3. We recommend using the PyPy 3 implementation as it can significantly speed up TACT analyses, particularly on large datasets. In addition, TACT depends on the click, DendroPy, NumPy, and SciPy packages.
+TACT requires Python 3. When possible, we recommend using the PyPy 3 implementation as it can significantly speed up TACT analyses, particularly on large datasets. In addition, TACT depends on the click, DendroPy, NumPy, and SciPy packages.
 
 ## Homebrew
 
@@ -16,7 +16,7 @@ Using Homebrew is the recommended way to install TACT. [Install Homebrew on macO
 
 ## pipx
 
-If you are unable or unwilling to use Homebrew, the next recommended (but unsupported) way to install TACT is via `pipx`. [Install `pipx`](https://github.com/pipxproject/pipx#install-pipx), then run:
+If you are unable or unwilling to use Homebrew, the next recommended way to install TACT is via `pipx`. [Install `pipx`](https://github.com/pipxproject/pipx#install-pipx), then run:
 
     pipx install --spec git+https://github.com/jonchang/tact.git tact
 
@@ -27,6 +27,11 @@ Other ways of installing TACT, including unpacking the tarball somewhere or dire
 # Example
 
 Files used are in the [examples](https://github.com/jonchang/tact/tree/master/examples) folder.
+
+```console
+curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.csv
+curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.tre
+```
 
 Build a taxonomic tree using the provided CSV file. Run `tact_build_taxonomic_tree --help` to see the required format for this file.
 
