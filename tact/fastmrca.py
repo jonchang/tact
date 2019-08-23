@@ -2,14 +2,12 @@
 
 from __future__ import division
 
+from .lib import get_tip_labels
+
 import functools
 import logging
-import math
-import random
-from time import time
-logger = logging.getLogger(__name__)
 
-from .lib import get_tip_labels 
+logger = logging.getLogger(__name__)
 
 global tree
 

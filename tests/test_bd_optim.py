@@ -1,13 +1,8 @@
 from __future__ import division
 
-import pytest
-
 from tact.lib import optim_bd_r, optim_bd_scipy, optim_bd_grid, optim_bd_mcmc
 
-from math import log, exp
-import sys
 import subprocess
-import random
 
 def get_new_times_r(ages, birth, death, missing, told=None):
     if told is None:

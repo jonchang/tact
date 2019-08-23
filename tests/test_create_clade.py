@@ -5,7 +5,7 @@ import hypothesis.strategies as st
 
 from dendropy import TaxonNamespace
 
-from tact.cli_add_taxa import create_clade, count_locked, edge_iter
+from tact.cli_add_taxa import create_clade, edge_iter
 
 @given(st.lists(
     st.tuples(

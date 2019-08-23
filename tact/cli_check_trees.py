@@ -7,10 +7,8 @@
 from __future__ import division
 
 import csv
-import sys
 import multiprocessing
 import functools
-import itertools
 import math
 
 import dendropy
@@ -86,7 +84,6 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
 
     bb_tips = get_tip_labels(backbone)
     st_tips = get_tip_labels(simulated)
-    all_possible_tips = get_tip_labels(taxonomy)
 
     # Start calculating ASAP
     wrap = functools.partial(analyze_taxon, bb_tips, st_tips, backbone, simulated)

@@ -8,18 +8,22 @@
 from __future__ import division
 from __future__ import print_function
 
+# Internal
+from .lib import optim_bd, is_binary, get_short_branches, get_tip_labels, crown_capture_probability, edge_iter, get_new_times
+from . import fastmrca
+
 # Python standard library
-from queue import PriorityQueue
-import functools
-import itertools
 import logging
 import operator
 import random
 import sys
 from time import time
-import math
 import collections
 import csv
+
+# Third party
+import dendropy
+import click
 
 logger = logging.getLogger(__name__)
 # Speed up logging for pypy
@@ -27,14 +31,6 @@ logging._srcfile = None
 logging.logThreads = 0
 logging.logProcesses = 0
 logging.logMultiprocessing = 0
-
-# Third party
-import dendropy
-import click
-
-# Internal
-from .lib import optim_bd, is_binary, get_short_branches, get_tip_labels, get_monophyletic_node, crown_capture_probability, edge_iter, get_new_times
-from . import fastmrca
 
 global invalid_map
 invalid_map = {}
@@ -45,7 +41,6 @@ mrca_rates = {}
 def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     global invalid_map
     seen = []
-    target_node = None
     for anc in taxonomy_node.ancestor_iter():
         if anc.label in invalid_map:
             logger.debug("Cache HIT on invalid_map for {} ({} => {})".format(taxonomy_node.label, anc.label, invalid_map[anc.label].label))
@@ -69,7 +64,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     else:
         logger.error("Couldn't find valid taxonomy node in ancestor chain for {} ({})".format(taxonomy_node.label, " => ".join(seen)))
         sys.exit(1)
-    seen.pop() # ignore last node
+    seen.pop()  # ignore last node
     for x in seen:
         invalid_map[x] = taxonomy_target
     return (taxonomy_target, backbone_target)
@@ -104,7 +99,6 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
     n_total = len(taxonomy_node.leaf_nodes())
     if num_new_times is None:
         num_new_times = n_total - n_extant
-    sampling = n_extant / n_total
     ages = get_ages(backbone_node)
     if len(backbone_node.leaf_nodes()) == 1 and told is None:
         # attach to stem in the case of a singleton
@@ -141,7 +135,7 @@ def graft_node(graft_recipient, graft, stem=False):
     Grafts a node `graft` randomly in the subtree below node
     `graft_recipient`. The attribute `graft.age` must be set so
     we know where is the best place to graft the node. The node
-    `graft` can optionally have child nodes, in this case the 
+    `graft` can optionally have child nodes, in this case the
     `edge.length` attribute should be set on all child nodes if
     the tree is to remain ultrametric.
     """
@@ -360,8 +354,6 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose):
         logger.setLevel(logging.WARNING)
         logger.addHandler(logging.StreamHandler())
 
-
-
     logger.info("Reading taxonomy".format(taxonomy))
     taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick", rooting="default-rooted")
     tn = taxonomy.taxon_namespace
@@ -422,7 +414,6 @@ For more details, run:
             row.extend(value)
             writer.writerow(row)
 
-
     initial_length = len(tree_tips)
 
     bar = click.progressbar(label="TACT",
@@ -431,7 +422,7 @@ For more details, run:
             item_show_func=lambda x: x)
 
     def bar_update():
-        bar.pos = len(tree_tips) - initial_length;
+        bar.pos = len(tree_tips) - initial_length
         bar.current_item = taxon if taxon else ""
         bar.update(0)
 
@@ -445,7 +436,6 @@ For more details, run:
         ccp = mrca_rates[taxon][2]
 
         clades_to_generate = full_clades.intersection([x.label for x in taxon_node.postorder_internal_node_iter(exclude_seed_node=True)])
-        to_remove = set([])
 
         if not extant_species:
             # No species sampled, so create a clade from whole cloth

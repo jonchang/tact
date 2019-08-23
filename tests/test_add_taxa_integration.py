@@ -28,7 +28,6 @@ def test_monophyly(script_runner, execution_number, datadir, stem):
     tacted, taxed, bbone = run_tact(script_runner, datadir, stem)
     extant = set([x.taxon.label for x in bbone.leaf_nodes()])
     for node in taxed.postorder_internal_node_iter(exclude_seed_node=True):
-        label = node.label
         expected = set([x.taxon.label for x in node.leaf_nodes()])
         our_extant = extant & expected
         if len(our_extant) > 0:

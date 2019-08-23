@@ -25,8 +25,7 @@ def build_taxonomic_tree(filename):
         reader = csv.reader(rfile)
 
         rank_names = next(reader)
-        rank_names.pop() # assume last column is species name
-        rank_order = dict(zip(rank_names, range(len(rank_names))))
+        rank_names.pop()  # assume last column is species name
 
         tree = dendropy.Tree()
         node = tree.seed_node

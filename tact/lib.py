@@ -2,10 +2,9 @@
 
 from __future__ import division
 
-import csv
 import sys
 import random
-from math import log, exp, ceil
+from math import log, exp
 from decimal import Decimal as D
 import itertools
 import subprocess
@@ -24,7 +23,7 @@ params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
 
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""
-    return -r / (a-1), -a*r/(a-1)
+    return -r / (a - 1), -a * r / (a - 1)
 
 def get_ra(b, d):
     return (b - d, d / b)
@@ -32,7 +31,7 @@ def get_ra(b, d):
 def optim_bd_r(ages, sampling):
     """Optimizes birth death using TreePar and R"""
     script = """cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = "L-BFGS-B")$par, " dum")"""
-    fmt = script.format(birth=1, death=0.02, ages=",".join([str(x) for x in ages]), sampling = sampling)
+    fmt = script.format(birth=1, death=0.02, ages=",".join([str(x) for x in ages]), sampling=sampling)
     output = subprocess.check_output(["Rscript", "--vanilla", "--default-packages=base,stats", "-e", fmt], stderr=subprocess.STDOUT)
     b, d, _ = output.split(None, 2)
     return float(b), float(d)
@@ -44,8 +43,8 @@ def optim_bd_grid(ages, sampling):
 
 def update_multiplier_freq(q, d=1.1):
     u = np.random.uniform(0, 1, 2)
-    l = 2*log(d)
-    m = np.exp(l*(u-.5))
+    l = 2 * log(d)
+    m = np.exp(l * (u - 0.5))
     new_q = q * m
     return new_q
 
@@ -77,7 +76,7 @@ def optim_bd_scipy(ages, sampling):
         init_r = 1e-3
     else:
         # Magallon-Sanderson crown estimator
-        init_r = (log((len(ages) + 1)/sampling) - log(2)) / max(ages)
+        init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
     bounds = ((1e-6, None), (0, 1 - 1e-6))
     return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
 
@@ -87,11 +86,11 @@ def optim_bd(ages, sampling):
 def get_lik(vec, rho, x):
     l = vec[0]
     m = vec[1]
-    root=1
-    lik1= (root + 1) * np.log(p1(x[0], l, m, rho))
-    lik2= np.sum(np.log(l * p1(x[1:], l, m, rho)))
-    lik3= - (root + 1) * np.log(1 - p0(x[0], l, m, rho))
-    return lik1+lik2+lik3
+    root = 1
+    lik1 = (root + 1) * np.log(p1(x[0], l, m, rho))
+    lik2 = np.sum(np.log(l * p1(x[1:], l, m, rho)))
+    lik3 = - (root + 1) * np.log(1 - p0(x[0], l, m, rho))
+    return lik1 + lik2 + lik3
 
 def p0_exact(t, l, m, rho):
     t = D(t)
@@ -112,11 +111,15 @@ def p1_exact(t, l, m, rho):
     l = D(l)
     m = D(m)
     rho = D(rho)
-    return rho*(l-m)**D(2) * (-(l-m)*t).exp()/(rho*l+(l*(1-rho)-m)*(-(l-m)*t).exp())**D(2)
+    num = rho * (l - m) ** D(2) * (-(l - m) * t).exp()
+    denom = (rho * l + (l * (1 - rho) - m) * (-(l - m) * t).exp()) ** D(2)
+    return num / denom
 
 def p1_orig(t, l, m, rho):
     try:
-        return rho*(l-m)**2 * np.exp(-(l-m)*t)/(rho*l+(l*(1-rho)-m)*np.exp(-(l-m)*t))**2
+        num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
+        denom = (rho * l + (l * (1 - rho) - m) * np.exp(-(l - m) * t)) ** 2
+        return num / denom
     except OverflowError:
         return float(p1_exact(t, l, m, rho))
 
@@ -124,8 +127,10 @@ def p1(t, l, m, rho):
     # Optimized version of p1 using common subexpression elimination and strength reduction from
     # exponentiation to multiplication.
     try:
-        ert = np.exp(-(l-m)*t, dtype=np.float64)
-        return rho * (l - m)**2 * ert/(rho*l+(l*(1-rho)-m)*ert)**2
+        ert = np.exp(-(l - m) * t, dtype=np.float64)
+        num = rho * (l - m) ** 2 * ert
+        denom = (rho * l + (l * (1 - rho) - m) * ert) ** 2
+        return num / denom
     except OverflowError:
         return float(p1_exact(t, l, m, rho))
 
@@ -134,7 +139,9 @@ def intp1_exact(t, l, m):
     l = D(l)
     m = D(m)
     t = D(t)
-    return (D(1) - (-(l - m) * t).exp())/(l - m * (-(l - m) * t).exp())
+    num = (D(1) - (-(l - m) * t).exp())
+    denom = (l - m * (-(l - m) * t).exp())
+    return num / denom
 
 def intp1(t, l, m):
     try:
@@ -190,7 +197,7 @@ def crown_capture_probability(n, k):
     if n < k:
         raise Exception("n must be greater than or equal to k (n={}, k={})".format(n, k))
     if n == 1 and k == 1:
-        return 0 # not technically correct but it works for our purposes
+        return 0  # not technically correct but it works for our purposes
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
 
 def get_monophyletic_node(tree, species):
@@ -281,7 +288,6 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         tyoung = 0
 
     ages.sort(reverse=True)
-    n = len(ages) + 1
     times = [x for x in ages if x <= told and x >= tyoung]
     times = [told] + times + [tyoung]
     ranks = range(0, len(times))
@@ -290,13 +296,13 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         if len(ranks) > 2:
             distrranks = list()
             for i in range(1, len(ranks)):
-                temp = ranks[i] * (intp1(times[i-1], birth, death) - intp1(times[i], birth, death))
+                temp = ranks[i] * (intp1(times[i - 1], birth, death) - intp1(times[i], birth, death))
                 distrranks.append(temp)
             try:
                 dsum = sum(distrranks)
-                distrranks = [x/dsum for x in distrranks]
+                distrranks = [x / dsum for x in distrranks]
                 for i in range(1, len(distrranks)):
-                    distrranks[i] = distrranks[i] + distrranks[i-1]
+                    distrranks[i] = distrranks[i] + distrranks[i - 1]
                 r = random.uniform(0, 1)
                 addrank = min([idx for idx, x in enumerate(distrranks) if x > r])
             except ZeroDivisionError:
@@ -306,9 +312,9 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         else:
             addrank = 0
         r = random.uniform(0, 1)
-        const = intp1(times[addrank], birth, death) - intp1(times[addrank+1], birth, death)
+        const = intp1(times[addrank], birth, death) - intp1(times[addrank + 1], birth, death)
         try:
-            temp = intp1(times[addrank+1], birth, death) / const
+            temp = intp1(times[addrank + 1], birth, death) / const
         except ZeroDivisionError:
             temp = 0.0
         xnew = 1 / (death - birth) * log((1 - (r + temp) * const * birth) / (1 - (r + temp) * const * death))
@@ -316,5 +322,3 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         missing -= 1
     only_new.sort(reverse=True)
     return only_new
-
-
