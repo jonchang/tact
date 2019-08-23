@@ -314,53 +314,10 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     root_birth, root_death = get_birth_death_rates(root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips))
 
-    if fastmrca.cores == 1 or nnodes < 500:
-        logger.debug("Precomputing rates serially since cores=1 ({}) or nnodes < 500 ({})".format(fastmrca.cores, nnodes))
-        with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
-            for node in progress:
-                # updates global mrca_rates as a side effect
-                process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death)
-    else:
-        # While it would be incredibly easy to just run pool.unordered_imap
-        # on everything, in practice this doesn't work because of the huge
-        # variation in the time it takes to compute the birth/death rates
-        # based on the number of tips in each subclade. So bucket each node
-        # that we have to calculate the rate for based on the number of tips
-        # that descend from that node, such that each bucket has roughly
-        # the same number of tips (not nodes!)
-        buckets = []
-        tips_per_node = [(len(x.leaf_nodes()), x) for x in taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True)]
-        queue = PriorityQueue()
-        for x in range(max(int(fastmrca.cores/4), 2)):
-            buckets.append([])
-            queue.put((0, x))
-        sums = [0] * fastmrca.cores
-
-        for ntips, node in sorted(tips_per_node, key=operator.itemgetter(1), reverse=True):
-            _, i = queue.get()
-            buckets[i].append(node)
-            sums[i] += ntips
-            queue.put((sums[i], i))
-
-        buckets.sort(key=lambda x: len(x))
-        logger.debug("Precomputing rates in parallel, worker assignments ({} cores): {}".format(len(buckets), [len(x) for x in buckets]))
-
-        progress = click.progressbar(label="Rates", length=nnodes, show_pos=True)
-
-        # Submit to the pool and keep track of promises...
-        promises = []
-        fn = functools.partial(process_node, backbone_tree, backbone_bitmask, all_possible_tips, min_ccp)
-        for acc_nodes in buckets:
-            promises.append(fastmrca.pool.map_async(fn, acc_nodes, len(acc_nodes)))
-
-        # Ideally we would asynchronously resolve promises but this
-        # doesn't work for some reason, so just resolve them in order
-        # despite the worse UX
-        for promise in promises:
-            results = promise.get()
-            for result in results:
-                progress.update(1)
-                annotate_result_node(result)
+    with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
+        for node in progress:
+            # updates global mrca_rates as a side effect
+            process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death)
 
     diff = time() - start_time
     if diff > 1:
@@ -389,9 +346,8 @@ def compute_node_depths(tree):
 @click.option("--outgroups", help="comma separated list of outgroup taxa to ignore")
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
-@click.option("--cores", help="maximum number of cores to use for parallel operations", type=int)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-def main(taxonomy, backbone, outgroups, output, min_ccp, cores, verbose):
+def main(taxonomy, backbone, outgroups, output, min_ccp, verbose):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
@@ -457,7 +413,6 @@ For more details, run:
     full_clades = set()
 
     fastmrca.initialize(tree)
-    logger.debug("FastMRCA autotuned parameters: single-thread cutoff is {}".format(fastmrca.maxtax))
 
     with open(output + ".rates.csv", "w") as wfile:
         writer = csv.writer(wfile)
@@ -592,7 +547,6 @@ For more details, run:
             raise ValueError("Tree is not binary!")
         bar_update()
 
-    fastmrca.cleanup()
     assert(is_binary(tree.seed_node))
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick")
