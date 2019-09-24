@@ -18,7 +18,7 @@ Using Homebrew is the recommended way to install TACT. [Install Homebrew on macO
 
 If you are unable or unwilling to use Homebrew, the next recommended way to install TACT is via `pipx`. [Install `pipx`](https://github.com/pipxproject/pipx#install-pipx), then run:
 
-    pipx install --spec git+https://github.com/jonchang/tact.git tact
+    pipx install tact
 
 ## Other
 
