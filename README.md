@@ -1,6 +1,6 @@
 # TACT - Taxonomy addition for complete trees
 
-![PyPI](https://img.shields.io/pypi/v/tact.svg)
+[![PyPI](https://img.shields.io/pypi/v/tact.svg)](https://pypi.org/project/tact/)
 
 Adds tips to a backbone phylogeny using taxonomy simulated with birth-death models
 
