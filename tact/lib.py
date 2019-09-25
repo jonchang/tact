@@ -83,6 +83,16 @@ def optim_bd_scipy(ages, sampling):
 def optim_bd(ages, sampling):
     return optim_bd_scipy(ages, sampling)
 
+def optim_yule(ages,sampling):
+    """Optimizes a Yule model using Scipy"""
+    if max(ages) < 0.000001:
+        init_r = 1e-3
+    else:
+        # Magallon-Sanderson crown estimator
+        init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
+    bounds = ((1e-6, None), (0, 0))
+    return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
+
 def get_lik(vec, rho, x):
     l = vec[0]
     m = vec[1]
@@ -208,14 +218,20 @@ def get_monophyletic_node(tree, species):
     if mrca and species.issuperset(get_tip_labels(mrca)):
         return mrca
 
-def get_birth_death_for_node(node, sampfrac):
+def get_birth_death_rates(node, sampfrac, yule=False):
     """
     Estimates the birth and death rates for the subtree descending from
-    `node` with sampling fraction `sampfrac`.
+    `node` with sampling fraction `sampfrac`. Optionally restrict to a
+    Yule pure-birth model.
     """
+    if yule:
+        return optim_yule(get_ages(node), sampfrac)
+    else:
+        return optim_bd(get_ages(node), sampfrac)
+
+def get_ages(node):
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
-    ages += [node.age]
-    return optim_bd(ages, sampfrac)
+    return ages
 
 def get_tip_labels(tree_or_node):
     try:

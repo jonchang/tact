@@ -9,7 +9,7 @@ from __future__ import division
 from __future__ import print_function
 
 # Internal
-from .lib import optim_bd, is_binary, get_short_branches, get_tip_labels, crown_capture_probability, edge_iter, get_new_times
+from .lib import get_birth_death_rates, get_ages, is_binary, get_short_branches, get_tip_labels, crown_capture_probability, edge_iter, get_new_times
 from . import fastmrca
 
 # Python standard library
@@ -68,13 +68,6 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     for x in seen:
         invalid_map[x] = taxonomy_target
     return (taxonomy_target, backbone_target)
-
-def get_birth_death_rates(node, sampfrac):
-    return optim_bd(get_ages(node), sampfrac)
-
-def get_ages(node):
-    ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
-    return ages
 
 def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
     """
@@ -247,7 +240,7 @@ def get_min_age(node):
     except ValueError:
         return 0.0
 
-def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node, min_ccp, default_birth, default_death):
+def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node, min_ccp, default_birth, default_death, yule=False):
     # TODO: Fix all the returns and refactor this into something sane
     global mrca_rates
     taxon = taxon_node.label
@@ -289,11 +282,11 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
         mrca_rates[taxon] = (birth, death, ccp, "from {} (crown capture probability)".format(parent))
         return
     sf = extant / total
-    birth, death = get_birth_death_rates(mrca, sf)
+    birth, death = get_birth_death_rates(mrca, sf, yule)
     logger.debug("MRCA: {} b={}, d={}, sf={}, ccp={}".format(taxon, birth, death, sf, ccp))
     mrca_rates[taxon] = (birth, death, ccp, "computed")
 
-def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
+def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=False):
     global mrca_rates
     tree_tips = get_tip_labels(backbone_tree)
     backbone_bitmask = fastmrca.bitmask(tree_tips)
@@ -306,12 +299,12 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3):
     logger.debug("Computing root birth and death rates.")
     extant_bitmask = backbone_bitmask & backbone_tree.taxon_namespace.taxa_bitmask(labels=all_possible_tips)
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
-    root_birth, root_death = get_birth_death_rates(root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips))
+    root_birth, root_death = get_birth_death_rates(root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips), yule)
 
     with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), label="Rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
         for node in progress:
             # updates global mrca_rates as a side effect
-            process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death)
+            process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death, yule)
 
     diff = time() - start_time
     if diff > 1:
@@ -340,8 +333,9 @@ def compute_node_depths(tree):
 @click.option("--outgroups", help="comma separated list of outgroup taxa to ignore")
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
+@click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-def main(taxonomy, backbone, outgroups, output, min_ccp, verbose):
+def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
@@ -409,7 +403,7 @@ For more details, run:
     with open(output + ".rates.csv", "w") as wfile:
         writer = csv.writer(wfile)
         writer.writerow(("taxon", "birth", "death", "ccp", "source"))
-        for key, value in run_precalcs(taxonomy, tree, min_ccp).items():
+        for key, value in run_precalcs(taxonomy, tree, min_ccp, yule=yule).items():
             row = [key]
             row.extend(value)
             writer.writerow(row)
