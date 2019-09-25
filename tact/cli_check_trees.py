@@ -30,7 +30,7 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
         bb_mrca = get_monophyletic_node(backbone, bb_species)
         if bb_mrca:
             bb_ntax = len(bb_mrca.leaf_nodes())
-            bb_birth, bb_death = get_birth_death_rates(bb_mrca, min(bb_ntax / len(species), 1))
+            bb_birth, bb_death = get_birth_death_rates(bb_mrca, min(bb_ntax / len(species), 1), include_root=True)
             if bb_ntax > len(species):
                 notes.append("BACKBONE clade has more tips than the taxonomy suggests")
         else:
@@ -42,7 +42,7 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
     st_mrca = get_monophyletic_node(simtaxed, species.intersection(st_tips))
     if st_mrca:
         st_ntax = len(st_mrca.leaf_nodes())
-        st_birth, st_death = get_birth_death_rates(st_mrca, min(st_ntax / len(species), 1))
+        st_birth, st_death = get_birth_death_rates(st_mrca, min(st_ntax / len(species), 1), include_root=True)
         if st_ntax > len(species):
             notes.append("SIMULATED clade has more tips than the taxonomy suggests")
     else:

@@ -218,19 +218,21 @@ def get_monophyletic_node(tree, species):
     if mrca and species.issuperset(get_tip_labels(mrca)):
         return mrca
 
-def get_birth_death_rates(node, sampfrac, yule=False):
+def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
     """
     Estimates the birth and death rates for the subtree descending from
     `node` with sampling fraction `sampfrac`. Optionally restrict to a
     Yule pure-birth model.
     """
     if yule:
-        return optim_yule(get_ages(node), sampfrac)
+        return optim_yule(get_ages(node, include_root), sampfrac)
     else:
-        return optim_bd(get_ages(node), sampfrac)
+        return optim_bd(get_ages(node, include_root), sampfrac)
 
-def get_ages(node):
+def get_ages(node, include_root=False):
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
+    if include_root:
+        ages += [node.age]
     return ages
 
 def get_tip_labels(tree_or_node):
