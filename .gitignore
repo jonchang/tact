@@ -7,3 +7,5 @@ build/
 .tox/
 .coverage
 .pytest_cache/
+.hypothesis
+.tact-pytest-*
