@@ -130,7 +130,7 @@ def p1_orig(t, l, m, rho):
         num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
         denom = (rho * l + (l * (1 - rho) - m) * np.exp(-(l - m) * t)) ** 2
         return num / denom
-    except OverflowError:
+    except (OverflowError, FloatingPointError):
         return float(p1_exact(t, l, m, rho))
 
 def p1(t, l, m, rho):
@@ -141,7 +141,7 @@ def p1(t, l, m, rho):
         num = rho * (l - m) ** 2 * ert
         denom = (rho * l + (l * (1 - rho) - m) * ert) ** 2
         return num / denom
-    except OverflowError:
+    except (OverflowError, FloatingPointError):
         return float(p1_exact(t, l, m, rho))
 
 def intp1_exact(t, l, m):
