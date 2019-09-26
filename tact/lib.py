@@ -10,7 +10,6 @@ import itertools
 import subprocess
 
 import dendropy
-from dendropy.utility import GLOBAL_RNG
 import numpy as np
 from scipy.optimize import minimize
 
@@ -322,7 +321,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
                 distrranks = [x / dsum for x in distrranks]
                 for i in range(1, len(distrranks)):
                     distrranks[i] = distrranks[i] + distrranks[i - 1]
-                r = GLOBAL_RNG.uniform(0, 1)
+                r = random.uniform(0, 1)
                 addrank = min([idx for idx, x in enumerate(distrranks) if x > r])
             except ZeroDivisionError:
                 addrank = 0
@@ -330,7 +329,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
                 addrank = 0
         else:
             addrank = 0
-        r = GLOBAL_RNG.uniform(0, 1)
+        r = random.uniform(0, 1)
         const = intp1(times[addrank], birth, death) - intp1(times[addrank + 1], birth, death)
         try:
             temp = intp1(times[addrank + 1], birth, death) / const

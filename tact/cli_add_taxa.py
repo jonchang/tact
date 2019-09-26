@@ -24,8 +24,6 @@ import csv
 # Third party
 import dendropy
 import click
-import numpy
-from dendropy.utility import GLOBAL_RNG
 
 logger = logging.getLogger(__name__)
 # Speed up logging for pypy
@@ -155,7 +153,7 @@ def graft_node(graft_recipient, graft, stem=False):
 
     if not eligible_edges:
         raise Exception("could not place node {} in clade {}".format(graft, graft_recipient))
-    focal_node = GLOBAL_RNG.choice([x.head_node for x in eligible_edges])
+    focal_node = random.choice([x.head_node for x in eligible_edges])
     seed_node = focal_node.parent_node
     sisters = focal_node.sibling_nodes()
 
@@ -201,11 +199,11 @@ def create_clade(namespace, species, ages):
     for age in ages:
         valid_nodes = [x for x in tree.nodes() if len(x.child_nodes()) < 2 and age < x.age and x != tree.seed_node]
         assert len(valid_nodes) > 0
-        node = GLOBAL_RNG.sample(valid_nodes, 1).pop()
+        node = random.sample(valid_nodes, 1).pop()
         child = node.new_child()
         child.age = age
     n_species = len(species)
-    GLOBAL_RNG.shuffle(species)
+    random.shuffle(species)
     for node in tree.preorder_node_iter(filter_fn=lambda x: x.age > 0 and x != tree.seed_node):
         while len(node.child_nodes()) < 2 and len(species) > 0:
             new_species = species.pop()
@@ -336,9 +334,8 @@ def compute_node_depths(tree):
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
 @click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
-@click.option("--seed", help="set the random number seed for reproducible runs", default=0)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, seed):
+def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
@@ -350,19 +347,6 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, seed):
     else:
         logger.setLevel(logging.WARNING)
         logger.addHandler(logging.StreamHandler())
-
-    if seed == 0:
-        seed = int(time() * 256) % (2**32 - 1) # For subsecond resolution
-        GLOBAL_RNG.seed(seed)
-        seed_source = "Generated"
-    else:
-        if seed > (2**32 - 1):
-            logger.error("Seed must be less than 2**32 - 1")
-            sys.exit(1)
-        GLOBAL_RNG.seed(seed)
-        numpy.random.seed(seed)
-        seed_source = "User-specified"
-    logger.info("{} seed: {}".format(seed_source, seed))
 
     logger.info("Reading taxonomy".format(taxonomy))
     taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick", rooting="default-rooted")
@@ -477,7 +461,7 @@ For more details, run:
         # Now add clades of unsampled species. Go from the lowest rank to
         # the highest (deepest level to lowest level). Shuffling before
         # sorting will randomize the order since Python uses stable sorting
-        GLOBAL_RNG.shuffle(clade_ranks)
+        random.shuffle(clade_ranks)
         for clade, _ in sorted(clade_ranks, key=operator.itemgetter(1), reverse=True):
             full_node = taxonomy.find_node_with_label(clade)
             full_node_species = get_tip_labels(full_node)
