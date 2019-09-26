@@ -24,6 +24,7 @@ import csv
 # Third party
 import dendropy
 import click
+import numpy
 
 logger = logging.getLogger(__name__)
 # Speed up logging for pypy
@@ -334,8 +335,9 @@ def compute_node_depths(tree):
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8)
 @click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
+@click.option("--seed", help="set the random number seed for reproducible runs", default=0)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
+def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, seed):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
@@ -347,6 +349,16 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
     else:
         logger.setLevel(logging.WARNING)
         logger.addHandler(logging.StreamHandler())
+
+    if seed == 0:
+        seed = int(time() * 256) # For subsecond resolution
+        random.seed(seed)
+        seed_source = "Generated"
+    else:
+        random.seed(seed)
+        numpy.random.seed(seed)
+        seed_source = "User-specified"
+    logger.info("{} seed: {}".format(seed_source, seed))
 
     logger.info("Reading taxonomy".format(taxonomy))
     taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick", rooting="default-rooted")
