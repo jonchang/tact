@@ -31,6 +31,8 @@ def test_seed(script_runner, execution_number, datadir, stem):
     tact2, _, _ = run_tact(script_runner, datadir, stem, "--seed=" + str(seed))
     tn = tact1.taxon_namespace
     tact2.migrate_taxon_namespace(tn)
+    tact1.ladderize()
+    tact2.ladderize()
     assert treecompare.symmetric_difference(tact1, tact2) == 0
     assert treecompare.robinson_foulds_distance(tact1, tact2) == 0
 
