@@ -1,17 +1,19 @@
 import pytest
 import sys
 import os
+from time import time
 
 from dendropy import Tree
+from dendropy.calculate import treecompare
 
 execution_number = range(5)
 
-def run_tact(script_runner, datadir, stem):
+def run_tact(script_runner, datadir, stem, *args):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
     taxed = Tree.get(path=taxonomy, schema="newick")
     bbone = Tree.get(path=backbone, schema="newick")
-    result = script_runner.run("tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem, "-vv")
+    result = script_runner.run("tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem, "-vv", *args)
     assert result.returncode == 0
     output = ".tact-pytest-" + stem + ".newick.tre"
     tacted = Tree.get(path=output, schema="newick")
@@ -20,6 +22,17 @@ def run_tact(script_runner, datadir, stem):
     result = script_runner.run("tact_check_results", output, "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem + ".check.csv", "--cores=1")
     assert result.returncode == 0
     return (tacted, taxed, bbone)
+
+@pytest.mark.parametrize("execution_number", execution_number)
+@pytest.mark.parametrize("stem", ["stem"])
+def test_seed(script_runner, execution_number, datadir, stem):
+    seed = int(time() * 256) % (2**32 - 1)
+    tact1, _, _ = run_tact(script_runner, datadir, stem, "--seed=" + str(seed))
+    tact2, _, _ = run_tact(script_runner, datadir, stem, "--seed=" + str(seed))
+    tn = tact1.taxon_namespace
+    tact2.migrate_taxon_namespace(tn)
+    assert treecompare.symmetric_difference(tact1, tact2) == 0
+    assert treecompare.robinson_foulds_distance(tact1, tact2) == 0
 
 @pytest.mark.parametrize("execution_number", execution_number)
 @pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch", "stem"])

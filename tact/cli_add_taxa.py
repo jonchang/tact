@@ -351,10 +351,13 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, seed):
         logger.addHandler(logging.StreamHandler())
 
     if seed == 0:
-        seed = int(time() * 256) # For subsecond resolution
+        seed = int(time() * 256) % (2**32 - 1) # For subsecond resolution
         random.seed(seed)
         seed_source = "Generated"
     else:
+        if seed > (2**32 - 1):
+            logger.error("Seed must be less than 2**32 - 1")
+            sys.exit(1)
         random.seed(seed)
         numpy.random.seed(seed)
         seed_source = "User-specified"
