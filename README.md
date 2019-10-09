@@ -60,7 +60,15 @@ Open up `checkresults.csv` in your favorite spreadsheet viewer and check the `wa
 
 # Contributing
 
-Development on TACT uses poetry. When releasing a new version of tact, run its tests and bump its revision like so:
+Development on TACT uses [`poetry`](https://poetry.eustace.io/). Simply clone the repository and install:
+
+```console
+$ git clone https://github.com/jonchang/tact.git
+$ cd tact
+$ poetry install
+```
+
+When releasing a new version of tact, run its tests and bump its revision like so:
 
 ```console
 $ poetry run pytest # optionally with --script-launch-mode=subprocess
