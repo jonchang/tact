@@ -4,7 +4,7 @@ import os
 
 from dendropy import Tree
 
-execution_number = range(5)
+execution_number = range(2)
 
 def run_tact(script_runner, datadir, stem):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
