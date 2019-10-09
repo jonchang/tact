@@ -58,6 +58,19 @@ $ tact_check_results Carangaria.tacted.newick.tre --backbone Carangaria.tre --ta
 
 Open up `checkresults.csv` in your favorite spreadsheet viewer and check the `warnings` column for any issues.
 
+# Contributing
+
+Development on TACT uses poetry. When releasing a new version of tact, run its tests and bump its revision like so:
+
+```console
+$ poetry run pytest # optionally with --script-launch-mode=subprocess
+$ poetry version patch # or minor, etc.
+$ git commit -p
+$ git tag VERSION
+$ git push
+$ poetry publish --build
+```
+
 # Citation
 
 The manuscript for TACT is currently in review.
