@@ -82,7 +82,9 @@ $ poetry publish --build
 
 # Citation
 
-The manuscript for TACT is currently in review.
+TACT is described more fully in its manuscript. If you use TACT, please cite:
+
+* Chang, J., Rabosky, D. L., & Alfaro, M. E. (2019). Estimating diversification rates on incompletely-sampled phylogenies: theoretical concerns and practical solutions. Systematic Biology. doi:[10.1093/sysbio/syz081](https://doi.org/10.1093/sysbio/syz081)
 
 TACT owes its existence to much foundational work in the area of stochastic polytomy resolution, namely PASTIS and CorSiM.
 
