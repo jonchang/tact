@@ -533,7 +533,7 @@ For more details, run:
 
     assert(is_binary(tree.seed_node))
     tree.ladderize()
-    tree.write(path=output + ".newick.tre", schema="newick")
+    tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")
     print()
 
