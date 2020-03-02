@@ -14,7 +14,7 @@ def run_tact(script_runner, datadir, stem):
     result = script_runner.run("tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem, "-vv")
     assert result.returncode == 0
     output = ".tact-pytest-" + stem + ".newick.tre"
-    tacted = Tree.get(path=output, schema="newick")
+    tacted = Tree.get(path=output, schema="newick", rooting="default-rooted")
     ss = tacted.as_ascii_plot()
     sys.stderr.write(ss)
     result = script_runner.run("tact_check_results", output, "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem + ".check.csv", "--cores=1")
