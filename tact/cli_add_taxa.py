@@ -38,6 +38,7 @@ invalid_map = {}
 global mrca_rates
 mrca_rates = {}
 
+
 def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     global invalid_map
     seen = []
@@ -68,6 +69,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     for x in seen:
         invalid_map[x] = taxonomy_target
     return (taxonomy_target, backbone_target)
+
 
 def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
     """
@@ -108,6 +110,7 @@ def get_new_branching_times(backbone_node, taxonomy_node, backbone_tree, told=No
         logger.debug(("    {}: " + ", ".join(["{:.2f}" for x in times])).format(taxon, *times))
     return times
 
+
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
     for new_species, new_age in zip(new_taxa, times):
         new_node = dendropy.Node()
@@ -122,6 +125,7 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=N
         logger.warning("{} short branches detected".format(len(list(get_short_branches(node)))))
 
     return node
+
 
 def graft_node(graft_recipient, graft, stem=False):
     """
@@ -182,6 +186,7 @@ def graft_node(graft_recipient, graft, stem=False):
         return graft
     return graft_recipient
 
+
 def create_clade(namespace, species, ages):
     tree = dendropy.Tree(taxon_namespace=namespace)
     species = list(species)
@@ -220,6 +225,7 @@ def create_clade(namespace, species, ages):
         logger.warning("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
     return tree
 
+
 def lock_clade(node):
     pre = count_locked(node)
     for edge in edge_iter(node):
@@ -228,17 +234,21 @@ def lock_clade(node):
     if pre != post:
         logger.debug("locking clade: {} => {}".format(pre, post))
 
+
 def count_locked(node):
     sum([x.label == "locked" for x in edge_iter(node)])
 
+
 def is_fully_locked(node):
     return all([x.label == "locked" for x in edge_iter(node)])
+
 
 def get_min_age(node):
     try:
         return min([x.head_node.age for x in edge_iter(node) if x.label != "locked"])
     except ValueError:
         return 0.0
+
 
 def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node, min_ccp, default_birth, default_death, yule=False):
     # TODO: Fix all the returns and refactor this into something sane
@@ -286,6 +296,7 @@ def process_node(backbone_tree, backbone_bitmask, all_possible_tips, taxon_node,
     logger.debug("MRCA: {} b={}, d={}, sf={}, ccp={}".format(taxon, birth, death, sf, ccp))
     mrca_rates[taxon] = (birth, death, ccp, "computed")
 
+
 def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=False):
     global mrca_rates
     tree_tips = get_tip_labels(backbone_tree)
@@ -311,11 +322,13 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=F
         logger.debug("FastMRCA calculation time: {:.1f} seconds".format(diff))
     return mrca_rates
 
+
 def update_tree_view(tree):
     # Stuff that DendroPy needs to keep a consistent view of the phylgoeny
     tree.calc_node_ages()
     tree.update_bipartitions()
     return get_tip_labels(tree)
+
 
 def compute_node_depths(tree):
     res = dict()
@@ -326,6 +339,7 @@ def compute_node_depths(tree):
                 cnt += 1
         res[leaf.taxon.label] = cnt
     return res
+
 
 @click.command()
 @click.option("--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True)
@@ -411,9 +425,9 @@ For more details, run:
     initial_length = len(tree_tips)
 
     bar = click.progressbar(label="TACT",
-            length=len(all_possible_tips) - initial_length,
-            show_pos=True,
-            item_show_func=lambda x: x)
+                            length=len(all_possible_tips) - initial_length,
+                            show_pos=True,
+                            item_show_func=lambda x: x)
 
     def bar_update():
         bar.pos = len(tree_tips) - initial_length
@@ -536,6 +550,7 @@ For more details, run:
     tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")
     print()
+
 
 if __name__ == '__main__':
     main()

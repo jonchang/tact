@@ -16,6 +16,7 @@ import click
 
 from .lib import get_monophyletic_node, get_birth_death_rates, get_tree, get_tip_labels
 
+
 def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
     taxon = taxon_node.label
     if not taxon:
@@ -102,6 +103,7 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
         for result in prog:
             if result:
                 writer.writerow(result)
+
 
 if __name__ == '__main__':
     main()

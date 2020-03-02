@@ -14,6 +14,7 @@ def wc(filename):
             pass
         return ii + 1
 
+
 def build_taxonomic_tree(filename):
     """
     Builds a taxonomic tree given a filename. Last column is assumed to
@@ -59,6 +60,7 @@ def build_taxonomic_tree(filename):
                 stack = row
         tn.is_mutable = False
         return tree
+
 
 @click.command()
 @click.argument("taxonomy", type=click.Path(exists=True, dir_okay=False, readable=True))

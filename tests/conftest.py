@@ -3,9 +3,11 @@ from __future__ import division
 import os
 import pytest
 
+
 @pytest.fixture
 def datadir():
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+
 
 @pytest.fixture
 def ages():
@@ -14,13 +16,16 @@ def ages():
             9.510413, 9.029556000000001, 8.806255, 8.770727, 8.480102,
             6.984475999999999, 6.706684, 2.11319, 0.545689, 0.147482]
 
+
 @pytest.fixture
 def sampling():
     return 0.869565217391
 
+
 @pytest.fixture
 def birth():
     return 0.174259100691
+
 
 @pytest.fixture
 def death():

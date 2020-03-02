@@ -6,6 +6,7 @@ from dendropy import Tree
 
 execution_number = range(2)
 
+
 def run_tact(script_runner, datadir, stem):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
@@ -20,6 +21,7 @@ def run_tact(script_runner, datadir, stem):
     result = script_runner.run("tact_check_results", output, "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem + ".check.csv", "--cores=1")
     assert result.returncode == 0
     return (tacted, taxed, bbone)
+
 
 @pytest.mark.parametrize("execution_number", execution_number)
 @pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch", "stem"])
@@ -37,6 +39,7 @@ def test_monophyly(script_runner, execution_number, datadir, stem):
         mrca = tacted.mrca(taxon_labels=expected)
         actual = set([x.taxon.label for x in mrca.leaf_nodes()])
         assert expected == actual
+
 
 @pytest.mark.parametrize('execution_number', execution_number)
 @pytest.mark.parametrize("stem", ["weirdness", "short_branch"])

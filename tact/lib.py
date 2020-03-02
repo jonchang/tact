@@ -21,12 +21,15 @@ births = np.linspace(sys.float_info.epsilon, 5, num=100)
 deaths = np.linspace(0, 5, num=100)
 params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
 
+
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""
     return -r / (a - 1), -a * r / (a - 1)
 
+
 def get_ra(b, d):
     return (b - d, d / b)
+
 
 def optim_bd_r(ages, sampling):
     """Optimizes birth death using TreePar and R"""
@@ -36,10 +39,12 @@ def optim_bd_r(ages, sampling):
     b, d, _ = output.split(None, 2)
     return float(b), float(d)
 
+
 def optim_bd_grid(ages, sampling):
     """Optimizes birth death using a grid search"""
     res = [lik_constant(x, sampling, ages) for x in params]
     return params[np.argmin(res)]
+
 
 def update_multiplier_freq(q, d=1.1):
     u = np.random.uniform(0, 1, 2)
@@ -47,6 +52,7 @@ def update_multiplier_freq(q, d=1.1):
     m = np.exp(l * (u - 0.5))
     new_q = q * m
     return new_q
+
 
 def optim_bd_mcmc(ages, sampling):
     """Optimizes birth death using a cheap MCMC-like algorithm"""
@@ -66,6 +72,7 @@ def optim_bd_mcmc(ages, sampling):
             vec = new_vec
     return vec
 
+
 def wrapped_lik_constant(x, sampling, ages):
     return lik_constant(get_bd(*x), sampling, ages)
 
@@ -80,10 +87,12 @@ def optim_bd_scipy(ages, sampling):
     bounds = ((1e-6, None), (0, 1 - 1e-6))
     return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
 
+
 def optim_bd(ages, sampling):
     return optim_bd_scipy(ages, sampling)
 
-def optim_yule(ages,sampling):
+
+def optim_yule(ages, sampling):
     """Optimizes a Yule model using Scipy"""
     if max(ages) < 0.000001:
         init_r = 1e-3
@@ -92,6 +101,7 @@ def optim_yule(ages,sampling):
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
     bounds = ((1e-6, None), (0, 0))
     return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
+
 
 def get_lik(vec, rho, x):
     l = vec[0]
@@ -102,6 +112,7 @@ def get_lik(vec, rho, x):
     lik3 = - (root + 1) * np.log(1 - p0(x[0], l, m, rho))
     return lik1 + lik2 + lik3
 
+
 def p0_exact(t, l, m, rho):
     t = D(t)
     l = D(l)
@@ -109,11 +120,13 @@ def p0_exact(t, l, m, rho):
     rho = D(rho)
     return D(1) - rho * (l - m) / (rho * l + (l * (D(1) - rho) - m) * (-(l - m) * t).exp())
 
+
 def p0(t, l, m, rho):
     try:
         return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
     except FloatingPointError:
         return float(p0_exact(t, l, m, rho))
+
 
 def p1_exact(t, l, m, rho):
     """Exact version of p1 using Decimal math."""
@@ -125,6 +138,7 @@ def p1_exact(t, l, m, rho):
     denom = (rho * l + (l * (1 - rho) - m) * (-(l - m) * t).exp()) ** D(2)
     return num / denom
 
+
 def p1_orig(t, l, m, rho):
     try:
         num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
@@ -132,6 +146,7 @@ def p1_orig(t, l, m, rho):
         return num / denom
     except (OverflowError, FloatingPointError):
         return float(p1_exact(t, l, m, rho))
+
 
 def p1(t, l, m, rho):
     # Optimized version of p1 using common subexpression elimination and strength reduction from
@@ -144,6 +159,7 @@ def p1(t, l, m, rho):
     except (OverflowError, FloatingPointError):
         return float(p1_exact(t, l, m, rho))
 
+
 def intp1_exact(t, l, m):
     """Exact version of intp1 using Decimal math."""
     l = D(l)
@@ -153,11 +169,13 @@ def intp1_exact(t, l, m):
     denom = (l - m * (-(l - m) * t).exp())
     return num / denom
 
+
 def intp1(t, l, m):
     try:
-        return (1 - exp(-(l - m) * t))/(l - m * exp(-(l - m) * t))
+        return (1 - exp(-(l - m) * t)) / (l - m * exp(-(l - m) * t))
     except OverflowError:
         return float(intp1_exact(t, l, m))
+
 
 def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
     """
@@ -210,6 +228,7 @@ def crown_capture_probability(n, k):
         return 0  # not technically correct but it works for our purposes
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
 
+
 def get_monophyletic_node(tree, species):
     """Returns the node or None that is the MRCA of the `species` in `tree`."""
     mrca = tree.mrca(taxon_labels=species)
@@ -217,6 +236,7 @@ def get_monophyletic_node(tree, species):
         return None
     if mrca and species.issuperset(get_tip_labels(mrca)):
         return mrca
+
 
 def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
     """
@@ -229,17 +249,20 @@ def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
     else:
         return optim_bd(get_ages(node, include_root), sampfrac)
 
+
 def get_ages(node, include_root=False):
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
     if include_root:
         ages += [node.age]
     return ages
 
+
 def get_tip_labels(tree_or_node):
     try:
         return set([x.taxon.label for x in tree_or_node.leaf_node_iter()])
     except AttributeError:
         return set([x.taxon.label for x in tree_or_node.leaf_iter()])
+
 
 def edge_iter(node, filter_fn=None):
     """
@@ -253,6 +276,7 @@ def edge_iter(node, filter_fn=None):
             yield edge
         stack.extend(edge.head_node.child_edge_iter())
 
+
 def get_tree(path, namespace=None):
     """
     Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
@@ -262,6 +286,7 @@ def get_tree(path, namespace=None):
     tree.encode_bipartitions()
     return tree
 
+
 def is_binary(node):
     """Is the subtree under `node` a fully bifurcating tree?"""
     for x in node.preorder_internal_node_iter():
@@ -269,12 +294,15 @@ def is_binary(node):
             return False
     return True
 
+
 def get_short_branches(node):
     for edge in edge_iter(node):
         if edge.length <= 0.001:
             yield edge
 
 # TODO: This could probably be optimized
+
+
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
     """
     Simulates new speciation events in an incomplete phylogeny assuming a

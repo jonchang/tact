@@ -11,12 +11,14 @@ logger = logging.getLogger(__name__)
 
 global tree
 
+
 def initialize(phy):
     """
     Initialize the fastmrca singleton with a tree.
     """
     global tree
     tree = phy
+
 
 def bitmask(labels):
     """
@@ -25,6 +27,7 @@ def bitmask(labels):
     global tree
     tn = tree.taxon_namespace
     return tn.taxa_bitmask(labels=labels)
+
 
 def get(labels):
     """Pulls a MRCA node out for the taxa in `labels`."""
@@ -35,6 +38,7 @@ def get(labels):
         return None
     if mrca and labels.issuperset(get_tip_labels(mrca)):
         return mrca
+
 
 def fastmrca_getter(tn, x):
     """Helper function for submitting stuff."""
