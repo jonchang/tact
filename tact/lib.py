@@ -281,7 +281,7 @@ def get_tree(path, namespace=None):
     """
     Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
     """
-    tree = dendropy.Tree.get_from_path(path, schema="newick", taxon_namespace=namespace)
+    tree = dendropy.Tree.get_from_path(path, schema="newick", taxon_namespace=namespace, rooting="default-rooted")
     tree.calc_node_ages()
     tree.encode_bipartitions()
     return tree

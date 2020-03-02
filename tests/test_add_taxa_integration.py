@@ -11,7 +11,7 @@ def run_tact(script_runner, datadir, stem):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
     taxed = Tree.get(path=taxonomy, schema="newick")
-    bbone = Tree.get(path=backbone, schema="newick")
+    bbone = Tree.get(path=backbone, schema="newick", rooting="default-rooted")
     result = script_runner.run("tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem, "-vv")
     assert result.returncode == 0
     output = ".tact-pytest-" + stem + ".newick.tre"
