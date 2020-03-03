@@ -546,6 +546,8 @@ For more details, run:
         bar_update()
 
     assert(is_binary(tree.seed_node))
+    # Reset terminal because we aren't using the context manager
+    bar.render_finish()
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")
