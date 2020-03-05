@@ -77,8 +77,9 @@ $ poetry version patch # or minor, etc.
 $ git commit -p
 $ git tag VERSION
 $ git push
-$ poetry publish --build
 ```
+
+A GitHub Actions workflow will build and publish the new version on PyPI.
 
 # Citation
 
