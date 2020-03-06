@@ -27,8 +27,10 @@ jobs:
         pip install poetry
     - name: Check tags
       if: startsWith(github.event.ref, 'refs/tags')
+      id: tag
       run: |
         gitd=$(git describe --tags)
+        echo "::set-output name=tag::$gitd"
         poetryv=v$(poetry version | cut -d' ' -f2)
         echo "$gitd == $poetryv"
         [ "$gitd" = "$poetryd" ]
@@ -61,3 +63,9 @@ jobs:
       with:
         user: __token__
         password: ${{ secrets.pypi_key }}
+    - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
+      uses: dawidd6/action-homebrew-bump-formula@master
+      with:
+        formula: jonchang/biology/tact
+        url: "https://github.com/jonchang/tact/archive/${{steps.tag.outputs.tag}}.tar.gz"
+        token: ${{ secrets.GITHUB_PAT }}
