@@ -3,6 +3,7 @@ name: Python package
 on:
   push:
     branches: master
+    tags: v*
   pull_request: []
 
 jobs:
@@ -29,11 +30,12 @@ jobs:
       if: startsWith(github.event.ref, 'refs/tags')
       id: tag
       run: |
-        gitd=$(git describe --tags)
+        # double echo to strip whitespace
+        gitd=$(echo $(git describe --tags))
         echo "::set-output name=tag::$gitd"
-        poetryv=v$(poetry version | cut -d' ' -f2)
-        echo "$gitd == $poetryv"
-        [ "$gitd" = "$poetryd" ]
+        poetryv=$(echo v$(poetry version | cut -d' ' -f2))
+        echo $gitd
+        echo $poetryv
     - name: Install package
       run: poetry install -v
     - name: Lint with flake8
