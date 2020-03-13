@@ -17,7 +17,9 @@ jobs:
 
     steps:
     - name: Install apt packages
-      run: sudo apt install libopenblas-dev
+      run: |
+        sudo apt update
+        sudo apt install libopenblas-dev
     - uses: actions/checkout@v1
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
