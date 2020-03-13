@@ -157,7 +157,7 @@ description = "pytest: simple powerful testing with Python"
 name = "pytest"
 optional = false
 python-versions = ">=3.5"
-version = "5.3.5"
+version = "5.4.0"
 
 [package.dependencies]
 atomicwrites = ">=1.0"
@@ -266,7 +266,7 @@ version = "0.6.0"
 more-itertools = "*"
 
 [metadata]
-content-hash = "e0208c3ebcdfd31a1e19f7dcf238ee7a221b7b64567199fb43284d173ea9efa6"
+content-hash = "b152f802287d9fcb7af79024affe292b4a37fc80080334caf3e3e790c829eb30"
 python-versions = "^3.6"
 
 [metadata.hashes]
@@ -286,7 +286,7 @@ pluggy = ["0db4b7601aae1d35b4a033282da476845aa19185c1e6964b25cf324b5e4ec3e6", "f
 py = ["64f65755aee5b381cea27766a3a147c3f15b9b6b9ac88676de66ba2ae36793fa", "dc639b046a6e2cff5bbe40194ad65936d6ba360b52b3c3fe1d08a82dd50b5e53"]
 py-cpuinfo = ["2cf6426f776625b21d1db8397d3297ef7acfa59018f02a8779123f3190f18500"]
 pyparsing = ["6f98a7b9397e206d78cc01df10131398f1c8b8510a2f4d97d9abd82e1aacdd80", "d9338df12903bbf5d65a0e4e87c2161968b10d2e489652bb47001d82a9b028b4"]
-pytest = ["0d5fe9189a148acc3c3eb2ac8e1ac0742cb7618c084f3d228baaec0c254b318d", "ff615c761e25eb25df19edddc0b970302d2a9091fbce0e7213298d85fb61fef6"]
+pytest = ["48c891b40d391ec824477c13d10d5eadf698c83a1671aba491f6db222035d6da", "76418969e4b9db462a393f1baa13eeb39ba32eccf6013657f4f8295baa234842"]
 pytest-benchmark = ["01f79d38d506f5a3a0a9ada22ded714537bbdfc8147a881a35c1655db07289d9", "ad4314d093a3089701b24c80a05121994c7765ce373478c8f4ba8d23c9ba9528"]
 pytest-console-scripts = ["a88ac15d663b88ef8fd5d4929a1b50e782dd25eb84443de849ad78636ad3e699"]
 pytest-cov = ["cc6742d8bac45070217169f5f72ceee1e0e55b0221f54bcf24845972d3a47f2b", "cdbdef4f870408ebdbfeb44e63e07eb18bb4619fae852f6e760645fa36172626"]
