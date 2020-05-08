@@ -21,7 +21,7 @@ pytest = "^5.4"
 pytest-cov = "^2.8"
 pytest-benchmark = "^3.2"
 pytest-console-scripts = "^0.2"
-hypothesis = "^5.10"
+hypothesis = "^5.11"
 
 [tool.poetry.scripts]
 tact_build_taxonomic_tree = "tact.cli_taxonomy:main"
