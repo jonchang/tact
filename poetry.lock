@@ -63,7 +63,7 @@ description = "A library for property-based testing"
 name = "hypothesis"
 optional = false
 python-versions = ">=3.5.2"
-version = "5.16.3"
+version = "5.18.0"
 
 [package.dependencies]
 attrs = ">=19.2.0"
@@ -315,7 +315,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["pathlib2", "contextlib2", "unittest2"]
 
 [metadata]
-content-hash = "7db8679469db741b8935ad67d0674dd9ad751e9dcc5574abb649574c7923f901"
+content-hash = "fb1b7b0bd35f50824d3c1b48bab2a949d8116a4ec02a98f3e6595a9ffec4675e"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -373,8 +373,8 @@ dendropy = [
     {file = "DendroPy-4.4.0.tar.gz", hash = "sha256:f0a0e2ce78b3ed213d6c1791332d57778b7f63d602430c1548a5d822acf2799c"},
 ]
 hypothesis = [
-    {file = "hypothesis-5.16.3-py3-none-any.whl", hash = "sha256:7e8e0b7d412cb758c662dcbdcdc93cb8dccc38a9c67f2cd4bf885ba9f714f8d4"},
-    {file = "hypothesis-5.16.3.tar.gz", hash = "sha256:81f9a033900ea73c7b594173dbce7b9eb39222c04fc6278a6f33cc39c49b144a"},
+    {file = "hypothesis-5.18.0-py3-none-any.whl", hash = "sha256:57935a5a1272227b945de3b7d0cefdbbfec1c3d479d22e5f7361ac0d1717dc14"},
+    {file = "hypothesis-5.18.0.tar.gz", hash = "sha256:29e69777d460494ac987b0f60a9ace5a3142c7ba731e27f014caf5a0b93409da"},
 ]
 importlib-metadata = [
     {file = "importlib_metadata-0.23-py2.py3-none-any.whl", hash = "sha256:d5f18a79777f3aa179c145737780282e27b508fc8fd688cb17c7a813e8bd39af"},
