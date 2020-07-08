@@ -70,6 +70,6 @@ jobs:
     - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
       uses: dawidd6/action-homebrew-bump-formula@master
       with:
-        formula: jonchang/biology/tact
-        url: "https://github.com/jonchang/tact/archive/${{steps.tag.outputs.tag}}.tar.gz"
+        tap: jonchang/biology
+        formula: tact
         token: ${{ secrets.GITHUB_PAT }}
