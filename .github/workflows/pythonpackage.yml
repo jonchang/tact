@@ -20,9 +20,9 @@ jobs:
       run: |
         sudo apt update
         sudo apt install libopenblas-dev
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -57,13 +57,13 @@ jobs:
         echo "::set-output name=version::$new_tag"
         poetry version $new_tag
         poetry build
-    - uses: actions/upload-artifact@v1
+    - uses: actions/upload-artifact@v2
       if: matrix.python-version == '3.8'
       with:
         name: ${{ steps.build.outputs.version }}
         path: dist
     - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.8'
-      uses: pypa/gh-action-pypi-publish@v1.0.0a0
+      uses: pypa/gh-action-pypi-publish@v1.2.2
       with:
         user: __token__
         password: ${{ secrets.pypi_key }}
