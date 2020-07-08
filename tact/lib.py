@@ -76,6 +76,9 @@ def optim_bd_mcmc(ages, sampling):
 def wrapped_lik_constant(x, sampling, ages):
     return lik_constant(get_bd(*x), sampling, ages)
 
+def wrapped_lik_constant_yule(x, sampling, ages):
+    return lik_constant(get_bd(x[0], 0), sampling, ages)
+
 
 def optim_bd_scipy(ages, sampling):
     """Optimizes birth death using Scipy"""
@@ -100,8 +103,9 @@ def optim_yule(ages, sampling):
     else:
         # Magallon-Sanderson crown estimator
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
-    bounds = ((1e-6, None), (0, 0))
-    return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
+        init_r = max(1e-3, init_r)
+    bounds = ((1e-6, None), (0, 1))
+    return get_bd(*minimize(wrapped_lik_constant_yule, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
 
 
 def get_lik(vec, rho, x):
