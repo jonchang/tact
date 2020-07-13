@@ -387,10 +387,8 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
     try:
         tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted", taxon_namespace=tn)
     except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
-        logger.error("DendroPy error: {}".format(e.message))
+        logger.error("DendroPy error: {}".format(e))
         print("""
-DendroPy error: {}
-
 This usually indicates your backbone has species that are not present in your
 taxonomy. Outgroups not in the taxonomy can be excluded with the argument:
 
@@ -399,7 +397,11 @@ taxonomy. Outgroups not in the taxonomy can be excluded with the argument:
 For more details, run:
 
     tact_add_taxa --help
-""".format(e.message))
+""")
+        sys.exit(1)
+
+    if not is_binary(tree):
+        logger.error("Backbone tree is not binary!")
         sys.exit(1)
 
     tree.encode_bipartitions()
