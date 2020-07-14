@@ -4,6 +4,9 @@ import collections
 import dendropy
 import click
 
+from .lib import ensure_tree_node_depths
+
+
 def fix_file(filename):
     """
     Slurps a file, and does various checks and fixes:
@@ -113,7 +116,6 @@ def build_taxonomic_tree(filename):
             click.echo("{} => {}".format(orig, new))
     return tree
 
-
 @click.command()
 @click.argument("taxonomy", type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.option("--output", help="name of the output taxonomic tree", required=True, type=click.Path(writable=True))
@@ -138,5 +140,8 @@ def main(taxonomy, output, schema):
     the example taxonomy in the examples/ folder for guidance.
     """
     taxonomy = build_taxonomic_tree(taxonomy)
+    msg = ensure_tree_node_depths(taxonomy)
+    if msg:
+        click.echo(msg)
     taxonomy.write_to_path(output, schema=schema)
     click.echo("Output written to: %s" % click.format_filename(output))

@@ -8,6 +8,7 @@ from math import log, exp
 from decimal import Decimal as D
 import itertools
 import subprocess
+import collections
 
 import dendropy
 import numpy as np
@@ -305,9 +306,29 @@ def get_short_branches(node):
         if edge.length <= 0.001:
             yield edge
 
+def compute_node_depths(tree):
+    res = dict()
+    for leaf in tree.leaf_node_iter():
+        cnt = 0
+        for anc in leaf.ancestor_iter():
+            if anc.label:
+                cnt += 1
+        res[leaf.taxon.label] = cnt
+    return res
+
+def ensure_tree_node_depths(tree):
+    node_depths = compute_node_depths(tree)
+    stats = collections.defaultdict(int)
+    for v in node_depths.values():
+        stats[v] += 1
+    msg = ""
+    if len(stats) > 1:
+        msg += "The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:\n"
+        for k in sorted(stats.keys()):
+            msg += "* {} tips have {} ranked ancestors\n".format(stats[k], k)
+    return msg
+
 # TODO: This could probably be optimized
-
-
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
     """
     Simulates new speciation events in an incomplete phylogeny assuming a

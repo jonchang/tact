@@ -9,7 +9,7 @@ from __future__ import division
 from __future__ import print_function
 
 # Internal
-from .lib import get_birth_death_rates, get_ages, is_binary, get_short_branches, get_tip_labels, crown_capture_probability, edge_iter, get_new_times
+from .lib import get_birth_death_rates, get_ages, is_binary, get_short_branches, get_tip_labels, crown_capture_probability, edge_iter, get_new_times, ensure_tree_node_depths
 from . import fastmrca
 
 # Python standard library
@@ -330,16 +330,6 @@ def update_tree_view(tree):
     return get_tip_labels(tree)
 
 
-def compute_node_depths(tree):
-    res = dict()
-    for leaf in tree.leaf_node_iter():
-        cnt = 0
-        for anc in leaf.ancestor_iter():
-            if anc.label:
-                cnt += 1
-        res[leaf.taxon.label] = cnt
-    return res
-
 
 @click.command()
 @click.option("--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True)
@@ -372,15 +362,9 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
     tn.is_mutable = False
 
     # Check for equal depth of all nodes
-    node_depths = compute_node_depths(taxonomy)
-    stats = collections.defaultdict(int)
-    for v in node_depths.values():
-        stats[v] += 1
-    if len(stats) > 1:
-        logger.warning("The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:")
-        for k in sorted(stats.keys()):
-            logger.warning("* {} tips have {} ranked ancestors".format(stats[k], k))
-        logger.warning("If TACT-added tips are intruding into otherwise-monophyletic clades this should be corrected.")
+    msg = ensure_tree_node_depths(taxonomy)
+    if msg:
+        logger.warning(msg)
 
     logger.info("Reading backbone".format(backbone))
 
