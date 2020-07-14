@@ -6,12 +6,13 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    g++ \
     gcc \
     gfortran \
-    liblapack3 \
     liblapack-dev \
-    libopenblas0 \
+    liblapack3 \
     libopenblas-dev \
+    libopenblas0 \
     locales \
     pypy3 \
     pypy3-dev \
@@ -25,10 +26,11 @@ RUN pypy3 -mpip install ./tact --verbose
 
 RUN apt-get update \
   && apt-get remove -y \
-    pypy3-dev \
-    liblapack-dev \
-    libopenblas-dev \
+    g++ \
     gcc \
     gfortran \
+    liblapack-dev \
+    libopenblas-dev \
+    pypy3-dev \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
