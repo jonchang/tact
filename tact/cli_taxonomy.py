@@ -33,7 +33,7 @@ def ensure(st, ctx=""):
     "Ensures that a cell is not empty."
     if len(st) == 0:
         if len(ctx) > 0:
-            text = " Offending line:\n{}".format(",".join(line))
+            text = " Offending line:\n{}".format(",".join(ctx))
         raise click.UsageError("All cells in the CSV must be nonempty." + text)
 
 def mangle_rank(row, names):
