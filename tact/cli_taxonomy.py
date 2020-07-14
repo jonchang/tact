@@ -56,16 +56,16 @@ def build_taxonomic_tree(filename):
 
     rank_names = next(reader)
     rank_names.pop()  # assume last column is species name
+    rank_names = ["__ROOT__", *rank_names]
 
     tree = dendropy.Tree()
     node = tree.seed_node
     tn = tree.taxon_namespace
     tn.is_mutable = True
-    node.taxon = tn.new_taxon("__TAXONOMIC_ROOT__")
 
     # Mangle and uniquify the first row
     mangled_ranks = set()
-    row = next(reader)
+    row = ["__TAXONOMIC_ROOT__", *next(reader)]
     mangled_row = mangle_rank(row, rank_names)
     for orig, new in zip(row, mangled_row):
         if orig != new:
@@ -83,6 +83,7 @@ def build_taxonomic_tree(filename):
     with click.progressbar(enumerate(reader), label="Generating taxonomy", length=len(lines)) as rf:
         for idx, row in rf:
             # Uniquify row names
+            row = ["__TAXONOMIC_ROOT__", *row]
             mangled_row = mangle_rank(row, rank_names)
             for orig, new in zip(row, mangled_row):
                 if orig != new:
