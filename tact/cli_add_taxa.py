@@ -122,7 +122,7 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=N
         node = graft_node(node, new_node, stem)
 
     if list(get_short_branches(node)):
-        logger.warning("{} short branches detected".format(len(list(get_short_branches(node)))))
+        logger.info("{} short branches detected".format(len(list(get_short_branches(node)))))
 
     return node
 
@@ -222,7 +222,7 @@ def create_clade(namespace, species, ages):
     # Lock the child of the seed node so that things can still attach to the stem of this new clade
     lock_clade(tree.seed_node.child_nodes()[0])
     if list(get_short_branches(tree.seed_node)):
-        logger.warning("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
+        logger.info("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
     return tree
 
 
