@@ -17,9 +17,34 @@ Using Homebrew is the recommended way to install TACT. [Install Homebrew on macO
 
 ## pipx
 
-If you are unable or unwilling to use Homebrew, the next recommended way to install TACT is via `pipx`. [Install `pipx`](https://github.com/pipxproject/pipx#install-pipx), then run:
+If you are unable or unwilling to use Homebrew, the next recommended way to install TACT is via `pipx`. [Install `pipx`](https://pipxproject.github.io/pipx/installation/), then run:
 
     pipx install tact
+
+If you have PyPy3 installed (via e.g. `brew install pypy3` or [some other source](https://www.pypy.org/download.html)) and feel particularly adventurous, you can try to install a faster PyPy version using:
+
+    pipx install --python pypy3 tact
+
+Note that this will take much longer to install, and the installation will almost certainly fail unless you have the proper compilers set up. If it succeeds though, you should see a rather dramatic improvement in TACT's performance.
+
+## Docker
+
+You can also try using the Docker image if you can't get your Python to cooperate. Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
+
+    docker pull jonchang/tact:latest
+
+Then, run TACT from the container image, giving it access to your current working directory:
+
+    mkdir -p examples
+    cd examples
+    curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.csv
+    curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.tre
+    docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
+    docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
+
+Note that this will be much slower than the other options, especially on macOS. Here's a screencast of what this looks like:
+
+[![asciicast](https://asciinema.org/a/347571.svg)](https://asciinema.org/a/347571)
 
 ## Other
 
