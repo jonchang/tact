@@ -2,6 +2,11 @@ ARG version=20.04
 FROM ubuntu:$version
 ARG DEBIAN_FRONTEND=noninteractive
 
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
+
+COPY . /tact
+
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -16,15 +21,10 @@ RUN apt-get update \
     locales \
     pypy3 \
     pypy3-dev \
-  && rm -rf /var/lib/apt/lists/* \
   && localedef -i en_US -f UTF-8 en_US.UTF-8 \
-  && curl -L https://bootstrap.pypa.io/get-pip.py | pypy3 -
-
-COPY . /tact
-
-RUN pypy3 -mpip install ./tact --verbose
-
-RUN apt-get update \
+  && curl -L https://bootstrap.pypa.io/get-pip.py | pypy3 - \
+  && pypy3 -mpip install ./tact --verbose \
+  && rm -rf tact \
   && apt-get remove -y \
     g++ \
     gcc \
