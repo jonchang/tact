@@ -99,7 +99,7 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
     writer = csv.writer(output)
     writer.writerow("node taxonomy_tips backbone_tips simulated_tips backbone_monophyletic simulated_monophyletic backbone_birth simulated_birth backbone_death simulated_death warnings".split())
 
-    with click.progressbar(it, length=nnodes) as prog:
+    with click.progressbar(it, width=20, length=nnodes) as prog:
         for result in prog:
             if result:
                 writer.writerow(result)

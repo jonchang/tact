@@ -83,7 +83,7 @@ def build_taxonomic_tree(filename):
     to_add = list()
     stack = row
     known_nodes = dict()
-    with click.progressbar(enumerate(reader), label="Generating taxonomy", length=len(lines)) as rf:
+    with click.progressbar(enumerate(reader), width=20, label="Generating taxonomy", length=len(lines)) as rf:
         for idx, row in rf:
             # Uniquify row names
             row = ["__TAXONOMIC_ROOT__", *row]
