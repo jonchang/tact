@@ -312,7 +312,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=F
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     root_birth, root_death = get_birth_death_rates(root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips), yule)
 
-    with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), width=20, label="Rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
+    with click.progressbar(taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True), width=12, label="Rates", length=nnodes, show_pos=True, item_show_func=lambda x: x.label if x else None) as progress:
         for node in progress:
             # updates global mrca_rates as a side effect
             process_node(backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death, yule)
@@ -413,7 +413,7 @@ For more details, run:
     bar = click.progressbar(label="TACT",
                             length=len(all_possible_tips) - initial_length,
                             show_pos=True,
-                            width=20,
+                            width=12,
                             item_show_func=lambda x: x)
 
     def bar_update():
