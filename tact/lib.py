@@ -15,7 +15,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 # Raise on overflow
-np.seterr(all='raise')
+np.seterr(all="raise")
 
 # Initialize grid for birthdeath grid search
 births = np.linspace(sys.float_info.epsilon, 5, num=100)
@@ -34,9 +34,14 @@ def get_ra(b, d):
 
 def optim_bd_r(ages, sampling):
     """Optimizes birth death using TreePar and R"""
-    script = """cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = "L-BFGS-B")$par, " dum")"""
-    fmt = script.format(birth=1, death=0.02, ages=",".join([str(x) for x in ages]), sampling=sampling)
-    output = subprocess.check_output(["Rscript", "--vanilla", "--default-packages=base,stats", "-e", fmt], stderr=subprocess.STDOUT)
+    birth = 1
+    death = 0.02
+    ages_str = ",".join([str(x) for x in ages])
+    script = f"cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages_str:}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = 'L-BFGS-B')$par, ' dum')"
+    output = subprocess.check_output(
+        ["Rscript", "--vanilla", "--default-packages=base,stats", "-e", fmt],
+        stderr=subprocess.STDOUT,
+    )
     b, d, _ = output.split(None, 2)
     return float(b), float(d)
 
@@ -77,6 +82,7 @@ def optim_bd_mcmc(ages, sampling):
 def wrapped_lik_constant(x, sampling, ages):
     return lik_constant(get_bd(*x), sampling, ages)
 
+
 def wrapped_lik_constant_yule(x, sampling, ages):
     return lik_constant(get_bd(x[0], 0), sampling, ages)
 
@@ -90,7 +96,11 @@ def optim_bd_scipy(ages, sampling):
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
         init_r = max(1e-3, init_r)
     bounds = ((1e-6, None), (0, 1 - 1e-6))
-    return get_bd(*minimize(wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
+    return get_bd(
+        *minimize(
+            wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC"
+        )["x"].tolist()
+    )
 
 
 def optim_bd(ages, sampling):
@@ -106,7 +116,15 @@ def optim_yule(ages, sampling):
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
         init_r = max(1e-3, init_r)
     bounds = ((1e-6, None), (0, 1))
-    return get_bd(*minimize(wrapped_lik_constant_yule, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC")["x"].tolist())
+    return get_bd(
+        *minimize(
+            wrapped_lik_constant_yule,
+            (init_r, 0.0),
+            args=(sampling, ages),
+            bounds=bounds,
+            method="TNC",
+        )["x"].tolist()
+    )
 
 
 def get_lik(vec, rho, x):
@@ -115,7 +133,7 @@ def get_lik(vec, rho, x):
     root = 1
     lik1 = (root + 1) * np.log(p1(x[0], l, m, rho))
     lik2 = np.sum(np.log(l * p1(x[1:], l, m, rho)))
-    lik3 = - (root + 1) * np.log(1 - p0(x[0], l, m, rho))
+    lik3 = -(root + 1) * np.log(1 - p0(x[0], l, m, rho))
     return lik1 + lik2 + lik3
 
 
@@ -171,8 +189,8 @@ def intp1_exact(t, l, m):
     l = D(l)
     m = D(m)
     t = D(t)
-    num = (D(1) - (-(l - m) * t).exp())
-    denom = (l - m * (-(l - m) * t).exp())
+    num = D(1) - (-(l - m) * t).exp()
+    denom = l - m * (-(l - m) * t).exp()
     return num / denom
 
 
@@ -229,7 +247,7 @@ def crown_capture_probability(n, k):
     the root node of a large clade? Systematic Biology 45:168-173
     """
     if n < k:
-        raise Exception("n must be greater than or equal to k (n={}, k={})".format(n, k))
+        raise Exception(f"n must be greater than or equal to k (n={n}, k={k})")
     if n == 1 and k == 1:
         return 0  # not technically correct but it works for our purposes
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
@@ -287,7 +305,9 @@ def get_tree(path, namespace=None):
     """
     Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
     """
-    tree = dendropy.Tree.get_from_path(path, schema="newick", taxon_namespace=namespace, rooting="default-rooted")
+    tree = dendropy.Tree.get_from_path(
+        path, schema="newick", taxon_namespace=namespace, rooting="default-rooted"
+    )
     tree.calc_node_ages()
     tree.encode_bipartitions()
     return tree
@@ -306,6 +326,7 @@ def get_short_branches(node):
         if edge.length <= 0.001:
             yield edge
 
+
 def compute_node_depths(tree):
     res = dict()
     for leaf in tree.leaf_node_iter():
@@ -316,6 +337,7 @@ def compute_node_depths(tree):
         res[leaf.taxon.label] = cnt
     return res
 
+
 def ensure_tree_node_depths(tree):
     node_depths = compute_node_depths(tree)
     stats = collections.defaultdict(int)
@@ -325,8 +347,9 @@ def ensure_tree_node_depths(tree):
     if len(stats) > 1:
         msg += "The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:\n"
         for k in sorted(stats.keys()):
-            msg += "* {} tips have {} ranked ancestors\n".format(stats[k], k)
+            msg += f"* {stats[k]} tips have {k} ranked ancestors\n"
     return msg
+
 
 # TODO: This could probably be optimized
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
@@ -368,7 +391,9 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         if len(ranks) > 2:
             distrranks = list()
             for i in range(1, len(ranks)):
-                temp = ranks[i] * (intp1(times[i - 1], birth, death) - intp1(times[i], birth, death))
+                temp = ranks[i] * (
+                    intp1(times[i - 1], birth, death) - intp1(times[i], birth, death)
+                )
                 distrranks.append(temp)
             try:
                 dsum = sum(distrranks)
@@ -389,7 +414,11 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
             temp = intp1(times[addrank + 1], birth, death) / const
         except ZeroDivisionError:
             temp = 0.0
-        xnew = 1 / (death - birth) * log((1 - (r + temp) * const * birth) / (1 - (r + temp) * const * death))
+        xnew = (
+            1
+            / (death - birth)
+            * log((1 - (r + temp) * const * birth) / (1 - (r + temp) * const * death))
+        )
         only_new.append(xnew)
         missing -= 1
     only_new.sort(reverse=True)
