@@ -4,29 +4,33 @@
 # Try to assign tips to a pre-existing tree based on a taxonomy
 # Jonathan Chang, May 13, 2016
 
-# Pragmata
 from __future__ import division
 from __future__ import print_function
 
-# Internal
-from .lib import get_birth_death_rates, get_ages, is_binary, get_short_branches, get_tip_labels, crown_capture_probability, edge_iter, get_new_times, ensure_tree_node_depths
-from . import fastmrca
-
-# Python standard library
+import collections
+import csv
 import logging
 import operator
 import random
 import sys
 from time import time
-import collections
-import csv
 
-# Third party
-import dendropy
 import click
+import dendropy
+
+from . import fastmrca
+from .lib import crown_capture_probability
+from .lib import edge_iter
+from .lib import ensure_tree_node_depths
+from .lib import get_ages
+from .lib import get_birth_death_rates
+from .lib import get_new_times
+from .lib import get_short_branches
+from .lib import get_tip_labels
+from .lib import is_binary
 
 logger = logging.getLogger(__name__)
-# Speed up logging for pypy
+# Speed up logging for PyPy
 logging._srcfile = None
 logging.logThreads = 0
 logging.logProcesses = 0
@@ -37,7 +41,6 @@ invalid_map = {}
 
 global mrca_rates
 mrca_rates = {}
-
 
 def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     global invalid_map
@@ -539,7 +542,6 @@ For more details, run:
     tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")
     print()
-
 
 if __name__ == '__main__':
     main()

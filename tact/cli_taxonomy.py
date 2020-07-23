@@ -1,8 +1,8 @@
-import csv
 import collections
+import csv
 
-import dendropy
 import click
+import dendropy
 
 from .lib import ensure_tree_node_depths
 

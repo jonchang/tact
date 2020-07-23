@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Try to assign tips to a pre-existing tree based on a taxonomy
-# Jonathan Chang, May 13, 2016
-
 from __future__ import division
 
 import csv
-import multiprocessing
 import functools
 import math
+import multiprocessing
 
-import dendropy
 import click
+import dendropy
 
-from .lib import get_monophyletic_node, get_birth_death_rates, get_tree, get_tip_labels
+from .lib import get_birth_death_rates
+from .lib import get_monophyletic_node
+from .lib import get_tip_labels
+from .lib import get_tree
 
 
 def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-
 from __future__ import division
 
-import sys
-import random
-from math import log, exp
-from decimal import Decimal as D
-import itertools
-import subprocess
 import collections
+import itertools
+import random
+import subprocess
+import sys
+from decimal import Decimal as D
+from math import exp
+from math import log
 
 import dendropy
 import numpy as np
