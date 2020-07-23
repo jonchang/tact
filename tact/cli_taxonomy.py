@@ -25,16 +25,19 @@ def fix_file(filename):
             bad_heads.append(key)
 
     if len(bad_heads) > 0:
-        raise click.UsageError("CSV headers must have unique names. Duplicated column names:\n*  {}".format("\n*  ".join(bad_heads)))
+        dupe_strs = "\n*  ".join(bad_heads)
+        raise click.UsageError(f"CSV headers must have unique names. Duplicated column names:\n*  {dupe_strs}")
 
     return [lines[0], *sorted(lines[1:])]
+
 
 def ensure(st, ctx=""):
     "Ensures that a cell is not empty."
     if len(st) == 0:
         if len(ctx) > 0:
-            text = " Offending line:\n{}".format(",".join(ctx))
+            text = f" Offending line:\n{','.join(ctx)}"
         raise click.UsageError("All cells in the CSV must be nonempty." + text)
+
 
 def mangle_rank(row, names):
     seen = set()
@@ -42,11 +45,13 @@ def mangle_rank(row, names):
     for idx, item in enumerate(row):
         if item in seen:
             if idx >= len(names):
-                raise click.UsageError("Invalid name (possibly duplicated): {}\nSeen at: {}".format(names, ",".join(row)))
+                dupe_str = ",".join(row)
+                raise click.UsageError(f"Invalid name (possibly duplicated): {names}\nSeen at: {dupe_str}")
             item = item + "__" + names[idx] + "__"
         seen.add(item)
         new.append(item)
     return new
+
 
 def build_taxonomic_tree(filename):
     """
@@ -113,13 +118,19 @@ def build_taxonomic_tree(filename):
     if len(mangled_ranks) > 0:
         click.echo("Note: several rank names were adjusted to ensure uniqueness. These are:")
         for orig, new in mangled_ranks:
-            click.echo("{} => {}".format(orig, new))
+            click.echo(f"{orig} => {new}")
     return tree
+
 
 @click.command()
 @click.argument("taxonomy", type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.option("--output", help="name of the output taxonomic tree", required=True, type=click.Path(writable=True))
-@click.option("--schema", help="format of the output taxonomic tree", default="newick", type=click.Choice(["newick", "nexus", "nexml"]))
+@click.option(
+    "--schema",
+    help="format of the output taxonomic tree",
+    default="newick",
+    type=click.Choice(["newick", "nexus", "nexml"]),
+)
 def main(taxonomy, output, schema):
     """Generates a taxonomic tree from TAXONOMY.
 
@@ -144,4 +155,4 @@ def main(taxonomy, output, schema):
     if msg:
         click.echo(msg)
     taxonomy.write_to_path(output, schema=schema)
-    click.echo("Output written to: %s" % click.format_filename(output))
+    click.echo(f"Output written to: {click.format_filename(output)}")
