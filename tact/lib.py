@@ -37,9 +37,9 @@ def optim_bd_r(ages, sampling):
     birth = 1
     death = 0.02
     ages_str = ",".join([str(x) for x in ages])
-    script = f"cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages_str:}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = 'L-BFGS-B')$par, ' dum')"
+    script = f"cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages_str}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = 'L-BFGS-B')$par, ' dum')"
     output = subprocess.check_output(
-        ["Rscript", "--vanilla", "--default-packages=base,stats", "-e", fmt],
+        ["Rscript", "--vanilla", "--default-packages=base,stats", "-e", script],
         stderr=subprocess.STDOUT,
     )
     b, d, _ = output.split(None, 2)
