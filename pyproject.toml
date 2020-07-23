@@ -29,7 +29,7 @@ tact_add_taxa = "tact.cli_add_taxa:main"
 tact_check_results = "tact.cli_check_trees:main"
 
 [tool.autopep8]
-max_line_length = 127
+max_line_length = 118
 ignore = "E501"
 
 [build-system]
