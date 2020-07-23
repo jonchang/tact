@@ -52,14 +52,33 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
     if bool(bb_mrca) != bool(st_mrca) and bb_mrca is not None:
         notes.append("BACKBONE and SIMULATED trees differ in monophyly for this taxa")
 
-    return [taxon, len(species), bb_ntax, st_ntax, bool(bb_mrca), bool(st_mrca), bb_birth, st_birth, bb_death, st_death, ", ".join(notes)]
+    return [
+        taxon,
+        len(species),
+        bb_ntax,
+        st_ntax,
+        bool(bb_mrca),
+        bool(st_mrca),
+        bb_birth,
+        st_birth,
+        bb_death,
+        st_death,
+        ", ".join(notes),
+    ]
 
 
 @click.command()
 @click.argument("simulated", type=click.Path(exists=True, dir_okay=False))
 @click.option("--backbone", type=click.Path(exists=True, dir_okay=False), required=True, help="backbone phylogeny")
-@click.option("--taxonomy", type=click.Path(exists=True, dir_okay=False), required=True, help="taxonomic phylogeny. Possibly created by `tact build_taxonic_tree`")
-@click.option("--output", type=click.File("w"), help="Output CSV file report (defaults to standard output)", default="-")
+@click.option(
+    "--taxonomy",
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help="taxonomic phylogeny. Possibly created by `tact build_taxonic_tree`",
+)
+@click.option(
+    "--output", type=click.File("w"), help="Output CSV file report (defaults to standard output)", default="-"
+)
 @click.option("--cores", help="number of parallel cores to use", default=multiprocessing.cpu_count(), type=int)
 @click.option("--chunksize", help="number of tree nodes to allocate to each core", type=int)
 def main(simulated, backbone, taxonomy, output, cores, chunksize):
@@ -97,7 +116,9 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
     it = pool.imap_unordered(wrap, taxonomy.preorder_internal_node_iter(exclude_seed_node=True), chunksize=chunksize)
 
     writer = csv.writer(output)
-    writer.writerow("node taxonomy_tips backbone_tips simulated_tips backbone_monophyletic simulated_monophyletic backbone_birth simulated_birth backbone_death simulated_death warnings".split())
+    writer.writerow(
+        "node taxonomy_tips backbone_tips simulated_tips backbone_monophyletic simulated_monophyletic backbone_birth simulated_birth backbone_death simulated_death warnings".split()
+    )
 
     with click.progressbar(it, width=12, length=nnodes) as prog:
         for result in prog:
@@ -105,5 +126,5 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
                 writer.writerow(result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
