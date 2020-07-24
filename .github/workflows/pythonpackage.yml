@@ -16,7 +16,7 @@ jobs:
       uses: actions/github-script@v2
       with:
         script: |
-          github.pullRequests.merge({
+          github.pulls.merge({
             ...context.repo,
             pull_number: context.payload.pull_request.number,
             merge_method: "squash"
