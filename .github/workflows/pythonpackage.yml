@@ -7,6 +7,21 @@ on:
   pull_request: []
 
 jobs:
+  automerge:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'
+    steps:
+    - name: Automerge dependencies
+      uses: actions/github-script@v2
+      with:
+        script: |
+          github.pullRequests.merge({
+            ...context.repo,
+            pull_number: context.payload.pull_request.number,
+            merge_method: "squash"
+          })
+
   build:
 
     runs-on: ubuntu-latest
