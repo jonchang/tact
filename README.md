@@ -42,7 +42,7 @@ Then, run TACT from the container image, giving it access to your current workin
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
 
-Note that this will be much slower than the other options, especially on macOS. Here's a screencast of what this looks like:
+One benefit of using the Docker image is that it automatically uses PyPy3, which can speed up your TACT run, but might also be slower on macOS. Here's a screencast of what this looks like:
 
 [![asciicast](https://asciinema.org/a/347571.svg)](https://asciinema.org/a/347571)
 
