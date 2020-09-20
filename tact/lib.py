@@ -378,7 +378,8 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
     if told is None:
         told = max(ages)
     if len(ages) > 0:
-        assert max(ages) <= told
+        if max(ages) > told and abs(max(ages) - told) > sys.float_info.epsilon:
+            raise Exception("Zero or negative branch lengths detected in backbone phylogeny")
     if tyoung is None:
         tyoung = 0
 
