@@ -121,7 +121,7 @@ def get_new_branching_times(
     )
     times = get_new_times(ages, birth, death, num_new_times, told, tyoung)
     if len(times) > 5:
-        logger.debug("    {taxon}: {times[0]:.2f}..{times[-1]:.2f}")
+        logger.debug(f"    {taxon}: {times[0]:.2f}..{times[-1]:.2f}")
     else:
         logger.debug(f"    {taxon}: " + ", ".join(["{:.2f}" for x in times]).format(*times))
     return times
