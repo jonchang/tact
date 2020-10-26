@@ -1,8 +1,14 @@
 version: 2
 updates:
 - package-ecosystem: "pip"
-  directory: "/" # Location of package manifests
+  directory: "/"
   schedule:
     interval: "weekly"
+  assignees:
+  - jonchang
+- package-ecosystem: "github-actions"
+  directory: "/"
+  schedule:
+    interval: daily
   assignees:
   - jonchang
