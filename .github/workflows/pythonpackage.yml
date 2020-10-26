@@ -13,7 +13,7 @@ jobs:
     if: github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'
     steps:
     - name: Automerge dependencies
-      uses: actions/github-script@v2
+      uses: actions/github-script@v3
       with:
         script: |
           github.pulls.merge({
