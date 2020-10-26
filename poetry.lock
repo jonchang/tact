@@ -49,7 +49,7 @@ toml = ["toml"]
 
 [[package]]
 name = "dendropy"
-version = "4.4.0"
+version = "4.5.1"
 description = "A Python library for phylogenetics and phylogenetic computing: reading, writing, simulation, processing and manipulation of phylogenetic trees (phylogenies) and characters."
 category = "main"
 optional = false
@@ -348,7 +348,7 @@ coverage = [
     {file = "coverage-5.2.tar.gz", hash = "sha256:1874bdc943654ba46d28f179c1846f5710eda3aeb265ff029e0ac2b52daae404"},
 ]
 dendropy = [
-    {file = "DendroPy-4.4.0.tar.gz", hash = "sha256:f0a0e2ce78b3ed213d6c1791332d57778b7f63d602430c1548a5d822acf2799c"},
+    {file = "DendroPy-4.5.1.tar.gz", hash = "sha256:3503b170ba4830239dfa93371d210367a3be5825c3cb23ad7504a0feb3be7dbe"},
 ]
 hypothesis = [
     {file = "hypothesis-5.37.3-py3-none-any.whl", hash = "sha256:bf3195e6a8b3dd5b285dbaa1cabdec7b3eea19bd16843227d2352a6bc58c17bd"},
