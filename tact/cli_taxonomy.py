@@ -136,6 +136,7 @@ def main(taxonomy, output, schema):
 
     TAXONOMY is a comma-separated values file with several requirements.
 
+    \b
     * Each row represents a single species.
     * Each column represents a taxonomic rank.
     * The columns must be arranged from most inclusive to least inclusive,
