@@ -12,7 +12,7 @@ from math import log
 
 import dendropy
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, dual_annealing
 
 # Raise on overflow
 np.seterr(all="raise")
@@ -87,7 +87,22 @@ def wrapped_lik_constant_yule(x, sampling, ages):
     return lik_constant(get_bd(x[0], 0), sampling, ages)
 
 
-def optim_bd_scipy(ages, sampling):
+def two_step_optim(func, x0, bounds, args):
+    """Tries to optimize function using the fast L-BFGS-B method, and if that fails, use simulated annealing."""
+    result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
+    if result["success"]:
+        return result["x"].tolist()
+
+    print(f"Optimization failed: {result['message']} (code {result['status']})", file=sys.stderr)
+
+    result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
+    if result["success"]:
+        return result["x"].tolist()
+
+    raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
+
+
+def optim_bd_scipy(ages, sampling, min_bound=1e-9):
     """Optimizes birth death using Scipy"""
     if max(ages) < 0.000001:
         init_r = 1e-3
@@ -95,19 +110,16 @@ def optim_bd_scipy(ages, sampling):
         # Magallon-Sanderson crown estimator
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
         init_r = max(1e-3, init_r)
-    bounds = ((1e-6, None), (0, 1 - 1e-6))
-    return get_bd(
-        *minimize(
-            wrapped_lik_constant, (init_r, 0.0), args=(sampling, ages), bounds=bounds, method="TNC"
-        )["x"].tolist()
-    )
+    bounds = ((min_bound, 100), (0, 1 - min_bound))
+    result = two_step_optim(wrapped_lik_constant, x0=(init_r, min_bound), bounds=bounds, args=(sampling, ages))
+    return get_bd(*result)
 
 
 def optim_bd(ages, sampling):
     return optim_bd_scipy(ages, sampling)
 
 
-def optim_yule(ages, sampling):
+def optim_yule(ages, sampling, min_bound=1e-9):
     """Optimizes a Yule model using Scipy"""
     if max(ages) < 0.000001:
         init_r = 1e-3
@@ -115,16 +127,9 @@ def optim_yule(ages, sampling):
         # Magallon-Sanderson crown estimator
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
         init_r = max(1e-3, init_r)
-    bounds = ((1e-6, None), (0, 1))
-    return get_bd(
-        *minimize(
-            wrapped_lik_constant_yule,
-            (init_r, 0.0),
-            args=(sampling, ages),
-            bounds=bounds,
-            method="TNC",
-        )["x"].tolist()
-    )
+    bounds = ((min_bound, 100), (0, 1 - min_bound))
+    result = two_step_optim(wrapped_lik_constant_yule, x0=(init_r, 0.0), bounds=bounds, args=(sampling, ages))
+    return get_bd(*result)
 
 
 def get_lik(vec, rho, x):
