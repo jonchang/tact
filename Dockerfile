@@ -1,4 +1,4 @@
-ARG version=20.04
+ARG version=20.10
 FROM ubuntu:$version
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -33,4 +33,7 @@ RUN apt-get update \
     libopenblas-dev \
     pypy3-dev \
   && apt-get autoremove -y \
-  && rm -rf /var/lib/apt/lists/*
+  && rm -rf /var/lib/apt/lists/* \
+  && rm -rf /root/.cache \
+  && rm -rf /var/cache/* \
+  && rm -rf /var/log/*
