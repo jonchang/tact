@@ -17,73 +17,23 @@ from scipy.optimize import minimize, dual_annealing
 # Raise on overflow
 np.seterr(all="raise")
 
-# Initialize grid for birthdeath grid search
-births = np.linspace(sys.float_info.epsilon, 5, num=100)
-deaths = np.linspace(0, 5, num=100)
-params = [(x, y) for (x, y) in itertools.product(births, deaths) if x > y]
-
-
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""
     return -r / (a - 1), -a * r / (a - 1)
 
 
 def get_ra(b, d):
+    """Converts birth and death to turnover and relative extinction rates."""
     return (b - d, d / b)
 
 
-def optim_bd_r(ages, sampling):
-    """Optimizes birth death using TreePar and R"""
-    birth = 1
-    death = 0.02
-    ages_str = ",".join([str(x) for x in ages])
-    script = f"cat(optim(c({birth}, {death}), function(v, ...) TreePar::LikConstant(v[1], v[2], ...), x = c({ages_str}), sampling = {sampling}, lower=c(.Machine$double.xmin,0), method = 'L-BFGS-B')$par, ' dum')"
-    output = subprocess.check_output(
-        ["Rscript", "--vanilla", "--default-packages=base,stats", "-e", script],
-        stderr=subprocess.STDOUT,
-    )
-    b, d, _ = output.split(None, 2)
-    return float(b), float(d)
-
-
-def optim_bd_grid(ages, sampling):
-    """Optimizes birth death using a grid search"""
-    res = [lik_constant(x, sampling, ages) for x in params]
-    return params[np.argmin(res)]
-
-
-def update_multiplier_freq(q, d=1.1):
-    u = np.random.uniform(0, 1, 2)
-    l = 2 * log(d)
-    m = np.exp(l * (u - 0.5))
-    new_q = q * m
-    return new_q
-
-
-def optim_bd_mcmc(ages, sampling):
-    """Optimizes birth death using a cheap MCMC-like algorithm"""
-    new_vec = [0, 0]
-    ages = np.sort(np.array(ages))[::-1]
-    mm = max(ages)
-    if mm < 0.0000001:
-        vec = [1, 0.02]
-    else:
-        vec = [len(ages) / mm, 0.02]
-    likelihood = get_lik(vec, sampling, ages)
-    for x in range(100):
-        new_vec = update_multiplier_freq(vec)
-        new_likelihood = get_lik(new_vec, sampling, ages)
-        if (new_likelihood - likelihood) * 100 >= log(np.random.random()):
-            likelihood = new_likelihood
-            vec = new_vec
-    return vec
-
-
 def wrapped_lik_constant(x, sampling, ages):
+    """Wrapper for birth-death likelihood to make optimizing more convenient."""
     return lik_constant(get_bd(*x), sampling, ages)
 
 
 def wrapped_lik_constant_yule(x, sampling, ages):
+    """Wrapper for Yule likelihood to make optimizing more convenient."""
     return lik_constant(get_bd(x[0], 0), sampling, ages)
 
 
@@ -93,8 +43,6 @@ def two_step_optim(func, x0, bounds, args):
     if result["success"]:
         return result["x"].tolist()
 
-    print(f"Optimization failed: {result['message']} (code {result['status']})", file=sys.stderr)
-
     result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
     if result["success"]:
         return result["x"].tolist()
@@ -102,7 +50,7 @@ def two_step_optim(func, x0, bounds, args):
     raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 
 
-def optim_bd_scipy(ages, sampling, min_bound=1e-9):
+def optim_bd(ages, sampling, min_bound=1e-9):
     """Optimizes birth death using Scipy"""
     if max(ages) < 0.000001:
         init_r = 1e-3
@@ -113,10 +61,6 @@ def optim_bd_scipy(ages, sampling, min_bound=1e-9):
     bounds = ((min_bound, 100), (0, 1 - min_bound))
     result = two_step_optim(wrapped_lik_constant, x0=(init_r, min_bound), bounds=bounds, args=(sampling, ages))
     return get_bd(*result)
-
-
-def optim_bd(ages, sampling):
-    return optim_bd_scipy(ages, sampling)
 
 
 def optim_yule(ages, sampling, min_bound=1e-9):
@@ -169,6 +113,7 @@ def p1_exact(t, l, m, rho):
 
 
 def p1_orig(t, l, m, rho):
+    """Original version of p1, here for testing and comparison purposes."""
     try:
         num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
         denom = (rho * l + (l * (1 - rho) - m) * np.exp(-(l - m) * t)) ** 2
@@ -178,8 +123,10 @@ def p1_orig(t, l, m, rho):
 
 
 def p1(t, l, m, rho):
-    # Optimized version of p1 using common subexpression elimination and strength reduction from
-    # exponentiation to multiplication.
+    """
+    Optimized version of p1 using common subexpression elimination and strength reduction from
+    exponentiation to multiplication.
+    """
     try:
         ert = np.exp(-(l - m) * t, dtype=np.float64)
         num = rho * (l - m) ** 2 * ert
