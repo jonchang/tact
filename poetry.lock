@@ -57,7 +57,7 @@ python-versions = "*"
 
 [[package]]
 name = "hypothesis"
-version = "5.38.1"
+version = "5.41.0"
 description = "A library for property-based testing"
 category = "dev"
 optional = false
@@ -292,7 +292,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = ">= 3.6, < 3.10"
-content-hash = "887dbcb1bbe866035f5d5c879d3c4fc0cb9279b97023f7c37b0387d1bc80d87a"
+content-hash = "aeaa89a961743c43ada36254f656940cc833570e1d435082bd0356f8070a6833"
 
 [metadata.files]
 atomicwrites = [
@@ -351,8 +351,8 @@ dendropy = [
     {file = "DendroPy-4.5.1.tar.gz", hash = "sha256:3503b170ba4830239dfa93371d210367a3be5825c3cb23ad7504a0feb3be7dbe"},
 ]
 hypothesis = [
-    {file = "hypothesis-5.38.1-py3-none-any.whl", hash = "sha256:84a83d3d1f05c82e80c04e50d0e4d9ae233676734baa60e488047102f9d5420a"},
-    {file = "hypothesis-5.38.1.tar.gz", hash = "sha256:49d87a00e904d9bd4468f89130932c947410cbf9bd5ec18937b40b045486bc27"},
+    {file = "hypothesis-5.41.0-py3-none-any.whl", hash = "sha256:e6f8da2dcc2e1397094e1504d5661d1021a360a6e7ec97eacac4d4961ccedde8"},
+    {file = "hypothesis-5.41.0.tar.gz", hash = "sha256:17b846e06daa678570979fe6fae1ba3c57f68305ae0bb6d4b8d831bca4f8ceaa"},
 ]
 importlib-metadata = [
     {file = "importlib_metadata-2.0.0-py2.py3-none-any.whl", hash = "sha256:cefa1a2f919b866c5beb7c9f7b0ebb4061f30a8a9bf16d609b000e2dfaceb9c3"},
