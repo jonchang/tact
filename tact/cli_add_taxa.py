@@ -61,7 +61,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
             logger.info(f"    {taxonomy_node.label}: ancestor {anc.label} not monophyletic!")
         elif computed_ccp < ccp:
             logger.info(
-                f"    {taxonomy_node.label}: ancestor {anc.label} fails crown threshold ({computed_ccp} < {ccp}); using stem"
+                f"    {taxonomy_node.label}: ancestor {anc.label} fails crown threshold ({computed_ccp:.2f} < {ccp}); using stem"
             )
             taxonomy_target = anc
             backbone_target = backbone_node.parent_node
@@ -94,9 +94,9 @@ def get_new_branching_times(
         if backbone_node.parent_node:
             new_told = backbone_node.parent_node.age
             if told is not None:
-                logger.debug(f"    {taxon}: tmax {told} => {new_told} because ccp {new_told:.2f} < {min_ccp}")
+                logger.debug(f"    {taxon}: tmax {told:.2f} => {new_told:.2f} because ccp {new_told:.2f} < {min_ccp}")
             else:
-                logger.debug(f"    {taxon}: tmax set to {new_told} because ccp {ccp:.2f} < {min_ccp}")
+                logger.debug(f"    {taxon}: tmax set to {new_told:.2f} because ccp {ccp:.2f} < {min_ccp}")
         else:
             # TODO: check for a root edge and graft a fake node above that
             new_told = backbone_node.age
@@ -267,6 +267,12 @@ def get_min_age(node):
     except ValueError:
         return 0.0
 
+def fmt_species_list(spp):
+    spp = list(spp)
+    if len(spp) > 2:
+        return f"{spp[0]}, {spp[1]} and {len(spp) - 2} others"
+    return " and ".join(spp)
+
 
 def process_node(
     backbone_tree, backbone_bitmask, all_possible_tips, taxon_node, min_ccp, default_birth, default_death, yule=False
@@ -293,7 +299,7 @@ def process_node(
         return
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     if not species.issuperset(get_tip_labels(mrca)):
-        logger.debug(f"MRCA: {taxon} not monophyletic in backbone")
+        logger.debug(f"MRCA: {taxon} not monophyletic in backbone (from {fmt_species_list(get_tip_labels(mrca) - species)})")
         mrca_rates[taxon] = (birth, death, 0.0, f"from {parent} (not monophyletic)")
         return
     extant = len(mrca.leaf_nodes())
@@ -319,7 +325,7 @@ def process_node(
         return
     sf = extant / total
     birth, death = get_birth_death_rates(mrca, sf, yule)
-    logger.debug(f"MRCA: {taxon} b={birth}, d={death}, sf={sf}, ccp={ccp}")
+    logger.debug(f"MRCA: {taxon} b={birth:.2f}, d={death:.2f}, sf={sf:.2f} ({extant}/{total}), ccp={ccp:.2f}")
     mrca_rates[taxon] = (birth, death, ccp, "computed")
 
 
