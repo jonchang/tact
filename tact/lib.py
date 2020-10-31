@@ -2,9 +2,7 @@
 from __future__ import division
 
 import collections
-import itertools
 import random
-import subprocess
 import sys
 from decimal import Decimal as D
 from math import exp
@@ -16,6 +14,7 @@ from scipy.optimize import minimize, dual_annealing
 
 # Raise on overflow
 np.seterr(all="raise")
+
 
 def get_bd(r, a):
     """Converts turnover and relative extinction to birth and death rates."""

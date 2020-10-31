@@ -7,7 +7,6 @@
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import csv
 import logging
 import operator
@@ -266,6 +265,7 @@ def get_min_age(node):
         return min([x.head_node.age for x in edge_iter(node) if x.label != "locked"])
     except ValueError:
         return 0.0
+
 
 def fmt_species_list(spp):
     spp = list(spp)

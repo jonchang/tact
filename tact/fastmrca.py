@@ -1,7 +1,6 @@
 # fastMRCA functions
 from __future__ import division
 
-import functools
 import logging
 
 from .lib import get_tip_labels
