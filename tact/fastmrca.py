@@ -1,11 +1,7 @@
 # fastMRCA functions
 from __future__ import division
 
-import logging
-
 from .lib import get_tip_labels
-
-logger = logging.getLogger(__name__)
 
 global tree
 
