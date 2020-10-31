@@ -307,6 +307,10 @@ def process_node(
         logger.debug(f"MRCA: {taxon} is a singleton")
         mrca_rates[taxon] = (birth, death, ccp, f"from {parent} (singleton)")
         return
+    if total == 2:
+        logger.debug(f"MRCA: {taxon} is a cherry")
+        mrca_rates[taxon] = (birth, death, ccp, f"from {parent} (cherry)")
+        return
     if ccp < min_ccp:
         logger.debug(
             f"MRCA: {taxon} has crown capture probability {ccp:.2f} < {min_ccp:.2f} ({extant}/{total} species)"
