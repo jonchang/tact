@@ -2,6 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/tact.svg)](https://pypi.org/project/tact/)
 [![Build status](https://github.com/jonchang/tact/workflows/Python%20package/badge.svg)](https://github.com/jonchang/tact/actions)
+[![Docker Hub](https://img.shields.io/docker/pulls/jonchang/tact.svg)](https://hub.docker.com/r/jonchang/tact)
 
 Adds tips to a backbone phylogeny using taxonomy simulated with birth-death models
 
