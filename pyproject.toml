@@ -20,7 +20,7 @@ DendroPy = "^4.4"
 pytest = "^6.1"
 pytest-cov = "^2.10"
 pytest-benchmark = "^3.2"
-pytest-console-scripts = "^1.0"
+pytest-console-scripts = "^1.1"
 hypothesis = "^5.41"
 
 [tool.poetry.scripts]
