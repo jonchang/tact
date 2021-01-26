@@ -10,27 +10,11 @@ Adds tips to a backbone phylogeny using taxonomy simulated with birth-death mode
 
 TACT requires Python 3. When possible, we recommend using the PyPy 3 implementation as it can significantly speed up TACT analyses, particularly on large datasets. In addition, TACT depends on the click, DendroPy, NumPy, and SciPy packages.
 
-## Homebrew
-
-Using Homebrew is the recommended way to install TACT. [Install Homebrew on macOS](https://brew.sh) or [Install Homebrew on Linux or Windows 10](https://docs.brew.sh/Homebrew-on-Linux). Once Homebrew has been installed, run
-
-    brew install jonchang/biology/tact
-
-## pipx
-
-If you are unable or unwilling to use Homebrew, the next recommended way to install TACT is via `pipx`. [Install `pipx`](https://pipxproject.github.io/pipx/installation/), then run:
-
-    pipx install tact
-
-If you have PyPy3 installed (via e.g. `brew install pypy3` or [some other source](https://www.pypy.org/download.html)) and feel particularly adventurous, you can try to install a faster PyPy version using:
-
-    pipx install --python pypy3 tact
-
-Note that this will take much longer to install, and the installation will almost certainly fail unless you have the proper compilers set up. If it succeeds though, you should see a rather dramatic improvement in TACT's performance.
-
 ## Docker
 
-You can also try using the Docker image if you can't get your Python to cooperate. Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
+Users have found this to be the most straightforward method.
+
+Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
 
     docker pull jonchang/tact:latest
 
@@ -43,9 +27,29 @@ Then, run TACT from the container image, giving it access to your current workin
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
 
-One benefit of using the Docker image is that it automatically uses PyPy3, which can speed up your TACT run, but might also be slower on macOS. Here's a screencast of what this looks like:
+One benefit of using the Docker image is that it automatically uses PyPy3, which can speed up your TACT run, but might also be slower on macOS.
+
+Here's a screencast of using the Docker commands:
 
 [![asciicast](https://asciinema.org/a/347571.svg)](https://asciinema.org/a/347571)
+
+## Homebrew
+
+[Install Homebrew on macOS](https://brew.sh) or [Install Homebrew on Linux or Windows 10](https://docs.brew.sh/Homebrew-on-Linux). Once Homebrew has been installed, run
+
+    brew install jonchang/biology/tact
+
+## pipx
+
+[Install `pipx`](https://pipxproject.github.io/pipx/installation/), then run:
+
+    pipx install tact
+
+If you have PyPy3 installed (via e.g. `brew install pypy3` or [some other source](https://www.pypy.org/download.html)) and feel particularly adventurous, you can try to install a faster PyPy version using:
+
+    pipx install --python pypy3 tact
+
+Note that this will take much longer to install, and the installation will almost certainly fail unless you have the proper compilers set up. If it succeeds though, you should see a rather dramatic improvement in TACT's performance.
 
 ## Other
 
