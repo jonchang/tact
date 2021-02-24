@@ -22,8 +22,8 @@ Then, run TACT from the container image, giving it access to your current workin
 
     mkdir -p examples
     cd examples
-    curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.csv
-    curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.tre
+    curl -LO https://raw.githubusercontent.com/jonchang/tact/HEAD/examples/Carangaria.csv
+    curl -LO https://raw.githubusercontent.com/jonchang/tact/HEAD/examples/Carangaria.tre
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
 
@@ -57,11 +57,11 @@ Other ways of installing TACT, including unpacking the tarball somewhere or dire
 
 # Example
 
-Files used are in the [examples](https://github.com/jonchang/tact/tree/master/examples) folder.
+Files used are in the [examples](https://github.com/jonchang/tact/tree/HEAD/examples) folder.
 
 ```console
-curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.csv
-curl -LO https://raw.githubusercontent.com/jonchang/tact/master/examples/Carangaria.tre
+curl -LO https://raw.githubusercontent.com/jonchang/tact/HEAD/examples/Carangaria.csv
+curl -LO https://raw.githubusercontent.com/jonchang/tact/HEAD/examples/Carangaria.tre
 ```
 
 Build a taxonomic tree using the provided CSV file. Run `tact_build_taxonomic_tree --help` to see the required format for this file.
