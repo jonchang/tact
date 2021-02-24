@@ -1,5 +1,4 @@
-ARG version=20.10
-FROM ubuntu:$version
+FROM ubuntu:20.10
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LC_ALL=C.UTF-8
