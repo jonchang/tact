@@ -1,0 +1,20 @@
+name: Docker
+on:
+  push:
+    paths:
+      - .github/workflows/docker.yml
+      - Dockerfile
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: docker build -t tact .
+
+      - name: Test Docker image
+        run: |
+          docker run --rm -v "$(pwd)/examples":/workdir -w /workdir tact tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
+          docker run --rm -v "$(pwd)/examples":/workdir -w /workdir tact tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
+          docker run --rm -v "$(pwd)/examples":/workdir -w /workdir tact tact_check_results Carangaria.tacted.newick.tre --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre
