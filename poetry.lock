@@ -218,7 +218,7 @@ histogram = ["pygal", "pygaljs"]
 
 [[package]]
 name = "pytest-console-scripts"
-version = "1.1.0"
+version = "1.2.0"
 description = "Pytest plugin for testing console scripts"
 category = "dev"
 optional = false
@@ -293,7 +293,7 @@ testing = ["pytest (>=3.5,!=3.7.3)", "pytest-checkdocs (>=1.2.3)", "pytest-flake
 [metadata]
 lock-version = "1.1"
 python-versions = ">= 3.6, < 3.10"
-content-hash = "48a7f89c993100cad27a3949481310e21c1b3140eabfce77bea9a76d50edd84a"
+content-hash = "5e3eeb505579ba9611f80638bfcbea89df902bff870f25407e83d79291def9c5"
 
 [metadata.files]
 atomicwrites = [
@@ -431,7 +431,7 @@ pytest-benchmark = [
     {file = "pytest_benchmark-3.4.1-py2.py3-none-any.whl", hash = "sha256:36d2b08c4882f6f997fd3126a3d6dfd70f3249cde178ed8bbc0b73db7c20f809"},
 ]
 pytest-console-scripts = [
-    {file = "pytest-console-scripts-1.1.0.tar.gz", hash = "sha256:c1344853e80d8096403e36b270254a094071d0c4f1533e94a91d7386f0f1ccfd"},
+    {file = "pytest-console-scripts-1.2.0.tar.gz", hash = "sha256:4a2138d7d567bc581fe081b6a5975849a2a36b3925cb0f066d2380103e13741c"},
 ]
 pytest-cov = [
     {file = "pytest-cov-2.11.1.tar.gz", hash = "sha256:359952d9d39b9f822d9d29324483e7ba04a3a17dd7d05aa6beb7ea01e359e5f7"},
