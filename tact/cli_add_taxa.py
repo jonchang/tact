@@ -93,7 +93,7 @@ def get_new_branching_times(
         if backbone_node.parent_node:
             new_told = backbone_node.parent_node.age
             if told is not None:
-                logger.debug(f"    {taxon}: tmax {told:.2f} => {new_told:.2f} because ccp {new_told:.2f} < {min_ccp}")
+                logger.debug(f"    {taxon}: tmax {told:.2f} => {new_told:.2f} because ccp {ccp:.2f} < {min_ccp}")
             else:
                 logger.debug(f"    {taxon}: tmax set to {new_told:.2f} because ccp {ccp:.2f} < {min_ccp}")
         else:
@@ -174,6 +174,7 @@ def graft_node(graft_recipient, graft, stem=False):
 
     if not eligible_edges:
         raise Exception(f"could not place node {graft} in clade {graft_recipient}")
+
     focal_node = random.choice([x.head_node for x in eligible_edges])
     seed_node = focal_node.parent_node
     sisters = focal_node.sibling_nodes()
