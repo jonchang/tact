@@ -76,4 +76,4 @@ jobs:
       with:
         tap: jonchang/biology
         formula: tact
-        token: ${{ secrets.GITHUB_PAT }}
+        token: ${{ secrets.GH_PAT }}
