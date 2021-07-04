@@ -7,6 +7,7 @@ import sys
 from decimal import Decimal as D
 from math import exp
 from math import log
+from math import isclose
 
 import dendropy
 import numpy as np
@@ -281,6 +282,20 @@ def is_binary(node):
         if len(x.child_nodes()) != 2:
             return False
     return True
+
+
+def is_ultrametric(tree, tolerance=1e-6):
+    """Is the `tree` ultrametric, within a specified `tolerance`?
+
+    Uses the relative difference between minimum and maximum root-to-tip distances.
+    """
+    tree.calc_node_root_distances()
+    lengths = {}
+    for leaf in tree.leaf_node_iter():
+        lengths[leaf.taxon.label] = leaf.root_distance
+    t_min = min(lengths.items(), key=lambda x: x[1])
+    t_max = max(lengths.items(), key=lambda x: x[1])
+    return (isclose(t_min[1], t_max[1], rel_tol=tolerance), (t_min, t_max))
 
 
 def get_short_branches(node):

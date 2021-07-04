@@ -27,6 +27,7 @@ from .lib import get_new_times
 from .lib import get_short_branches
 from .lib import get_tip_labels
 from .lib import is_binary
+from .lib import is_ultrametric
 from .lib import update_tree_view
 
 logger = logging.getLogger(__name__)
@@ -379,8 +380,9 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=F
     "--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8
 )
 @click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
+@click.option("--ultrametricity-precision", help="precision for ultrametricity checks; by default, checks roughly digits of similarity", default=1e-6)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule):
+def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):
     """
     Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
     """
@@ -432,6 +434,13 @@ For more details, run:
         sys.exit(1)
 
     update_tree_view(tree)
+
+    ultra, ultra_res = is_ultrametric(tree, ultrametricity_precision)
+    if not ultra:
+        logger.error("Tree is not ultrametric!")
+        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]}, but {ultra_res[1][0]} has {ultra_res[1][1]}")
+        logger.error("If this is unexpected, consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
+        sys.exit(1)
 
     tree_tips = get_tip_labels(tree)
     all_possible_tips = get_tip_labels(taxonomy)
