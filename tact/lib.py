@@ -265,11 +265,12 @@ def get_tree(path, namespace=None):
 
 def update_tree_view(tree):
     """
-    Mutates a DendroPy tree object with updated node ages and bipartition bitmask.
+    Mutates a DendroPy tree object with updated node ages and bipartition bitmask. We also
+    correct for minor ultrametricity errors.
 
     Returns a list of tip labels.
     """
-    tree.calc_node_ages()
+    tree.calc_node_ages(is_force_max_age=True)
     tree.update_bipartitions()
     return get_tip_labels(tree)
 
