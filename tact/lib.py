@@ -259,9 +259,19 @@ def get_tree(path, namespace=None):
     tree = dendropy.Tree.get_from_path(
         path, schema="newick", taxon_namespace=namespace, rooting="default-rooted"
     )
-    tree.calc_node_ages()
-    tree.encode_bipartitions()
+    update_tree_view(tree)
     return tree
+
+
+def update_tree_view(tree):
+    """
+    Mutates a DendroPy tree object with updated node ages and bipartition bitmask.
+
+    Returns a list of tip labels.
+    """
+    tree.calc_node_ages()
+    tree.update_bipartitions()
+    return get_tip_labels(tree)
 
 
 def is_binary(node):

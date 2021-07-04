@@ -27,6 +27,7 @@ from .lib import get_new_times
 from .lib import get_short_branches
 from .lib import get_tip_labels
 from .lib import is_binary
+from .lib import update_tree_view
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -367,13 +368,6 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=F
     return mrca_rates
 
 
-def update_tree_view(tree):
-    # Stuff that DendroPy needs to keep a consistent view of the phylgoeny
-    tree.calc_node_ages()
-    tree.update_bipartitions()
-    return get_tip_labels(tree)
-
-
 @click.command()
 @click.option("--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True)
 @click.option(
@@ -437,8 +431,7 @@ For more details, run:
         logger.error("Backbone tree is not binary!")
         sys.exit(1)
 
-    tree.encode_bipartitions()
-    tree.calc_node_ages()
+    update_tree_view(tree)
 
     tree_tips = get_tip_labels(tree)
     all_possible_tips = get_tip_labels(taxonomy)
@@ -564,10 +557,7 @@ For more details, run:
             new_tree = create_clade(tn, full_node_species, times)
             # Update our current MRCA node (because we might have attached to stem)
             node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp)
-            # Stuff that DendroPy needs to keep a consistent view of the phylgoeny
-            tree.calc_node_ages()
-            tree.update_bipartitions()
-            tree_tips = get_tip_labels(tree)
+            tree_tips = update_tree_view(tree)
             # Update our view of what's in the tree
             extant_species = tree_tips.intersection(species)
             # We've added this clade so pop it off our stack
