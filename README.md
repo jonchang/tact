@@ -12,7 +12,7 @@ TACT requires Python 3. When possible, we recommend using the PyPy 3 implementat
 
 ## Docker
 
-Users have found this to be the most straightforward method.
+If you can use Docker, this is the recommended method as it is both convenient to install and fast for large datasets thanks to PyPy.
 
 Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
 
@@ -27,8 +27,6 @@ Then, run TACT from the container image, giving it access to your current workin
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
     docker run -it -v "$(pwd)":/workdir -w /workdir jonchang/tact tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
 
-One benefit of using the Docker image is that it automatically uses PyPy3, which can speed up your TACT run, but might also be slower on macOS.
-
 Here's a screencast of using the Docker commands:
 
 [![asciicast](https://asciinema.org/a/347571.svg)](https://asciinema.org/a/347571)
@@ -39,17 +37,19 @@ Here's a screencast of using the Docker commands:
 
     brew install jonchang/biology/tact
 
+This is easy to install if you don't have Docker access, but for large datasets, this can be as much as 5x slower.
+
 ## pipx
 
 [Install `pipx`](https://pipxproject.github.io/pipx/installation/), then run:
 
     pipx install tact
 
-If you have PyPy3 installed (via e.g. `brew install pypy3` or [some other source](https://www.pypy.org/download.html)) and feel particularly adventurous, you can try to install a faster PyPy version using:
+If you have PyPy3 installed, you can try to install a faster version using:
 
     pipx install --python pypy3 tact
 
-Note that this will take much longer to install, and the installation will almost certainly fail unless you have the proper compilers set up. If it succeeds though, you should see a rather dramatic improvement in TACT's performance.
+Note that this will take much longer to install and could fail if the proper dependencies (mainly openblas) aren't set up. On macOS, you'll need to run `brew install openblas gcc pypy3 pipx`, force-link `openblas`, and set the `MACOSX_DEPLOYMENT_TARGET` environment variable to your macOS version (e.g., `11.0`).
 
 ## Other
 
