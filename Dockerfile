@@ -25,6 +25,7 @@ RUN apt-get update \
   && pypy3 -mpip install ./tact --verbose \
   && rm -rf tact \
   && apt-get remove -y \
+    curl \
     g++ \
     gcc \
     gfortran \
