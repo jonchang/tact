@@ -22,7 +22,7 @@ RUN apt-get update \
     pypy3-dev \
   && localedef -i en_US -f UTF-8 en_US.UTF-8 \
   && curl -L https://bootstrap.pypa.io/get-pip.py | pypy3 - \
-  && pypy3 -mpip install ./tact --verbose \
+  && pypy3 -mpip install ./tact \
   && rm -rf tact \
   && apt-get remove -y \
     curl \
