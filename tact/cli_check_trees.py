@@ -11,10 +11,10 @@ import multiprocessing
 import click
 import dendropy
 
-from .lib import get_birth_death_rates
-from .lib import get_monophyletic_node
-from .lib import get_tip_labels
-from .lib import get_tree
+from .tree_util import get_birth_death_rates
+from .tree_util import get_monophyletic_node
+from .tree_util import get_tip_labels
+from .tree_util import get_tree
 
 
 def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):

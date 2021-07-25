@@ -4,7 +4,7 @@ import csv
 import click
 import dendropy
 
-from .lib import ensure_tree_node_depths
+from .tree_util import ensure_tree_node_depths
 
 
 def fix_file(filename):

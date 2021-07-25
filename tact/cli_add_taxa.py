@@ -19,16 +19,16 @@ import dendropy
 
 from . import fastmrca
 from .lib import crown_capture_probability
-from .lib import edge_iter
-from .lib import ensure_tree_node_depths
-from .lib import get_ages
-from .lib import get_birth_death_rates
 from .lib import get_new_times
-from .lib import get_short_branches
-from .lib import get_tip_labels
-from .lib import is_binary
-from .lib import is_ultrametric
-from .lib import update_tree_view
+from .tree_util import edge_iter
+from .tree_util import ensure_tree_node_depths
+from .tree_util import get_ages
+from .tree_util import get_birth_death_rates
+from .tree_util import get_short_branches
+from .tree_util import get_tip_labels
+from .tree_util import is_binary
+from .tree_util import is_ultrametric
+from .tree_util import update_tree_view
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy

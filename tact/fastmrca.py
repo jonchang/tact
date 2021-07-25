@@ -1,7 +1,7 @@
 # fastMRCA functions
 from __future__ import division
 
-from .lib import get_tip_labels
+from .tree_util import get_tip_labels
 
 global tree
 
