@@ -470,9 +470,8 @@ For more details, run:
     )
 
     def bar_update():
-        bar.pos = len(tree_tips) - initial_length
-        bar.current_item = taxon if taxon else ""
-        bar.update(0)
+        diff = len(tree_tips) - initial_length - bar.pos
+        bar.update(diff, taxon if taxon else "")
 
     for taxon_node in taxonomy.postorder_internal_node_iter(exclude_seed_node=True):
         taxon = taxon_node.label
