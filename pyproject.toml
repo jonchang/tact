@@ -10,7 +10,7 @@ homepage = "https://github.com/jonchang/tact"
 include = ["examples"]
 
 [tool.poetry.dependencies]
-python = ">= 3.8, < 3.10"
+python = ">= 3.7, < 3.10"
 scipy = "^1.7"
 numpy = "^1.20"
 click = ">=7,<9"
