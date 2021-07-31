@@ -111,9 +111,12 @@ def p1_orig(t, l, m, rho):
     try:
         num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
         denom = (rho * l + (l * (1 - rho) - m) * np.exp(-(l - m) * t)) ** 2
-        return num / denom
+        res = num / denom
     except (OverflowError, FloatingPointError):
-        return float(p1_exact(t, l, m, rho))
+        res = float(p1_exact(t, l, m, rho))
+    if res == 0.0:
+        return sys.float_info.min
+    return res
 
 
 def p1(t, l, m, rho):
@@ -125,9 +128,12 @@ def p1(t, l, m, rho):
         ert = np.exp(-(l - m) * t, dtype=np.float64)
         num = rho * (l - m) ** 2 * ert
         denom = (rho * l + (l * (1 - rho) - m) * ert) ** 2
-        return num / denom
+        res = num / denom
     except (OverflowError, FloatingPointError):
-        return float(p1_exact(t, l, m, rho))
+        res = float(p1_exact(t, l, m, rho))
+    if res == 0.0:
+        return sys.float_info.min
+    return res
 
 
 def intp1_exact(t, l, m):
@@ -166,20 +172,17 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
     root -- include the root or not? (default: 1)
     survival -- assume survival of the process (default: 1)
 
-    Returns a likelihood. Or FLOAT_MAX.
+    Returns a likelihood.
     """
-    try:
-        l = vec[0]
-        m = vec[1]
-        t.sort(reverse=True)
-        lik = (root + 1) * log(p1(t[0], l, m, rho))
-        for tt in t[1:]:
-            lik += log(l) + log(p1(tt, l, m, rho))
-        if survival == 1:
-            lik -= (root + 1) * log(1 - p0(t[0], l, m, rho))
-        return -lik
-    except ValueError:
-        return sys.float_info.max
+    l = vec[0]
+    m = vec[1]
+    t.sort(reverse=True)
+    lik = (root + 1) * log(p1(t[0], l, m, rho))
+    for tt in t[1:]:
+        lik += log(l) + log(p1(tt, l, m, rho))
+    if survival == 1:
+        lik -= (root + 1) * log(1 - p0(t[0], l, m, rho))
+    return -lik
 
 
 def crown_capture_probability(n, k):
