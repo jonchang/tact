@@ -40,9 +40,12 @@ def wrapped_lik_constant_yule(x, sampling, ages):
 
 def two_step_optim(func, x0, bounds, args):
     """Tries to optimize function using the fast L-BFGS-B method, and if that fails, use simulated annealing."""
-    result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
-    if result["success"]:
-        return result["x"].tolist()
+    try:
+        result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
+        if result["success"]:
+            return result["x"].tolist()
+    except FloatingPointError:
+        pass
 
     result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
     if result["success"]:
