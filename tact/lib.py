@@ -12,7 +12,7 @@ from math import log
 
 import dendropy
 import numpy as np
-from scipy.optimize import minimize, dual_annealing
+from scipy.optimize import minimize, minimize_scalar, dual_annealing
 
 # Raise on overflow
 np.seterr(all="raise")
@@ -35,7 +35,7 @@ def wrapped_lik_constant(x, sampling, ages):
 
 def wrapped_lik_constant_yule(x, sampling, ages):
     """Wrapper for Yule likelihood to make optimizing more convenient."""
-    return lik_constant(get_bd(x[0], 0), sampling, ages)
+    return lik_constant((x, 0.0), sampling, ages)
 
 
 def two_step_optim(func, x0, bounds, args):
@@ -75,9 +75,12 @@ def optim_yule(ages, sampling, min_bound=1e-9):
         # Magallon-Sanderson crown estimator
         init_r = (log((len(ages) + 1) / sampling) - log(2)) / max(ages)
         init_r = max(1e-3, init_r)
-    bounds = ((min_bound, 100), (0, 1 - min_bound))
-    result = two_step_optim(wrapped_lik_constant_yule, x0=(init_r, 0.0), bounds=bounds, args=(sampling, ages))
-    return get_bd(*result)
+    bounds = (min_bound, 100)
+    result = minimize_scalar(wrapped_lik_constant_yule, bounds=bounds, args=(sampling, ages), method="Bounded")
+    if result["success"]:
+        return (result["x"], 0.0)
+
+    raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 
 
 def p0_exact(t, l, m, rho):
