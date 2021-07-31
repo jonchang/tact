@@ -77,16 +77,6 @@ def optim_yule(ages, sampling, min_bound=1e-9):
     return get_bd(*result)
 
 
-def get_lik(vec, rho, x):
-    l = vec[0]
-    m = vec[1]
-    root = 1
-    lik1 = (root + 1) * np.log(p1(x[0], l, m, rho))
-    lik2 = np.sum(np.log(l * p1(x[1:], l, m, rho)))
-    lik3 = -(root + 1) * np.log(1 - p0(x[0], l, m, rho))
-    return lik1 + lik2 + lik3
-
-
 def p0_exact(t, l, m, rho):
     t = D(t)
     l = D(l)
