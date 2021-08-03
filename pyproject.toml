@@ -8,6 +8,12 @@ readme = "README.md"
 repository = "https://github.com/jonchang/tact"
 homepage = "https://github.com/jonchang/tact"
 include = ["examples"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
 
 [tool.poetry.dependencies]
 python = ">= 3.7, < 3.10"
