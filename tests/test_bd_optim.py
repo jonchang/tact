@@ -1,5 +1,7 @@
 from __future__ import division
 
+import math
+
 from hypothesis import given, settings, example
 import hypothesis.strategies as st
 
@@ -17,5 +19,7 @@ def test_birth_death_can_run(ages, sampling):
     assert (d / b) <= 1
 
 
-def test_birth_death(ages, sampling):
-    optim_bd(ages, sampling)
+def test_birth_death(ages, sampling, birth, death):
+    b, d = optim_bd(ages, sampling)
+    assert d == death
+    assert math.isclose(b, birth, rel_tol=1e-8)

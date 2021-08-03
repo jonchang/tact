@@ -24,7 +24,7 @@ def sampling():
 
 @pytest.fixture
 def birth():
-    return 0.174259100691
+    return 0.09115578881894915
 
 
 @pytest.fixture
