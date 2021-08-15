@@ -4,6 +4,7 @@
 
 import collections
 import math
+import random
 
 import dendropy
 
@@ -134,3 +135,86 @@ def ensure_tree_node_depths(tree):
         for k in sorted(stats.keys()):
             msg += f"* {stats[k]} tips have {k} ranked ancestors\n"
     return msg
+
+
+def graft_node(graft_recipient, graft, stem=False):
+    """
+    Grafts a node `graft` randomly in the subtree below node
+    `graft_recipient`. The attribute `graft.age` must be set so
+    we know where is the best place to graft the node. The node
+    `graft` can optionally have child nodes, in this case the
+    `edge.length` attribute should be set on all child nodes if
+    the tree is to remain ultrametric.
+    """
+
+    # We graft things "below" a node by picking one of the children
+    # of that node and forcing it to be sister to the grafted node
+    # and adjusting the edge lengths accordingly. Therefore, the node
+    # *above* which the graft lives (i.e., the one that will be the child
+    # of the new graft) must fulfill the following requirements:
+    #
+    # 1. Must not be the crown node (cannot graft things above crown node)
+    # 2. Must be younger than the graft node (no negative branches)
+    # 3. Seed node must be older than graft node (no negative branches)
+    # 4. Must not be locked (intruding on monophyly)
+    def filter_fn(x):
+        return x.head_node.age <= graft.age and x.head_node.parent_node.age >= graft.age and x.label != "locked"
+
+    all_edges = list(edge_iter(graft_recipient))
+    if stem:
+        # also include the crown node's subtending edge
+        all_edges.append(graft_recipient.edge)
+    eligible_edges = [x for x in all_edges if filter_fn(x)]
+
+    if not eligible_edges:
+        raise Exception(f"could not place node {graft} in clade {graft_recipient}")
+
+    focal_node = random.choice([x.head_node for x in eligible_edges])
+    seed_node = focal_node.parent_node
+    sisters = focal_node.sibling_nodes()
+
+    # pick a child edge and detach its corresponding node
+    #
+    # DendroPy's Node.remove_child() messes with the edge lengths.
+    # But, Node.clear_child_nodes() simply cuts that bit of the tree out.
+    seed_node.clear_child_nodes()
+
+    # set the correct edge length on the grafted node and make the grafted
+    # node a child of the seed node
+    graft.edge.length = seed_node.age - graft.age
+    if graft.edge.length < 0:
+        raise Exception("negative branch length")
+    sisters.append(graft)
+    seed_node.set_child_nodes(sisters)
+
+    # make the focal node a child of the grafted node and set edge length
+    focal_node.edge.length = graft.age - focal_node.age
+    if focal_node.edge.length < 0:
+        raise Exception("negative branch length")
+    graft.add_child(focal_node)
+
+    # return the (potentially new) crown of the clade
+    if graft_recipient.parent_node == graft:
+        return graft
+    return graft_recipient
+
+
+def lock_clade(node):
+    """
+    "Locks a clade descending from `node` so future grafts will avoid locked edges.
+    """
+    for edge in edge_iter(node):
+        edge.label = "locked"
+
+
+def unlock_clade(node):
+    for edge in edge_iter(node):
+        edge.label = ""
+
+
+def count_locked(node):
+    sum([x.label == "locked" for x in edge_iter(node)])
+
+
+def is_fully_locked(node):
+    return all([x.label == "locked" for x in edge_iter(node)])
