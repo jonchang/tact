@@ -22,6 +22,7 @@ numpy = "^1.21"
 click = ">=7,<9"
 DendroPy = "^4.5"
 portion = "^2.1"
+toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
@@ -31,8 +32,9 @@ pytest-console-scripts = "^1.2"
 hypothesis = "^6.14"
 
 [tool.poetry.scripts]
-tact_build_taxonomic_tree = "tact.cli_taxonomy:main"
 tact_add_taxa = "tact.cli_add_taxa:main"
+tact_add_config = "tact.cli_add_toml:main"
+tact_build_taxonomic_tree = "tact.cli_taxonomy:main"
 tact_check_results = "tact.cli_check_trees:main"
 
 [tool.autopep8]

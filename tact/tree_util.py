@@ -206,20 +206,24 @@ def graft_node(graft_recipient, graft, stem=False):
     return graft_recipient
 
 
-def lock_clade(node):
+def lock_clade(node, stem=False):
     """
     Locks a clade descending from `node` so future grafts will avoid locked edges.
     """
     for edge in edge_iter(node):
         edge.label = "locked"
+    if stem:
+        node.edge.label = "locked"
 
 
-def unlock_clade(node):
+def unlock_clade(node, stem=False):
     """
     Unlocks a clade descending from `node` so new tips can be grafted to its edges.
     """
     for edge in edge_iter(node):
         edge.label = ""
+    if stem:
+        node.edge.label = ""
 
 
 def count_locked(node):
