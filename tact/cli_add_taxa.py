@@ -25,6 +25,7 @@ from .tree_util import edge_iter
 from .tree_util import ensure_tree_node_depths
 from .tree_util import get_ages
 from .tree_util import get_birth_death_rates
+from .tree_util import get_min_age
 from .tree_util import get_short_branches
 from .tree_util import get_tip_labels
 from .tree_util import graft_node
@@ -186,13 +187,6 @@ def create_clade(namespace, species, ages):
     if list(get_short_branches(tree.seed_node)):
         logger.info("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
     return tree
-
-
-def get_min_age(node):
-    try:
-        return min([x.head_node.age for x in edge_iter(node) if x.label != "locked"])
-    except ValueError:
-        return 0.0
 
 
 def fmt_species_list(spp):

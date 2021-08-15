@@ -218,3 +218,14 @@ def count_locked(node):
 
 def is_fully_locked(node):
     return all([x.label == "locked" for x in edge_iter(node)])
+
+
+def get_min_age(node):
+    """
+    Gets the minimum possible age that could be generated in a clade under `node`,
+    assuming that grafts to locked edges are restricted.
+    """
+    try:
+        return min([x.head_node.age for x in edge_iter(node) if x.label != "locked"])
+    except ValueError:
+        return 0.0
