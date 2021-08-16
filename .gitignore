@@ -9,3 +9,5 @@ build/
 .pytest_cache/
 .hypothesis
 .tact-pytest-*
+
+_site/

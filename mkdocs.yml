@@ -1,0 +1,30 @@
+site_name: TACT
+theme:
+  name: "material"
+repo_url: https://github.com/jonchang/tact
+site_author: Jonathan Chang
+site_dir: _site
+site_url: https://jonchang.github.io/tact
+
+nav:
+  - Home: index.md
+  - install.md
+  - Introduction: introduction.md
+  - tutorial.md
+  - Troubleshooting: troubleshooting.md
+  - contributing.md
+  - license.md
+  - API Reference:
+    - reference/lib.md
+    - reference/mrca.md
+    - reference/tree.md
+
+
+extra_css:
+  - css/codehilite.css
+
+plugins:
+- search
+- mkdocstrings:
+    watch:
+      - tact
