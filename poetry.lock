@@ -61,7 +61,7 @@ python-versions = "*"
 
 [[package]]
 name = "hypothesis"
-version = "6.14.6"
+version = "6.14.7"
 description = "A library for property-based testing"
 category = "dev"
 optional = false
@@ -376,8 +376,8 @@ dendropy = [
     {file = "DendroPy-4.5.2.tar.gz", hash = "sha256:3e5d2522170058ebc8d1ee63a7f2d25b915e34957dc02693ebfdc15f347a0101"},
 ]
 hypothesis = [
-    {file = "hypothesis-6.14.6-py3-none-any.whl", hash = "sha256:a776b4545e8ad54c68f001591cd5c39c8c05dfd340d0cf974112bf89439f126b"},
-    {file = "hypothesis-6.14.6.tar.gz", hash = "sha256:2586eae07e48b35ab5a2d61d607d29ba76939ce140c427d66ccf5db4ddc788d2"},
+    {file = "hypothesis-6.14.7-py3-none-any.whl", hash = "sha256:a57193d98bfbed77fd2a8738dd62f5823ccae6ccc826cb57d5cdbb3cc676b763"},
+    {file = "hypothesis-6.14.7.tar.gz", hash = "sha256:b2fd56b286b9741b211bfdc726308995641903d43d8bab2f08e58e8bf88e2983"},
 ]
 importlib-metadata = [
     {file = "importlib_metadata-4.6.1-py3-none-any.whl", hash = "sha256:9f55f560e116f8643ecf2922d9cd3e1c7e8d52e683178fecd9d08f6aa357e11e"},
