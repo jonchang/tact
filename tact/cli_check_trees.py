@@ -68,6 +68,7 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
 
 
 @click.command()
+@click.version_option(package_name="tact")
 @click.argument("simulated", type=click.Path(exists=True, dir_okay=False))
 @click.option("--backbone", type=click.Path(exists=True, dir_okay=False), required=True, help="backbone phylogeny")
 @click.option(

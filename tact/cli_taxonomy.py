@@ -123,6 +123,7 @@ def build_taxonomic_tree(filename):
 
 
 @click.command()
+@click.version_option(package_name="tact")
 @click.argument("taxonomy", type=click.Path(exists=True, dir_okay=False, readable=True))
 @click.option("--output", help="name of the output taxonomic tree", required=True, type=click.Path(writable=True))
 @click.option(

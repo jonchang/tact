@@ -289,6 +289,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=F
 
 
 @click.command()
+@click.version_option(package_name="tact")
 @click.option("--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True)
 @click.option(
     "--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("r"), required=True
