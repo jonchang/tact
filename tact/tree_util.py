@@ -108,12 +108,14 @@ def is_ultrametric(tree, tolerance=1e-6):
 
 
 def get_short_branches(node):
+    """Yields an iterator of especially short edges under `node`."""
     for edge in edge_iter(node):
         if edge.length <= 0.001:
             yield edge
 
 
 def compute_node_depths(tree):
+    """Returns a dictionary of node depths for each node with a label."""
     res = dict()
     for leaf in tree.leaf_node_iter():
         cnt = 0
@@ -145,18 +147,18 @@ def graft_node(graft_recipient, graft, stem=False):
     `graft` can optionally have child nodes, in this case the
     `edge.length` attribute should be set on all child nodes if
     the tree is to remain ultrametric.
-    """
 
-    # We graft things "below" a node by picking one of the children
-    # of that node and forcing it to be sister to the grafted node
-    # and adjusting the edge lengths accordingly. Therefore, the node
-    # *above* which the graft lives (i.e., the one that will be the child
-    # of the new graft) must fulfill the following requirements:
-    #
-    # 1. Must not be the crown node (cannot graft things above crown node)
-    # 2. Must be younger than the graft node (no negative branches)
-    # 3. Seed node must be older than graft node (no negative branches)
-    # 4. Must not be locked (intruding on monophyly)
+    We graft things "below" a node by picking one of the children
+    of that node and forcing it to be sister to the grafted node
+    and adjusting the edge lengths accordingly. Therefore, the node
+    *above* which the graft lives (i.e., the one that will be the child
+    of the new graft) must fulfill the following requirements:
+
+    1. Must not be the crown node (cannot graft things above crown node)
+    2. Must be younger than the graft node (no negative branches)
+    3. Seed node must be older than graft node (no negative branches)
+    4. Must not be locked (intruding on monophyly)
+    """
     def filter_fn(x):
         return x.head_node.age <= graft.age and x.head_node.parent_node.age >= graft.age and x.label != "locked"
 
@@ -201,22 +203,29 @@ def graft_node(graft_recipient, graft, stem=False):
 
 def lock_clade(node):
     """
-    "Locks a clade descending from `node` so future grafts will avoid locked edges.
+    Locks a clade descending from `node` so future grafts will avoid locked edges.
     """
     for edge in edge_iter(node):
         edge.label = "locked"
 
 
 def unlock_clade(node):
+    """
+    Unlocks a clade descending from `node` so new tips can be grafted to its edges.
+    """
     for edge in edge_iter(node):
         edge.label = ""
 
 
 def count_locked(node):
+    """How many edges under `node` are locked?"""
     sum([x.label == "locked" for x in edge_iter(node)])
 
 
 def is_fully_locked(node):
+    """
+    Are all the edges below `node` locked?
+    """
     return all([x.label == "locked" for x in edge_iter(node)])
 
 

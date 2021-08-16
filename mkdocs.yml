@@ -1,0 +1,65 @@
+site_name: 'TACT: Taxonomic Addition for Complete Trees'
+theme:
+  name: "material"
+  font: false
+  features:
+    - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: green
+      accent: lime
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: green
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+extra_css:
+  - css/custom.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/twitter
+      link: https://twitter.com/chang_jon
+      name: Jonathan Chang on Twitter
+    - icon: fontawesome/brands/github
+      link: https://github.com/jonchang/tact
+      name: TACT on GitHub
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/jonchang/tact
+      name: TACT on Docker Hub
+
+repo_url: https://github.com/jonchang/tact
+site_author: Jonathan Chang
+site_dir: _site
+site_url: https://jonchang.github.io/tact
+
+nav:
+  - Home: index.md
+  - install.md
+  - tutorial.md
+  - Background: background.md
+  - Troubleshooting: troubleshooting.md
+  - contributing.md
+  - news.md
+  - license.md
+  - commands.md
+  - api.md
+
+plugins:
+- search
+- git-revision-date-localized:
+    fallback_to_build_date: true
+- mkdocstrings:
+    handlers:
+      python:
+        rendering:
+          show_if_no_docstring: true
+    watch:
+      - tact
