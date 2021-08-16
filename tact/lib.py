@@ -39,7 +39,10 @@ def wrapped_lik_constant_yule(x, sampling, ages):
 
 
 def two_step_optim(func, x0, bounds, args):
-    """Tries to optimize function using the fast L-BFGS-B method, and if that fails, use simulated annealing."""
+    """
+    Conduct a two-step function optimization, first by using the fast L-BFGS-B method,
+    and if that fails, use simulated annealing.
+    """
     try:
         result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
         if result["success"]:
@@ -55,7 +58,9 @@ def two_step_optim(func, x0, bounds, args):
 
 
 def optim_bd(ages, sampling, min_bound=1e-9):
-    """Optimizes birth death using Scipy"""
+    """
+    Optimizes birth death using SciPy.
+    """
     if max(ages) < 0.000001:
         init_r = 1e-3
     else:
@@ -68,7 +73,9 @@ def optim_bd(ages, sampling, min_bound=1e-9):
 
 
 def optim_yule(ages, sampling, min_bound=1e-9):
-    """Optimizes a Yule model using Scipy"""
+    """
+    Optimizes a Yule model using SciPy.
+    """
     if max(ages) < 0.000001:
         init_r = 1e-3
     else:
@@ -161,21 +168,20 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
     Calculates the likelihood of a constant-rate birth-death process, conditioned
     on the waiting times of a phylogenetic tree and degree of incomplete sampling.
 
-    Based off of the R function TreePar::LikConstant written by Tanja Stadler.
+    Based off of the R function `TreePar::LikConstant` written by Tanja Stadler.
 
     T. Stadler. On incomplete sampling under birth-death models and connections
     to the sampling-based coalescent. Jour. Theo. Biol. 261: 58-66, 2009.
 
-    Positional arguments:
-    vec -- a two element list of birth and death
-    rho -- sampling fraction
-    t -- vector of waiting times
+    Args:
+        vec (tuple): a two element list of birth and death
+        rho (float): sampling fraction
+        t (list): vector of waiting times
+        root (bool): include the root or not? (default: 1)
+        survival (bool): assume survival of the process? (default: 1)
 
-    Keyword arguments:
-    root -- include the root or not? (default: 1)
-    survival -- assume survival of the process (default: 1)
-
-    Returns a likelihood.
+    Returns:
+        float: a likelihood
     """
     l = vec[0]
     m = vec[1]
@@ -197,6 +203,13 @@ def crown_capture_probability(n, k):
 
     Sanderson, M. J. 1996. How many taxa must be sampled to identify
     the root node of a large clade? Systematic Biology 45:168-173
+
+    Args:
+        n (int): total number of taxa
+        k (int): sampled taxa
+
+    Returns:
+        float: probability
     """
     if n < k:
         raise Exception(f"n must be greater than or equal to k (n={n}, k={k})")
@@ -209,25 +222,24 @@ def crown_capture_probability(n, k):
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
     """
     Simulates new speciation events in an incomplete phylogeny assuming a
-    constnat-rate birth-death process.
+    constant-rate birth-death process.
 
-    Adapted from the R function TreeSim::corsim written by Tanja Stadler.
+    Adapted from the R function `TreeSim::corsim` written by Tanja Stadler.
 
     N. Cusimano, T. Stadler, S. Renner. A new method for handling missing
     species in diversification analysis applicable to randomly or
     non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
 
-    Positional arguments:
-    ages -- vector of waiting times
-    birth -- birth rate
-    death -- death rate
-    missing -- number of missing taxa to simulate
+    Args:
+        ages (list): vector of waiting times
+        birth (float): birth rate
+        death (float): death rate
+        missing (int): number of missing taxa to simulate
+        told (float): maximum simulated age (default: `max(ages)`)
+        tyoung (float): minimum simulated age bound (default: `0`)
 
-    Keyword arguments:
-    told -- maximum simulated age (default: `max(ages)`)
-    tyoung -- minimum simulated age bound (default: `0`)
-
-    Returns a vector of simulated waiting times.
+    Returns:
+        list: vector of simulated waiting times.
     """
     if told is None:
         told = max(ages)

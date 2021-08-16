@@ -1,10 +1,10 @@
-# fastMRCA functions
+"""Singleton object that helps speed up MRCA lookups."""
+
 from __future__ import division
 
 from .tree_util import get_tip_labels
 
 global tree
-
 
 def initialize(phy):
     """
