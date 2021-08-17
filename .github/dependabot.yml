@@ -1,20 +1,22 @@
 version: 2
 updates:
-- package-ecosystem: "pip"
-  directory: "/"
+- package-ecosystem: pip
+  directory: /
   schedule:
-    interval: "weekly"
+    interval: weekly
   assignees:
   - jonchang
-- package-ecosystem: "github-actions"
-  directory: "/"
+  allow:
+    - dependency-type: production
+- package-ecosystem: github-actions
+  directory: /
   schedule:
-    interval: daily
+    interval: weekly
   assignees:
   - jonchang
-- package-ecosystem: "docker"
-  directory: "/"
+- package-ecosystem: docker
+  directory: /
   schedule:
-    interval: daily
+    interval: weekly
   assignees:
   - jonchang
