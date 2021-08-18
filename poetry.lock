@@ -159,6 +159,21 @@ importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 dev = ["pre-commit", "tox"]
 
 [[package]]
+name = "portion"
+version = "2.1.6"
+description = "Python data structure and operations for intervals"
+category = "main"
+optional = false
+python-versions = "~=3.6"
+
+[package.dependencies]
+sortedcontainers = ">=2.2.0,<3.0.0"
+
+[package.extras]
+test = ["pytest (>=5.0.1,<5.1.0)"]
+travis = ["coverage (>=5.0.3,<5.1.0)", "coveralls (>=1.11.1,<1.12.0)"]
+
+[[package]]
 name = "py"
 version = "1.10.0"
 description = "library with cross-python path, ini-parsing, io, code, log facilities"
@@ -264,7 +279,7 @@ numpy = ">=1.16.5,<1.23.0"
 name = "sortedcontainers"
 version = "2.4.0"
 description = "Sorted Containers -- Sorted List, Sorted Dict, Sorted Set"
-category = "dev"
+category = "main"
 optional = false
 python-versions = "*"
 
@@ -299,7 +314,7 @@ testing = ["pytest (>=4.6)", "pytest-checkdocs (>=2.4)", "pytest-flake8", "pytes
 [metadata]
 lock-version = "1.1"
 python-versions = ">= 3.7, < 3.10"
-content-hash = "87cb2c0792dd9bc974ba379be4824d6f60048d8387af43adf9f10c25cbec9376"
+content-hash = "2a154dcc5cba5b945bbb0d159b8da581c8780cb0be4831a5ad761e1089de3d40"
 
 [metadata.files]
 atomicwrites = [
@@ -430,6 +445,10 @@ packaging = [
 pluggy = [
     {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
     {file = "pluggy-0.13.1.tar.gz", hash = "sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0"},
+]
+portion = [
+    {file = "portion-2.1.6-py3-none-any.whl", hash = "sha256:cf32f0196b347640051b0f859fbb84022615889ba894fe6aff3c594103ec431b"},
+    {file = "portion-2.1.6.tar.gz", hash = "sha256:725b65da806fb79df05c0b6383b01631c510f371d9bc0ece93a996b4260ba085"},
 ]
 py = [
     {file = "py-1.10.0-py2.py3-none-any.whl", hash = "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"},

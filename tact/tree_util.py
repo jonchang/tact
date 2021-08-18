@@ -7,6 +7,7 @@ import math
 import random
 
 import dendropy
+import portion
 
 from .lib import optim_bd
 from .lib import optim_yule
@@ -234,7 +235,18 @@ def get_min_age(node):
     Gets the minimum possible age that could be generated in a clade under `node`,
     assuming that grafts to locked edges are restricted.
     """
-    try:
-        return min([x.head_node.age for x in edge_iter(node) if x.label != "locked"])
-    except ValueError:
+    interval = get_age_intervals(node)
+    if interval.empty:
         return 0.0
+    else:
+        return interval.lower
+
+def get_age_intervals(node):
+    """
+    Gets the (possibly disjoint) interval that could be generated in the
+    clade under `node`, assuming that grafts to locked edges are restricted.
+    """
+    acc = portion.empty()
+    for edge in edge_iter(node, lambda x: x.label != "locked"):
+        acc = acc | portion.closed(edge.head_node.age, edge.tail_node.age)
+    return acc
