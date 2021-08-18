@@ -4,7 +4,7 @@ TACT requires Python 3. When possible, I recommend using the [PyPy 3 implementat
 
 ## Docker
 
-If you can use Docker, this is the recommended method as it is both convenient to install and [fast for large datasets](troubleshooting.md#why-is-tact-so-slow) thanks to PyPy.
+If you can use Docker, this is the recommended method as it is both convenient to install and [fast for large datasets](https://tact.jonathanchang.org/troubleshooting/#why-is-tact-so-slow) thanks to PyPy.
 
 Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
 
@@ -37,7 +37,7 @@ The above Docker image defaults to the latest tagged release. In the rare case y
 brew install jonchang/biology/tact
 ```
 
-This is easy to install if you don't have Docker access, but for large datasets, this can be [as much as five times slower](troubleshooting.md#why-is-tact-so-slow).
+This is easy to install if you don't have Docker access, but for large datasets, this can be [as much as five times slower](https://tact.jonathanchang.org/troubleshooting/#why-is-tact-so-slow).
 
 ## pipx
 

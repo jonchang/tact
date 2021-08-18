@@ -8,10 +8,10 @@ TACT is a Python app for stochastic polytomy resolution. It uses birth-death-sam
 
 ## Getting started with TACT
 
-* [Installing](install.md)
-* [Introduction and background](background.md)
-* [Example analysis](tutorial.md)
-* [Troubleshooting problems](troubleshooting.md)
+* [Installing](https://tact.jonathanchang.org/install/)
+* [Introduction and background](https://tact.jonathanchang.org/background/)
+* [Example analysis](https://tact.jonathanchang.org/tutorial/)
+* [Troubleshooting problems](https://tact.jonathanchang.org/troubleshooting/)
 
 ## Citation
 
