@@ -34,6 +34,7 @@ from .tree_util import is_fully_locked
 from .tree_util import is_ultrametric
 from .tree_util import lock_clade
 from .tree_util import update_tree_view
+from .exceptions import DisjointConstraintError
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy

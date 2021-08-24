@@ -11,6 +11,7 @@ import portion
 
 from .lib import optim_bd
 from .lib import optim_yule
+from .exceptions import DisjointConstraintError
 
 
 def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
@@ -236,10 +237,14 @@ def get_min_age(node):
     assuming that grafts to locked edges are restricted.
     """
     interval = get_age_intervals(node)
+
+    if not interval.atomic:
+        raise DisjointConstraintError(f"Constraint on {node} implies disjoint interval {interval}")
+
     if interval.empty:
         return 0.0
-    else:
-        return interval.lower
+
+    return interval.lower
 
 def get_age_intervals(node):
     """
