@@ -96,8 +96,20 @@ def do_tact(tree, item):
 
     # Compute the rates on that (possibly expansive) MRCA node.
     extant_tips = len(mrca_node.leaf_nodes())
-    birth, death = get_birth_death_rates(mrca_node, extant_tips / (extant_tips + item.missing))
+
+    should_include_root = False
+
+    # Special case singletons.
+    if extant_tips == 1:
+        if len(item.include) == 1 and item.include[0].stem:
+            should_include_root = True
+        else:
+            logger.error(f"Include specifications for singleton invalid without `stem = true`: {included_tips}")
+            sys.exit(1)
+
+    birth, death = get_birth_death_rates(mrca_node, extant_tips / (extant_tips + item.missing), include_root=should_include_root)
     logger.info(f"{item.name} => b={birth}, d={death}")
+
     if item.preserve_generic_monophyly:
         logger.warn(f"{item.name}: preservation of generic monophyly is not implemented yet!")
 
@@ -112,7 +124,7 @@ def do_tact(tree, item):
         lock_clade(ensure_mrca(tree, exclude.mrca, mrca_node), exclude.stem)
 
     # Compute new branching times
-    ages = get_ages(mrca_node)
+    ages = get_ages(mrca_node, include_root=should_include_root)
     times = get_new_times(ages, birth, death, item.missing, max(ages), get_min_age(mrca_node))
 
     # TODO: currently does not account for the possibility of a disjoint set of edges.
