@@ -10,7 +10,6 @@ from decimal import Decimal as D
 from math import exp
 from math import log
 
-import dendropy
 import numpy as np
 from scipy.optimize import minimize, minimize_scalar, dual_annealing
 
@@ -308,13 +307,13 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         tyoung = 0
 
     ages.sort(reverse=True)
-    times = [x for x in ages if x <= told and x >= tyoung]
+    times = [x for x in ages if told >= x >= tyoung]
     times = [told] + times + [tyoung]
     ranks = range(0, len(times))
-    only_new = list()
+    only_new = []
     while missing > 0:
         if len(ranks) > 2:
-            distrranks = list()
+            distrranks = []
             for i in range(1, len(ranks)):
                 temp = ranks[i] * (
                     intp1(times[i - 1], birth, death) - intp1(times[i], birth, death)

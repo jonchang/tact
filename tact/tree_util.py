@@ -22,21 +22,24 @@ def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
     """
     if yule:
         return optim_yule(get_ages(node, include_root), sampfrac)
-    else:
-        return optim_bd(get_ages(node, include_root), sampfrac)
+
+    return optim_bd(get_ages(node, include_root), sampfrac)
 
 
 def get_monophyletic_node(tree, species):
     """Returns the node or None that is the MRCA of the `species` in `tree`."""
     mrca = tree.mrca(taxon_labels=species)
-    if not mrca:
-        return None
     if mrca and species.issuperset(get_tip_labels(mrca)):
         return mrca
 
+    return None
+
 
 def get_ages(node, include_root=False):
-    """Returns the list of ages of the children of a given `node`, optionally including the `node`'s age if `include_root` is True."""
+    """
+    Returns the list of ages of the children of a given `node`,
+    optionally including the `node`'s age if `include_root` is True.
+    """
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
     if include_root:
         ages += [node.age]
@@ -46,9 +49,9 @@ def get_ages(node, include_root=False):
 def get_tip_labels(tree_or_node):
     """Returns a `set` of tip labels for a node or tree."""
     try:
-        return set([x.taxon.label for x in tree_or_node.leaf_node_iter()])
+        return {x.taxon.label for x in tree_or_node.leaf_node_iter()}
     except AttributeError:
-        return set([x.taxon.label for x in tree_or_node.leaf_iter()])
+        return {x.taxon.label for x in tree_or_node.leaf_iter()}
 
 
 def edge_iter(node, filter_fn=None):
@@ -89,8 +92,8 @@ def update_tree_view(tree):
 
 def is_binary(node):
     """Is the subtree under `node` a fully bifurcating tree?"""
-    for x in node.preorder_internal_node_iter():
-        if len(x.child_nodes()) != 2:
+    for internal_node in node.preorder_internal_node_iter():
+        if len(internal_node.child_nodes()) != 2:
             return False
     return True
 
@@ -118,7 +121,7 @@ def get_short_branches(node):
 
 def compute_node_depths(tree):
     """Returns a dictionary of node depths for each node with a label."""
-    res = dict()
+    res = {}
     for leaf in tree.leaf_node_iter():
         cnt = 0
         for anc in leaf.ancestor_iter():
@@ -228,7 +231,7 @@ def is_fully_locked(node):
     """
     Are all the edges below `node` locked?
     """
-    return all([x.label == "locked" for x in edge_iter(node)])
+    return all(x.label == "locked" for x in edge_iter(node))
 
 
 def get_min_age(node):

@@ -28,16 +28,15 @@ def get(labels):
     global tree
     labels = set(labels)
     mrca = tree.mrca(leafset_bitmask=bitmask(labels))
-    if not mrca:
-        return None
     if mrca and labels.issuperset(get_tip_labels(mrca)):
         return mrca
+    return None
 
 
 def fastmrca_getter(tn, x):
     """Helper function for submitting stuff."""
     taxa = tn.get_taxa(labels=x)
-    bitmask = 0
+    mask = 0
     for taxon in taxa:
-        bitmask |= tn.taxon_bitmask(taxon)
-    return bitmask
+        mask |= tn.taxon_bitmask(taxon)
+    return mask

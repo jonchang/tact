@@ -20,8 +20,6 @@ import dendropy
 from . import fastmrca
 from .lib import crown_capture_probability
 from .lib import get_new_times
-from .tree_util import count_locked
-from .tree_util import edge_iter
 from .tree_util import ensure_tree_node_depths
 from .tree_util import get_ages
 from .tree_util import get_birth_death_rates
@@ -88,15 +86,13 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     return (taxonomy_target, backbone_target)
 
 
-def get_new_branching_times(
-    backbone_node, taxonomy_node, backbone_tree, told=None, tyoung=0, min_ccp=0.8, num_new_times=None
-):
+def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
     """
     Get `n_total` new branching times for a `node`.
     """
     global mrca_rates
     taxon = taxonomy_node.label
-    birth, death, ccp, source = mrca_rates[taxon]
+    birth, death, ccp, _ = mrca_rates[taxon]
     if ccp < min_ccp:
         if backbone_node.parent_node:
             new_told = backbone_node.parent_node.age
@@ -134,7 +130,7 @@ def get_new_branching_times(
     return times
 
 
-def fill_new_taxa(namespace, node, new_taxa, times, stem=False, excluded_nodes=None):
+def fill_new_taxa(namespace, node, new_taxa, times, stem=False):
     for new_species, new_age in zip(new_taxa, times):
         new_node = dendropy.Node()
         new_node.annotations.add_new("creation_method", "fill_new_taxa")
@@ -161,7 +157,8 @@ def create_clade(namespace, species, ages):
     if not ages:
         node = tree.seed_node.new_child(edge_length=tree.seed_node.age, taxon=namespace.require_taxon(species[0]))
         node.age = 0.0
-        [x.annotations.add_new("creation_method", "create_clade") for x in tree.preorder_node_iter()]
+        for internal_node in tree.preorder_node_iter():
+            internal_node.annotations.add_new("creation_method", "create_clade")
         return tree
     node = tree.seed_node.new_child()
     node.age = ages.pop(0)
@@ -180,7 +177,8 @@ def create_clade(namespace, species, ages):
             new_leaf.age = 0.0
     assert n_species == len(tree.leaf_nodes())
     assert len(tree.seed_node.child_nodes()) == 1
-    [x.annotations.add_new("creation_method", "create_clade") for x in tree.preorder_node_iter()]
+    for internal_node in tree.preorder_node_iter():
+        internal_node.annotations.add_new("creation_method", "create_clade")
     assert is_binary(tree.seed_node.child_nodes()[0])
     tree.set_edge_lengths_from_node_ages(error_on_negative_edge_lengths=True)
     # Lock the child of the seed node so that things can still attach to the stem of this new clade
@@ -198,7 +196,7 @@ def fmt_species_list(spp):
 
 
 def process_node(
-    backbone_tree, backbone_bitmask, all_possible_tips, taxon_node, min_ccp, default_birth, default_death, yule=False
+    backbone_tree, backbone_bitmask, taxon_node, min_ccp, default_birth, default_death, yule=False
 ):
     # TODO: Fix all the returns and refactor this into something sane
     global mrca_rates
@@ -252,7 +250,7 @@ def process_node(
     mrca_rates[taxon] = (birth, death, ccp, "computed")
 
 
-def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=False):
+def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
     global mrca_rates
     tree_tips = get_tip_labels(backbone_tree)
     backbone_bitmask = fastmrca.bitmask(tree_tips)
@@ -279,9 +277,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, min_extant=3, yule=F
     ) as progress:
         for node in progress:
             # updates global mrca_rates as a side effect
-            process_node(
-                backbone_tree, backbone_bitmask, all_possible_tips, node, min_ccp, root_birth, root_death, yule
-            )
+            process_node(backbone_tree, backbone_bitmask, node, min_ccp, root_birth, root_death, yule)
 
     diff = time() - start_time
     if diff > 1:
@@ -372,7 +368,7 @@ For more details, run:
 
     fastmrca.initialize(tree)
 
-    with open(output + ".rates.csv", "w") as wfile:
+    with open(output + ".rates.csv", "w", encoding="utf-8") as wfile:
         writer = csv.writer(wfile)
         writer.writerow(("taxon", "birth", "death", "ccp", "source"))
         for key, value in run_precalcs(taxonomy, tree, min_ccp, yule=yule).items():
@@ -448,7 +444,7 @@ For more details, run:
             logger.info(f"    {taxon}: adding clade {clade} (n={len(full_node.leaf_nodes())})")
             # Generate all times needed to attach to the main clade
             times = get_new_branching_times(
-                node, taxon_node, tree, tyoung=0, min_ccp=min_ccp, num_new_times=len(full_node_species)
+                node, taxon_node, tyoung=0, min_ccp=min_ccp, num_new_times=len(full_node_species)
             )
 
             if is_fully_locked(node):
@@ -457,7 +453,6 @@ For more details, run:
                 times2 = get_new_branching_times(
                     node,
                     taxon_node,
-                    tree,
                     min_ccp=min_ccp,
                     told=node.parent_node.age,
                     tyoung=node.age,
@@ -475,7 +470,7 @@ For more details, run:
                         f"    {taxon}: has a minimum age constraint {min_age:.2f} but oldest generated time was {max(times):.2f}"
                     )
                     times2 = get_new_branching_times(
-                        node, taxon_node, tree, tyoung=min_age, min_ccp=min_ccp, num_new_times=1
+                        node, taxon_node, tyoung=min_age, min_ccp=min_ccp, num_new_times=1
                     )
                     # Drop the oldest time and add on our new time on the stem lineage
                     times.sort()
@@ -507,7 +502,7 @@ For more details, run:
         # Taxon spray
         logger.info(f"    {taxon}: adding {len(species.difference(extant_species))} new species")
         node = fastmrca.get(extant_species)
-        times = get_new_branching_times(node, taxon_node, tree, tyoung=get_min_age(node), min_ccp=min_ccp)
+        times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
         node = fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff
         tree_tips = update_tree_view(tree)

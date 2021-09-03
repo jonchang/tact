@@ -13,7 +13,7 @@ def fix_file(filename):
     * Sorts the file
     * Ensures column names are unique
     """
-    with open(filename, "rU") as rfile:
+    with open(filename, "rU", encoding="utf-8") as rfile:
         lines = rfile.readlines()
 
     heads = collections.defaultdict(int)
@@ -85,11 +85,11 @@ def build_taxonomic_tree(filename):
         ensure(col, ctx=row)
         node = node.new_child(taxon=tn.new_taxon(col))
 
-    to_add = list()
+    to_add = []
     stack = row
-    known_nodes = dict()
+    known_nodes = {}
     with click.progressbar(enumerate(reader), width=12, label="Generating taxonomy", length=len(lines)) as rf:
-        for idx, row in rf:
+        for _, row in rf:
             # Uniquify row names
             row = ["__TAXONOMIC_ROOT__", *row]
             mangled_row = mangle_rank(row, rank_names)
@@ -98,12 +98,12 @@ def build_taxonomic_tree(filename):
                     mangled_ranks.add((orig, new))
             row = mangled_row
 
+            prev = None
             for prev, cur in zip(reversed(stack), reversed(row)):
                 ensure(cur, ctx=row)
                 if prev == cur:
                     break
-                else:
-                    to_add.append(cur)
+                to_add.append(cur)
             if prev in known_nodes:
                 node = known_nodes[prev]
             else:

@@ -21,7 +21,7 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
     taxon = taxon_node.label
     if not taxon:
         return None
-    species = set([x.taxon.label for x in taxon_node.leaf_iter()])
+    species = {x.taxon.label for x in taxon_node.leaf_iter()}
 
     notes = []
 
