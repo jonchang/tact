@@ -58,11 +58,19 @@ class TactItem:
         return f"TactItem('{self.name}', missing={self.missing}, include={len(self.include)}, exclude={len(self.exclude)})"
 
     def __post_init__(self, include, exclude):
+        self.include = []
         if include is None:
             logging.error("Need at least one include for {self.name}!")
             sys.exit(1)
         else:
-            self.include = [TactConstraint(**x) for x in include]
+            for x in include:
+                new_include = TactConstraint(**x)
+
+                # Check restriction where singletons with include must have stem = True
+                if len(new_include.mrca) == 1 and new_include.stem is False:
+                    logger.error(f"Include specifications for singleton invalid without `stem = true`:\n{new_include}")
+                    sys.exit(1)
+                self.include.append(new_include)
 
         if exclude is None:
             self.exclude = []
@@ -97,21 +105,13 @@ def do_tact(tree, item):
     # Compute the rates on that (possibly expansive) MRCA node.
     extant_tips = len(mrca_node.leaf_nodes())
 
-    should_include_root = False
-
-    # Special case singletons.
-    if extant_tips == 1:
-        if len(item.include) == 1 and item.include[0].stem:
-            should_include_root = True
-        else:
-            logger.error(f"Include specifications for singleton invalid without `stem = true`: {included_tips}")
-            sys.exit(1)
+    should_include_root = extant_tips == 1 and len(item.include) == 1
 
     birth, death = get_birth_death_rates(mrca_node, extant_tips / (extant_tips + item.missing), include_root=should_include_root)
     logger.info(f"{item.name} => b={birth}, d={death}")
 
     if item.preserve_generic_monophyly:
-        logger.warn(f"{item.name}: preservation of generic monophyly is not implemented yet!")
+        logger.warning(f"{item.name}: preservation of generic monophyly is not implemented yet!")
 
     # First, lock everything descending from the MRCA node, including its stem
     lock_clade(mrca_node, True)
