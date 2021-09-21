@@ -160,18 +160,17 @@ dev = ["pre-commit", "tox"]
 
 [[package]]
 name = "portion"
-version = "2.1.6"
+version = "2.2.0"
 description = "Python data structure and operations for intervals"
 category = "main"
 optional = false
-python-versions = "~=3.6"
+python-versions = "~= 3.6"
 
 [package.dependencies]
-sortedcontainers = ">=2.2.0,<3.0.0"
+sortedcontainers = ">=2.2,<3.0"
 
 [package.extras]
-test = ["pytest (>=5.0.1,<5.1.0)"]
-travis = ["coverage (>=5.0.3,<5.1.0)", "coveralls (>=1.11.1,<1.12.0)"]
+test = ["pytest (>=5.0,<6.0)", "coverage (>=5.0.3,<5.1.0)", "black (>=21.8b)"]
 
 [[package]]
 name = "py"
@@ -447,8 +446,8 @@ pluggy = [
     {file = "pluggy-0.13.1.tar.gz", hash = "sha256:15b2acde666561e1298d71b523007ed7364de07029219b604cf808bfa1c765b0"},
 ]
 portion = [
-    {file = "portion-2.1.6-py3-none-any.whl", hash = "sha256:cf32f0196b347640051b0f859fbb84022615889ba894fe6aff3c594103ec431b"},
-    {file = "portion-2.1.6.tar.gz", hash = "sha256:725b65da806fb79df05c0b6383b01631c510f371d9bc0ece93a996b4260ba085"},
+    {file = "portion-2.2.0-py3-none-any.whl", hash = "sha256:73bd40b78ab5f0aa48a6651733e469dc2c000f597fe60fba2b4dde7207401fee"},
+    {file = "portion-2.2.0.tar.gz", hash = "sha256:b6bfb08a7834787aca076da1200b735d97beef61b60a462b05213e7354a099cf"},
 ]
 py = [
     {file = "py-1.10.0-py2.py3-none-any.whl", hash = "sha256:3b80836aa6d1feeaa108e046da6423ab8f6ceda6468545ae8d02d9d58d18818a"},
