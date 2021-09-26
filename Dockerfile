@@ -1,4 +1,4 @@
-FROM ubuntu:21.10
+FROM ubuntu:21.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LC_ALL=C.UTF-8
@@ -9,29 +9,33 @@ COPY . /tact
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
-    curl \
     g++ \
     gcc \
     gfortran \
     liblapack-dev \
     liblapack3 \
-    libopenblas-dev \
-    libopenblas0 \
+    libopenblas-pthread-dev \
+    libopenblas0-pthread \
+    libopenblas64-0-pthread \
+    libopenblas64-pthread-dev \
     locales \
+    locales-all \
     pypy3 \
     pypy3-dev \
-  && localedef -i en_US -f UTF-8 en_US.UTF-8 \
-  && curl -L https://bootstrap.pypa.io/get-pip.py | pypy3 - \
+    wget \
+  && wget -nv https://bootstrap.pypa.io/get-pip.py \
+  && pypy3 get-pip.py \
   && pypy3 -mpip install ./tact \
-  && rm -rf tact \
+  && rm -rf tact get-pip.py \
   && apt-get remove -y \
-    curl \
     g++ \
     gcc \
     gfortran \
     liblapack-dev \
-    libopenblas-dev \
+    libopenblas-pthread-dev \
+    libopenblas64-pthread-dev \
     pypy3-dev \
+    wget \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /root/.cache \
