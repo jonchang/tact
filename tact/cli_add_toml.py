@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field, InitVar
 import copy
 import logging
@@ -147,6 +147,18 @@ def do_tact(tree, item):
     return tree
 
 
+def do_replicate(backbone, to_tact, label):
+    logger.info(f"<<< Replicate {label} >>>")
+    tree = copy.deepcopy(backbone)
+    for item in to_tact:
+        tree = do_tact(tree, item)
+    if not is_binary(tree.seed_node):
+        logger.error("Tree is not binary!")
+        sys.exit(1)
+    tree.ladderize()
+    return tree
+
+
 @click.command()
 @click.option("--config", help="configuration file", type=click.File("r"), required=True)
 @click.option("--backbone", help="the backbone tree", type=click.File("r"), required=True)
@@ -154,7 +166,8 @@ def do_tact(tree, item):
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 @click.option("--ultrametricity-precision", help="precision for ultrametricity checks; by default, checks roughly digits of similarity", default=1e-6)
 @click.option("--replicates", help="how many tacted trees to create", default=10)
-def main(config, backbone, output, verbose, ultrametricity_precision, replicates):
+@click.option("--cores", help="how many parallel cores to use", default=None, type=int)
+def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
     """
     Add tips onto a BACKBONE phylogeny using a CONFIG file
     """
@@ -194,29 +207,23 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     root_birth, root_death = get_birth_death_rates(backbone.seed_node, root_sf)
     logger.info(f"Root b={root_birth}, d={root_death}, sf={root_sf}")
 
-    # TODO: do multiprocessing
-    acc = []
-    with click.progressbar(range(replicates), width=12, label="TACT", length=replicates) as rf:
-        for idx in rf:
-            logger.info(f"<<< Replicate {idx} >>>")
-            tree = copy.deepcopy(backbone)
-            for item in to_tact:
-                tree = do_tact(tree, item)
-            if not is_binary(tree.seed_node):
-                logger.error("Tree is not binary!")
-                sys.exit(1)
-            tree.ladderize()
-            acc.append(tree)
+    results = []
+    with ProcessPoolExecutor() as executor:
+        acc = []
+        for idx in range(replicates):
+            acc.append(executor.submit(do_replicate, backbone, to_tact, idx))
+        with click.progressbar(as_completed(acc), width=12, label="TACT", length=replicates) as rf:
+            for future in rf:
+                results.append(future.result())
 
-    ntip = len(acc[0].leaf_nodes())
-    for tr in acc:
-        new_ntip = len(tr.leaf_nodes())
+    ntip = len(results[0].leaf_nodes())
+    for result_tree in results:
+        new_ntip = len(result_tree.leaf_nodes())
         if new_ntip != ntip:
             logger.warn("TACTed trees have differing numbers of tips!")
             logger.warn(f"{ntip} != {new_ntip}")
 
-    # TODO: parallel writes
-    forest = dendropy.TreeList(acc)
+    forest = dendropy.TreeList(results)
     forest.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     forest.write(path=output + ".nexus.tre", schema="nexus")
 
