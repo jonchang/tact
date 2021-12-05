@@ -4,12 +4,14 @@
 # Try to assign tips to a pre-existing tree based on a TOML configuration file
 # Jonathan Chang, Aug 14, 2021
 
-from __future__ import division
-from __future__ import print_function
+from __future__ import annotations
 
+from concurrent.futures import ProcessPoolExecutor
+from dataclasses import dataclass, field, InitVar
 import copy
 import logging
 import sys
+import typing
 
 import click
 import dendropy
@@ -27,19 +29,22 @@ from .tree_util import lock_clade
 from .tree_util import unlock_clade
 from .tree_util import update_tree_view
 
-from dataclasses import dataclass, field, InitVar
-
 logger = logging.getLogger(__name__)
+debug = logger.debug
+info = logger.info
+warn = logger.warn
+error = logger.error
 # Speed up logging for PyPy
 logging._srcfile = None
 logging.logThreads = 0
 logging.logProcesses = 0
 logging.logMultiprocessing = 0
 
+
 @dataclass
 class TactConstraint:
     """Class for keeping track of a constraint in TACT (positive or negative)"""
-    mrca: list[str] = field(default_factory=list)
+    mrca: typing.List[str] = field(default_factory=list)
     stem: bool = False
 
     def __post_init__(self):
