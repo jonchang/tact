@@ -30,10 +30,6 @@ from .tree_util import unlock_clade
 from .tree_util import update_tree_view
 
 logger = logging.getLogger(__name__)
-debug = logger.debug
-info = logger.info
-warn = logger.warn
-error = logger.error
 # Speed up logging for PyPy
 logging._srcfile = None
 logging.logThreads = 0
@@ -220,8 +216,8 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     for result_tree in results:
         new_ntip = len(result_tree.leaf_nodes())
         if new_ntip != ntip:
-            logger.warn("TACTed trees have differing numbers of tips!")
-            logger.warn(f"{ntip} != {new_ntip}")
+            logger.warning("TACTed trees have differing numbers of tips!")
+            logger.warning(f"{ntip} != {new_ntip}")
 
     forest = dendropy.TreeList(results)
     forest.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
