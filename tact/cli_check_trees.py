@@ -118,7 +118,19 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
 
     writer = csv.writer(output)
     writer.writerow(
-        "node taxonomy_tips backbone_tips simulated_tips backbone_monophyletic simulated_monophyletic backbone_birth simulated_birth backbone_death simulated_death warnings".split()
+        [
+            "node",
+            "taxonomy_tips",
+            "backbone_tips",
+            "simulated_tips",
+            "backbone_monophyletic",
+            "simulated_monophyletic",
+            "backbone_birth",
+            "simulated_birth",
+            "backbone_death",
+            "simulated_death",
+            "warnings",
+        ]
     )
 
     with click.progressbar(it, width=12, length=nnodes) as prog:

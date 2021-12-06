@@ -3,6 +3,7 @@ import os
 
 from tact.tree_util import get_age_intervals, get_tree, lock_clade, unlock_clade
 
+
 def test_disjoint(datadir):
     disjoint_tree = os.path.join(datadir, "disjoint.tre")
     tree = get_tree(disjoint_tree)

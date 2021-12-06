@@ -32,7 +32,6 @@ from .tree_util import is_fully_locked
 from .tree_util import is_ultrametric
 from .tree_util import lock_clade
 from .tree_util import update_tree_view
-from .exceptions import DisjointConstraintError
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -66,7 +65,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
             logger.info(f"    {taxonomy_node.label}: ancestor {anc.label} not monophyletic!")
         elif computed_ccp < ccp:
             logger.info(
-                f"    {taxonomy_node.label}: ancestor {anc.label} fails crown threshold ({computed_ccp:.2f} < {ccp}); using stem"
+                f"    {taxonomy_node.label}: using stem as ancestor {anc.label} ccp {computed_ccp:.2f} < {ccp}"
             )
             taxonomy_target = anc
             backbone_target = backbone_node.parent_node
@@ -104,7 +103,7 @@ def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, m
             # TODO: check for a root edge and graft a fake node above that
             new_told = backbone_node.age
             logger.debug(
-                f"    {taxon}: tmax set to {new_told} because even though ccp {ccp:.2f} < {min_ccp} clade is tree root"
+                f"    {taxon}: tmax set to {new_told}; even though ccp {ccp:.2f} < {min_ccp}, clade is tree root"
             )
         told = new_told
     n_extant = len(backbone_node.leaf_nodes())
@@ -195,9 +194,7 @@ def fmt_species_list(spp):
     return " and ".join(spp)
 
 
-def process_node(
-    backbone_tree, backbone_bitmask, taxon_node, min_ccp, default_birth, default_death, yule=False
-):
+def process_node(backbone_tree, backbone_bitmask, taxon_node, min_ccp, default_birth, default_death, yule=False):
     # TODO: Fix all the returns and refactor this into something sane
     global mrca_rates
     taxon = taxon_node.label
@@ -220,7 +217,9 @@ def process_node(
         return
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     if not species.issuperset(get_tip_labels(mrca)):
-        logger.debug(f"MRCA: {taxon} not monophyletic in backbone (from {fmt_species_list(get_tip_labels(mrca) - species)})")
+        logger.debug(
+            f"MRCA: {taxon} not monophyletic in backbone (from {fmt_species_list(get_tip_labels(mrca) - species)})"
+        )
         mrca_rates[taxon] = (birth, death, 0.0, f"from {parent} (not monophyletic)")
         return
     extant = len(mrca.leaf_nodes())
@@ -297,7 +296,11 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
     "--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8
 )
 @click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
-@click.option("--ultrametricity-precision", help="precision for ultrametricity checks; by default, checks roughly digits of similarity", default=1e-6)
+@click.option(
+    "--ultrametricity-precision",
+    help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
+    default=1e-6,
+)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):
     """
@@ -355,8 +358,9 @@ For more details, run:
     ultra, ultra_res = is_ultrametric(tree, ultrametricity_precision)
     if not ultra:
         logger.error("Tree is not ultrametric!")
-        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]}, but {ultra_res[1][0]} has {ultra_res[1][1]}")
-        logger.error("If this is unexpected, consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
+        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]},")
+        logger.error(f"but {ultra_res[1][0]} has {ultra_res[1][1]}")
+        logger.error("Consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
         sys.exit(1)
 
     tree_tips = get_tip_labels(tree)
@@ -467,7 +471,8 @@ For more details, run:
                 min_age = get_min_age(node)
                 if min_age > 0 and max(times) < min_age:
                     logger.info(
-                        f"    {taxon}: has a minimum age constraint {min_age:.2f} but oldest generated time was {max(times):.2f}"
+                        f"    {taxon}: has a minimum age constraint {min_age:.2f}, "
+                        + f"but oldest generated time was {max(times):.2f}"
                     )
                     times2 = get_new_branching_times(
                         node, taxon_node, tyoung=min_age, min_ccp=min_ccp, num_new_times=1
