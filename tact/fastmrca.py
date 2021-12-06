@@ -6,6 +6,7 @@ from .tree_util import get_tip_labels
 
 global tree
 
+
 def initialize(phy):
     """
     Initialize the fastmrca singleton with a tree.

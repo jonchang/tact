@@ -71,9 +71,7 @@ def get_tree(path, namespace=None):
     """
     Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
     """
-    tree = dendropy.Tree.get_from_path(
-        path, schema="newick", taxon_namespace=namespace, rooting="default-rooted"
-    )
+    tree = dendropy.Tree.get_from_path(path, schema="newick", taxon_namespace=namespace, rooting="default-rooted")
     update_tree_view(tree)
     return tree
 
@@ -164,6 +162,7 @@ def graft_node(graft_recipient, graft, stem=False):
     3. Seed node must be older than graft node (no negative branches)
     4. Must not be locked (intruding on monophyly)
     """
+
     def filter_fn(x):
         return x.head_node.age <= graft.age and x.head_node.parent_node.age >= graft.age and x.label != "locked"
 
@@ -252,6 +251,7 @@ def get_min_age(node):
         return 0.0
 
     return interval.lower
+
 
 def get_age_intervals(node):
     """

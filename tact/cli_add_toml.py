@@ -40,15 +40,18 @@ logging.logMultiprocessing = 0
 @dataclass
 class TactConstraint:
     """Class for keeping track of a constraint in TACT (positive or negative)"""
+
     mrca: typing.List[str] = field(default_factory=list)
     stem: bool = False
 
     def __post_init__(self):
         self.mrca = [x.replace("_", " ") for x in self.mrca]
 
+
 @dataclass(repr=False)
 class TactItem:
     """Class for keeping track of things to TACT."""
+
     name: str
     missing: int
     include: InitVar[TactConstraint] = None
@@ -56,7 +59,10 @@ class TactItem:
     preserve_generic_monophyly: bool = False
 
     def __repr__(self):
-        return f"TactItem('{self.name}', missing={self.missing}, include={len(self.include)}, exclude={len(self.exclude)})"
+        return (
+            f"TactItem('{self.name}', missing={self.missing}, "
+            + f"include={len(self.include)}, exclude={len(self.exclude)})"
+        )
 
     def __post_init__(self, include, exclude):
         self.include = []
@@ -69,7 +75,9 @@ class TactItem:
 
                 # Check restriction where singletons with include must have stem = True
                 if len(new_include.mrca) == 1 and new_include.stem is False:
-                    logger.error(f"Include specifications for singleton invalid without `stem = true`:\n{new_include}")
+                    logger.error(
+                        f"Include specifications for singleton invalid without `stem = true`:\n{new_include}"
+                    )
                     sys.exit(1)
                 self.include.append(new_include)
 
@@ -97,6 +105,7 @@ def ensure_mrca(tree, tips, node=None):
             logger.error("* they are properly nested in `include` specifications")
         sys.exit(1)
 
+
 def do_tact(tree, item):
     # First, get the MRCA of _all_ `include` leafs. This is the basis of our rate computation,
     # and how we actually implement polyphyletic groups.
@@ -108,7 +117,9 @@ def do_tact(tree, item):
 
     should_include_root = extant_tips == 1 and len(item.include) == 1
 
-    birth, death = get_birth_death_rates(mrca_node, extant_tips / (extant_tips + item.missing), include_root=should_include_root)
+    birth, death = get_birth_death_rates(
+        mrca_node, extant_tips / (extant_tips + item.missing), include_root=should_include_root
+    )
     logger.info(f"{item.name} => b={birth}, d={death}")
 
     if item.preserve_generic_monophyly:
@@ -160,7 +171,11 @@ def do_replicate(backbone, to_tact, label):
 @click.option("--backbone", help="the backbone tree", type=click.File("r"), required=True)
 @click.option("--output", required=True, help="output base name to write out")
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-@click.option("--ultrametricity-precision", help="precision for ultrametricity checks; by default, checks roughly digits of similarity", default=1e-6)
+@click.option(
+    "--ultrametricity-precision",
+    help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
+    default=1e-6,
+)
 @click.option("--replicates", help="how many tacted trees to create", default=10)
 @click.option("--cores", help="how many parallel cores to use", default=None, type=int)
 def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
@@ -193,8 +208,9 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     ultra, ultra_res = is_ultrametric(backbone, ultrametricity_precision)
     if not ultra:
         logger.error("Tree is not ultrametric!")
-        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]}, but {ultra_res[1][0]} has {ultra_res[1][1]}")
-        logger.error("If this is unexpected, consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
+        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]},")
+        logger.error(f"but {ultra_res[1][0]} has {ultra_res[1][1]}")
+        logger.error("Consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
         sys.exit(1)
 
     # Compute global birth/death rates. Not currently used (but could be?)

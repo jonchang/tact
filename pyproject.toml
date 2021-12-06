@@ -37,9 +37,9 @@ tact_add_config = "tact.cli_add_toml:main"
 tact_build_taxonomic_tree = "tact.cli_taxonomy:main"
 tact_check_results = "tact.cli_check_trees:main"
 
-[tool.autopep8]
-max_line_length = 118
-ignore = "E501"
+[tool.black]
+line-length = 118
+target-version = ['py37', 'py38', 'py39', 'py310']
 
 [build-system]
 requires = ["poetry_core"]

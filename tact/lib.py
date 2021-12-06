@@ -146,26 +146,26 @@ def optim_yule(ages, sampling, min_bound=1e-9):
     raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 
 
-def p0_exact(t, l, m, rho):
+def p0_exact(t, l, m, rho):  # noqa: E741
     "Exact version of `p0` using Decimal math."
     t = D(t)
-    l = D(l)
+    l = D(l)  # noqa: E741
     m = D(m)
     rho = D(rho)
     return D(1) - rho * (l - m) / (rho * l + (l * (D(1) - rho) - m) * (-(l - m) * t).exp())
 
 
-def p0(t, l, m, rho):
+def p0(t, l, m, rho):  # noqa: E741
     try:
         return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
     except FloatingPointError:
         return float(p0_exact(t, l, m, rho))
 
 
-def p1_exact(t, l, m, rho):
+def p1_exact(t, l, m, rho):  # noqa: E741
     """Exact version of `p1` using Decimal math."""
     t = D(t)
-    l = D(l)
+    l = D(l)  # noqa: E741
     m = D(m)
     rho = D(rho)
     num = rho * (l - m) ** D(2) * (-(l - m) * t).exp()
@@ -173,7 +173,7 @@ def p1_exact(t, l, m, rho):
     return num / denom
 
 
-def p1_orig(t, l, m, rho):
+def p1_orig(t, l, m, rho):  # noqa: E741
     """Original version of `p1`, here for testing and comparison purposes."""
     try:
         num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
@@ -186,7 +186,7 @@ def p1_orig(t, l, m, rho):
     return res
 
 
-def p1(t, l, m, rho):
+def p1(t, l, m, rho):  # noqa: E741
     """
     Optimized version of `p1_orig` using common subexpression elimination and strength reduction
     from exponentiation to multiplication.
@@ -203,9 +203,9 @@ def p1(t, l, m, rho):
     return res
 
 
-def intp1_exact(t, l, m):
+def intp1_exact(t, l, m):  # noqa: E741
     """Exact version of `intp1` using Decimal math."""
-    l = D(l)
+    l = D(l)  # noqa: E741
     m = D(m)
     t = D(t)
     num = D(1) - (-(l - m) * t).exp()
@@ -213,7 +213,7 @@ def intp1_exact(t, l, m):
     return num / denom
 
 
-def intp1(t, l, m):
+def intp1(t, l, m):  # noqa: E741
     try:
         return (1 - exp(-(l - m) * t)) / (l - m * exp(-(l - m) * t))
     except OverflowError:
@@ -240,7 +240,7 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
     Returns:
         float: a likelihood
     """
-    l = vec[0]
+    l = vec[0]  # noqa: E741
     m = vec[1]
     t.sort(reverse=True)
     lik = (root + 1) * log(p1(t[0], l, m, rho))
@@ -315,9 +315,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         if len(ranks) > 2:
             distrranks = []
             for i in range(1, len(ranks)):
-                temp = ranks[i] * (
-                    intp1(times[i - 1], birth, death) - intp1(times[i], birth, death)
-                )
+                temp = ranks[i] * (intp1(times[i - 1], birth, death) - intp1(times[i], birth, death))
                 distrranks.append(temp)
             try:
                 dsum = sum(distrranks)
@@ -338,11 +336,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
             temp = intp1(times[addrank + 1], birth, death) / const
         except ZeroDivisionError:
             temp = 0.0
-        xnew = (
-            1
-            / (death - birth)
-            * log((1 - (r + temp) * const * birth) / (1 - (r + temp) * const * death))
-        )
+        xnew = 1 / (death - birth) * log((1 - (r + temp) * const * birth) / (1 - (r + temp) * const * death))
         only_new.append(xnew)
         missing -= 1
     only_new.sort(reverse=True)
