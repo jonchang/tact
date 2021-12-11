@@ -123,7 +123,7 @@ def do_tact(tree, item):
     logger.info(f"{item.name} => b={birth}, d={death}")
 
     if item.preserve_generic_monophyly:
-        logger.warning(f"{item.name}: preservation of generic monophyly is not implemented yet!")
+        pass  # do something useful here
 
     # First, lock everything descending from the MRCA node, including its stem
     lock_clade(mrca_node, True)
@@ -195,6 +195,8 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     config = toml.load(config)
 
     to_tact = [TactItem(**x) for x in config["tact"]]
+    if any(x.preserve_generic_monophyly for x in to_tact):
+        logger.warning("Preservation of generic monophyly is not implemented yet!")
 
     logger.info("Reading backbone")
     backbone = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted")
