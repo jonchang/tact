@@ -23,7 +23,6 @@ from .lib import get_new_times
 from .tree_util import get_ages
 from .tree_util import get_birth_death_rates
 from .tree_util import get_min_age
-from .tree_util import get_monophyletic_node
 from .tree_util import get_tip_labels
 from .tree_util import graft_node
 from .tree_util import is_binary
