@@ -226,6 +226,9 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
 
     update_tree_view(backbone)
 
+    # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
+    to_tact.sort(key=lambda item: ensure_mrca(backbone, sum([x.mrca for x in item.include], [])).age)
+
     ultra, ultra_res = is_ultrametric(backbone, ultrametricity_precision)
     if not ultra:
         logger.error("Tree is not ultrametric!")
