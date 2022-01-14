@@ -144,11 +144,13 @@ def do_tact(tree, item):
 
             if len(genera_map) > 1:
                 for genus, species in genera_map.items():
-                    if len(species) <= 1:
-                        continue
                     node = tree.mrca(taxon_labels=species, start_node=inner_mrca_node)
                     if node and species == get_tip_labels(node):
-                        lock_clade(node)
+                        if len(species) == 1:
+                            # Lock the stem of singletons
+                            lock_clade(node, stem=True)
+                        else:
+                            lock_clade(node)
 
     # Finally, re-lock `exclude`s
     for exclude in item.exclude:
