@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field, InitVar
+from collections import defaultdict
 import copy
 import logging
+import re
 import sys
 import typing
 
@@ -21,6 +23,7 @@ from .lib import get_new_times
 from .tree_util import get_ages
 from .tree_util import get_birth_death_rates
 from .tree_util import get_min_age
+from .tree_util import get_monophyletic_node
 from .tree_util import get_tip_labels
 from .tree_util import graft_node
 from .tree_util import is_binary
@@ -122,15 +125,31 @@ def do_tact(tree, item):
     )
     logger.info(f"{item.name} => b={birth}, d={death}")
 
-    if item.preserve_generic_monophyly:
-        pass  # do something useful here
-
     # First, lock everything descending from the MRCA node, including its stem
     lock_clade(mrca_node, True)
+
     # Then, selectively unlock `include`s.
     for include in item.include:
         # If this was a single include with stem=True, then it gets unlocked here.
-        unlock_clade(ensure_mrca(tree, include.mrca, mrca_node), include.stem)
+        inner_mrca_node = ensure_mrca(tree, include.mrca, mrca_node)
+        unlock_clade(inner_mrca_node, include.stem)
+        # Generic monophyly is ensured by pretending these are `exclude` clades,
+        # except that we don't exclude them if the leaves of the current include
+        # node belong wholly to that genus.
+        if item.preserve_generic_monophyly:
+            genera_map = defaultdict(set)
+            for tip in get_tip_labels(inner_mrca_node):
+                genus, _ = re.split("[_ ]+", tip, maxsplit=1)
+                genera_map[genus].add(tip)
+
+            if len(genera_map) > 1:
+                for genus, species in genera_map.items():
+                    if len(species) <= 1:
+                        continue
+                    node = tree.mrca(taxon_labels=species, start_node=inner_mrca_node)
+                    if node and species == get_tip_labels(node):
+                        lock_clade(node)
+
     # Finally, re-lock `exclude`s
     for exclude in item.exclude:
         lock_clade(ensure_mrca(tree, exclude.mrca, mrca_node), exclude.stem)
@@ -151,6 +170,8 @@ def do_tact(tree, item):
         # Assume stem is fair game, since it would have been unlocked or kept locked earlier
         mrca_node = graft_node(mrca_node, new_node, True)
 
+    tree.reconstruct_taxon_namespace()
+    update_tree_view(tree)
     return tree
 
 
@@ -195,8 +216,6 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     config = toml.load(config)
 
     to_tact = [TactItem(**x) for x in config["tact"]]
-    if any(x.preserve_generic_monophyly for x in to_tact):
-        logger.warning("Preservation of generic monophyly is not implemented yet!")
 
     logger.info("Reading backbone")
     backbone = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted")
