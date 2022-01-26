@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+repository-code: "https://github.com/jonchang/tact"
+url: "https://tact.jonathanchang.org/"
+title: "TACT: Taxonomic Addition for Complete Trees"
+authors:
+- family-names: "Chang"
+  given-names: "Jonathan"
+  orcid: "https://orcid.org/0000-0002-3811-1254"
+  email: "me@jonathanchang.org"
+message: "Please cite:"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Chang"
+    given-names: "Jonathan"
+    orcid: "https://orcid.org/0000-0002-3811-1254"
+    email: "me@jonathanchang.org"
+  - family-names: "Rabosky"
+    given-names: "Daniel L"
+  - family-names: "Alfaro"
+    given-names: "Michael E"
+  doi: "10.1093/sysbio/syz081"
+  journal: "Systematic Biology"
+  month: 5
+  start: 602
+  end: 611
+  title: "Estimating Diversification Rates on Incompletely Sampled Phylogenies: Theoretical Concerns and Practical Solutions"
+  issue: 3
+  volume: 69
+  year: 2020
