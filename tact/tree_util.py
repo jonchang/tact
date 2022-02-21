@@ -2,7 +2,6 @@
 
 """Functions specifically to handle DendroPy tree objects."""
 
-import collections
 import math
 import random
 
@@ -127,19 +126,6 @@ def compute_node_depths(tree):
                 cnt += 1
         res[leaf.taxon.label] = cnt
     return res
-
-
-def ensure_tree_node_depths(tree):
-    node_depths = compute_node_depths(tree)
-    stats = collections.defaultdict(int)
-    for v in node_depths.values():
-        stats[v] += 1
-    msg = ""
-    if len(stats) > 1:
-        msg += "The tips of your taxonomy tree do not have equal numbers of ranked clades in their ancestor chain:\n"
-        for k in sorted(stats.keys()):
-            msg += f"* {stats[k]} tips have {k} ranked ancestors\n"
-    return msg
 
 
 def graft_node(graft_recipient, graft, stem=False):

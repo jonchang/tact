@@ -4,7 +4,7 @@ import csv
 import click
 import dendropy
 
-from .tree_util import ensure_tree_node_depths
+from .validation import validate_tree_node_depths
 
 
 def fix_file(filename):
@@ -153,7 +153,7 @@ def main(taxonomy, output, schema):
     the example taxonomy in the examples/ folder for guidance.
     """
     taxonomy = build_taxonomic_tree(taxonomy)
-    msg = ensure_tree_node_depths(taxonomy)
+    msg = validate_tree_node_depths(None, None, taxonomy)
     if msg:
         click.echo(msg)
     taxonomy.write_to_path(output, schema=schema)
