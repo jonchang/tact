@@ -20,7 +20,6 @@ import dendropy
 from . import fastmrca
 from .lib import crown_capture_probability
 from .lib import get_new_times
-from .tree_util import ensure_tree_node_depths
 from .tree_util import get_ages
 from .tree_util import get_birth_death_rates
 from .tree_util import get_min_age
@@ -33,6 +32,7 @@ from .tree_util import is_ultrametric
 from .tree_util import lock_clade
 from .tree_util import update_tree_view
 from .validation import validate_outgroups
+from .validation import validate_taxonomy_tree
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -287,7 +287,9 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 
 @click.command()
 @click.version_option(package_name="tact")
-@click.option("--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True)
+@click.option(
+    "--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True, callback=validate_taxonomy_tree
+)
 @click.option(
     "--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("r"), required=True
 )
@@ -326,17 +328,11 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
         logger.addHandler(logging.StreamHandler())
 
     logger.info("Reading taxonomy")
-    taxonomy = dendropy.Tree.get_from_stream(taxonomy, schema="newick", rooting="default-rooted")
     tn = taxonomy.taxon_namespace
     tn.is_mutable = True
     if outgroups:
         tn.new_taxa(outgroups)
     tn.is_mutable = False
-
-    # Check for equal depth of all nodes
-    msg = ensure_tree_node_depths(taxonomy)
-    if msg:
-        logger.warning(msg)
 
     logger.info("Reading backbone")
 
