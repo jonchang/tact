@@ -28,11 +28,11 @@ from .tree_util import get_tip_labels
 from .tree_util import graft_node
 from .tree_util import is_binary
 from .tree_util import is_fully_locked
-from .tree_util import is_ultrametric
 from .tree_util import lock_clade
 from .tree_util import update_tree_view
 from .validation import validate_outgroups
 from .validation import validate_taxonomy_tree
+from .validation import BackboneCommand
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -285,7 +285,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
     return mrca_rates
 
 
-@click.command()
+@click.command(cls=BackboneCommand)
 @click.version_option(package_name="tact")
 @click.option(
     "--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True, callback=validate_taxonomy_tree
@@ -327,47 +327,8 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
         logger.setLevel(logging.WARNING)
         logger.addHandler(logging.StreamHandler())
 
-    logger.info("Reading taxonomy")
-    tn = taxonomy.taxon_namespace
-    tn.is_mutable = True
-    if outgroups:
-        tn.new_taxa(outgroups)
-    tn.is_mutable = False
-
-    logger.info("Reading backbone")
-
-    try:
-        tree = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted", taxon_namespace=tn)
-    except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
-        logger.error(f"DendroPy error: {e}")
-        print(
-            """
-This usually indicates your backbone has species that are not present in your
-taxonomy. Outgroups not in the taxonomy can be excluded with the argument:
-
-    tact_add_taxa --outgroups outgroup_speciesA,outgroup_speciesB
-
-For more details, run:
-
-    tact_add_taxa --help
-"""
-        )
-        sys.exit(1)
-
-    if not is_binary(tree):
-        logger.error("Backbone tree is not binary!")
-        sys.exit(1)
-
-    update_tree_view(tree)
-
-    ultra, ultra_res = is_ultrametric(tree, ultrametricity_precision)
-    if not ultra:
-        logger.error("Tree is not ultrametric!")
-        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]},")
-        logger.error(f"but {ultra_res[1][0]} has {ultra_res[1][1]}")
-        logger.error("Consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
-        sys.exit(1)
-
+    tree = backbone
+    tn = tree.taxon_namespace
     tree_tips = get_tip_labels(tree)
     all_possible_tips = get_tip_labels(taxonomy)
 
