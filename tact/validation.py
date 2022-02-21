@@ -8,6 +8,9 @@ import click
 import dendropy
 
 from .tree_util import compute_node_depths
+from .tree_util import is_binary
+from .tree_util import is_ultrametric
+from .tree_util import update_tree_view
 
 
 def validate_outgroups(ctx, param, value):
@@ -21,8 +24,8 @@ def validate_outgroups(ctx, param, value):
     return [x.replace("_", " ") for x in value]
 
 
-def validate_newick(ctx, param, value):
-    return dendropy.Tree.get_from_stream(value, schema="newick", rooting="default-rooted")
+def validate_newick(ctx, param, value, **kwargs):
+    return dendropy.Tree.get_from_stream(value, schema="newick", rooting="default-rooted", **kwargs)
 
 
 def validate_tree_node_depths(ctx, param, value):
@@ -41,3 +44,48 @@ def validate_tree_node_depths(ctx, param, value):
 def validate_taxonomy_tree(ctx, param, value):
     value = validate_newick(ctx, param, value)
     return validate_tree_node_depths(ctx, param, value)
+
+
+class BackboneCommand(click.Command):
+    def validate_backbone_variables(self, ctx, params):
+        if "taxonomy" in params:
+            tn = params["taxonomy"].taxon_namespace
+            tn.is_mutable = True
+            if "outgroups" in params and params["outgroups"]:
+                tn.new_taxa(params["outgroups"])
+            tn.is_mutable = False
+            try:
+                backbone = validate_newick(ctx, params, params["backbone"], taxon_namespace=tn)
+            except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
+                msg = f"""
+                DendroPy error: {e}
+
+                This usually indicates your backbone has species that are not present in your
+                taxonomy. Outgroups not in the taxonomy can be excluded with the --outgroups argument.
+                """
+                raise click.BadParameter(msg)
+        else:
+            backbone = validate_newick(ctx, params, params["backbone"])
+
+        if not is_binary(backbone):
+            raise click.BadParameter("Backbone tree is not binary!")
+        update_tree_view(backbone)
+
+        if "ultrametricity_precision" in params:
+            ultra, res = is_ultrametric(backbone, params["ultrametricity_precision"])
+            if not ultra:
+                msg = f"""
+                Tree is not ultrametric!
+                {res[0][0]} has a root distance of {res[0][1]}, but {res[1][0]} has {res[1][1]}
+
+                Increase `--ultrametricity-precision` or use phytools::force.ultrametric in R
+                """
+                raise click.BadParameter(msg)
+
+        params["backbone"] = backbone
+        return params
+
+    def make_context(self, *args, **kwargs):
+        ctx = super(BackboneCommand, self).make_context(*args, **kwargs)
+        ctx.params = self.validate_backbone_variables(ctx, ctx.params)
+        return ctx

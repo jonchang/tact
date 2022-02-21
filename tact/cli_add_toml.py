@@ -27,10 +27,10 @@ from .tree_util import get_min_age
 from .tree_util import get_tip_labels
 from .tree_util import graft_node
 from .tree_util import is_binary
-from .tree_util import is_ultrametric
 from .tree_util import lock_clade
 from .tree_util import unlock_clade
 from .tree_util import update_tree_view
+from .validation import BackboneCommand
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -189,7 +189,7 @@ def do_replicate(backbone, to_tact, label):
     return tree
 
 
-@click.command()
+@click.command(cls=BackboneCommand)
 @click.option("--config", help="configuration file", type=click.File("r"), required=True)
 @click.option("--backbone", help="the backbone tree", type=click.File("r"), required=True)
 @click.option("--output", required=True, help="output base name to write out")
@@ -225,25 +225,8 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
 
     to_tact = [TactItem(**x) for x in config["tact"]]
 
-    logger.info("Reading backbone")
-    backbone = dendropy.Tree.get_from_stream(backbone, schema="newick", rooting="default-rooted")
-
-    if not is_binary(backbone):
-        logger.error("Backbone tree is not binary!")
-        sys.exit(1)
-
-    update_tree_view(backbone)
-
     # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
     to_tact.sort(key=lambda item: ensure_mrca(backbone, sum([x.mrca for x in item.include], [])).age)
-
-    ultra, ultra_res = is_ultrametric(backbone, ultrametricity_precision)
-    if not ultra:
-        logger.error("Tree is not ultrametric!")
-        logger.error(f"{ultra_res[0][0]} has a root distance of {ultra_res[0][1]},")
-        logger.error(f"but {ultra_res[1][0]} has {ultra_res[1][1]}")
-        logger.error("Consider setting `--ultrametricity-precision` or using phytools::force.ultrametric in R")
-        sys.exit(1)
 
     # Compute global birth/death rates. Not currently used (but could be?)
     backbone_tips = len(backbone.leaf_nodes())
