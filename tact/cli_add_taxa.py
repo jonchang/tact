@@ -32,6 +32,7 @@ from .tree_util import is_fully_locked
 from .tree_util import is_ultrametric
 from .tree_util import lock_clade
 from .tree_util import update_tree_view
+from .validation import validate_outgroups
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -290,7 +291,12 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 @click.option(
     "--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("r"), required=True
 )
-@click.option("--outgroups", help="comma separated list of outgroup taxa to ignore")
+@click.option(
+    "--outgroups",
+    help="comma separated list of outgroup taxa to ignore",
+    type=click.UNPROCESSED,
+    callback=validate_outgroups,
+)
 @click.option("--output", required=True, help="output base name to write out")
 @click.option(
     "--min-ccp",
@@ -324,7 +330,6 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
     tn = taxonomy.taxon_namespace
     tn.is_mutable = True
     if outgroups:
-        outgroups = [x.replace("_", " ") for x in outgroups.split(",")]
         tn.new_taxa(outgroups)
     tn.is_mutable = False
 
