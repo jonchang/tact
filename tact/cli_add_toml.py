@@ -11,6 +11,7 @@ from dataclasses import dataclass, field, InitVar
 from collections import defaultdict
 import copy
 import logging
+import os
 import re
 import sys
 import typing
@@ -197,9 +198,15 @@ def do_replicate(backbone, to_tact, label):
     "--ultrametricity-precision",
     help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
     default=1e-6,
+    type=click.FloatRange(0, 1, clamp=True),
 )
-@click.option("--replicates", help="how many tacted trees to create", default=10)
-@click.option("--cores", help="how many parallel cores to use", default=None, type=int)
+@click.option("--replicates", help="how many tacted trees to create", default=10, type=click.IntRange(1))
+@click.option(
+    "--cores",
+    help="how many parallel cores to use",
+    type=click.IntRange(1, os.cpu_count() or 1, clamp=True),
+    default=os.cpu_count() or 1,
+)
 def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
     """
     Add tips onto a BACKBONE phylogeny using a CONFIG file
