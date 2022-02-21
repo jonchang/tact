@@ -293,13 +293,17 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 @click.option("--outgroups", help="comma separated list of outgroup taxa to ignore")
 @click.option("--output", required=True, help="output base name to write out")
 @click.option(
-    "--min-ccp", help="minimum probability to use to say that we've sampled the crown of a clade", default=0.8
+    "--min-ccp",
+    default=0.8,
+    type=click.FloatRange(0, 1, clamp=True),
+    help="minimum probability to use to say that we've sampled the crown of a clade",
 )
 @click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
 @click.option(
     "--ultrametricity-precision",
-    help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
     default=1e-6,
+    type=click.FloatRange(0, 1, clamp=True),
+    help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
 )
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):

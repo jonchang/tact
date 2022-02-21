@@ -7,6 +7,7 @@ import csv
 import functools
 import math
 import multiprocessing
+import os
 
 import click
 import dendropy
@@ -80,8 +81,13 @@ def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
 @click.option(
     "--output", type=click.File("w"), help="Output CSV file report (defaults to standard output)", default="-"
 )
-@click.option("--cores", help="number of parallel cores to use", default=multiprocessing.cpu_count(), type=int)
-@click.option("--chunksize", help="number of tree nodes to allocate to each core", type=int)
+@click.option(
+    "--cores",
+    help="number of parallel cores to use",
+    default=os.cpu_count() or 1,
+    type=click.IntRange(1, os.cpu_count() or 1, clamp=True),
+)
+@click.option("--chunksize", help="number of tree nodes to allocate to each core", type=click.IntRange(1))
 def main(simulated, backbone, taxonomy, output, cores, chunksize):
     """
     Check a SIMULATED phylogeny for consistency with its backbone source tree and a taxonomy.
