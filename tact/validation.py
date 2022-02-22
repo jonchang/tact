@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-"""Various validation functions for inputs."""
+"""Various validation functions for `click` classes and parameters."""
 
 import collections
 
@@ -14,6 +14,7 @@ from .tree_util import update_tree_view
 
 
 def validate_outgroups(ctx, param, value):
+    """Validates an `outgroups` parameter, by splitting on commas and transforming underscores to spaces."""
     if value is None:
         return
     try:
@@ -25,10 +26,12 @@ def validate_outgroups(ctx, param, value):
 
 
 def validate_newick(ctx, param, value, **kwargs):
+    """Validates a Newick tree, using appropriate defaults."""
     return dendropy.Tree.get_from_stream(value, schema="newick", rooting="default-rooted", **kwargs)
 
 
 def validate_tree_node_depths(ctx, param, value):
+    """Validates a DendroPy tree, ensuring that the node depth is equal for all tips."""
     node_depths = compute_node_depths(value)
     stats = collections.defaultdict(int)
     for v in node_depths.values():
@@ -42,11 +45,27 @@ def validate_tree_node_depths(ctx, param, value):
 
 
 def validate_taxonomy_tree(ctx, param, value):
+    """Validates a taxonomy tree."""
     value = validate_newick(ctx, param, value)
     return validate_tree_node_depths(ctx, param, value)
 
 
 class BackboneCommand(click.Command):
+    """
+    Helper class to validate a Click Command that contains a backbone tree.
+
+    At a minimum, the Command must contain a `backbone` parameter, which is validated by `validate_newick`
+    and checked to ensure it is a binary tree.
+
+    If the command also contains a `taxonomy` parameter, representing a taxonomic phylogeny,
+    this is also validated to ensure that the DendroPy TaxonNamespace is non-strict superset
+    of the taxa contained in `backbone`. An optional `outgroups` parameter may add
+    other taxa not in the `taxonomy`.
+
+    If the command also contains an `ultrametricity_precision` parameter, the
+    ultrametricity of the `backbone` is also checked.
+    """
+
     def validate_backbone_variables(self, ctx, params):
         if "taxonomy" in params:
             tn = params["taxonomy"].taxon_namespace
