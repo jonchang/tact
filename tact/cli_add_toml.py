@@ -235,7 +235,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     logger.info(f"Root b={root_birth}, d={root_death}, sf={root_sf}")
 
     results = []
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=cores) as executor:
         acc = []
         for idx in range(replicates):
             acc.append(executor.submit(do_replicate, backbone, to_tact, idx))
