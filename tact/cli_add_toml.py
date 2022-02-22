@@ -162,7 +162,7 @@ def do_tact(tree, item):
     # TODO: currently does not account for the possibility of a disjoint set of edges.
     # If this happens, reroll the time?
     for idx, time in enumerate(times):
-        new_name = f"{item.name}_tact_{idx}"
+        new_name = f"{item.name} tact {idx}"
         logger.info(f"=> Grafting {new_name} @ {time}")
         new_node = dendropy.Node()
         new_node.age = time
