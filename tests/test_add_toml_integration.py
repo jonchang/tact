@@ -47,7 +47,7 @@ def test_lone_singleton(script_runner, execution_number, tmp_path, focal_clade):
 
     backbone = "((A:1,B:1):1,C:2);"
     res = run_tact(script_runner, tmp_path, config, backbone)
-    new_tips = [f"{focal_clade}_tact_{x}" for x in range(10)]
+    new_tips = [f"{focal_clade} tact {x}" for x in range(10)]
     all_tips = set([focal_clade] + new_tips)
     mrca_node = res.mrca(taxon_labels=all_tips)
     mrca_tips = set([x.taxon.label for x in mrca_node.leaf_iter()])
