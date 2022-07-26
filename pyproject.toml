@@ -17,11 +17,11 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">= 3.8, < 3.11"
-scipy = "^1.7"
-numpy = "^1.21"
+scipy = "^1.8"
+numpy = "^1.23"
 click = ">=7,<9"
 DendroPy = "^4.5"
-portion = "^2.1"
+portion = "^2.2"
 toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
@@ -39,7 +39,7 @@ tact_check_results = "tact.cli_check_trees:main"
 
 [tool.black]
 line-length = 118
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310']
 
 [build-system]
 requires = ["poetry_core"]
