@@ -39,7 +39,7 @@ tact_check_results = "tact.cli_check_trees:main"
 
 [tool.black]
 line-length = 118
-target-version = ['py37', 'py38', 'py39', 'py310']
+target-version = ['py38', 'py39', 'py310']
 
 [build-system]
 requires = ["poetry_core"]
