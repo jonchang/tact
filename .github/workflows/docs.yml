@@ -17,7 +17,12 @@ jobs:
           python-version: '3.9'
       - name: Install dependencies
         run: |
-          pip install mkdocs mkdocstrings mkdocs-material mkdocs-git-revision-date-localized-plugin
+          pip install \
+            mkdocs \
+            mkdocs-git-revision-date-localized-plugin \
+            mkdocs-material \
+            mkdocstrings \
+            mkdocstrings-python
       - name: Install package
         run: |
           pip install .
