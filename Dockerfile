@@ -24,8 +24,8 @@ RUN apt-get update \
     pypy3-dev \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
-  && pypy3 get-pip.py \
-  && pypy3 -mpip install ./tact \
+  && pypy3.8 get-pip.py \
+  && pypy3.8 -mpip install ./tact \
   && rm -rf tact get-pip.py \
   && apt-get remove -y \
     g++ \

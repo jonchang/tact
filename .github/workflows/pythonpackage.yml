@@ -14,7 +14,6 @@ jobs:
       max-parallel: 4
       matrix:
         python-version:
-          - "3.7"
           - "3.8"
           - "3.9"
           - "3.10"
@@ -68,16 +67,16 @@ jobs:
           poetry version $new_tag
           poetry build
       - uses: actions/upload-artifact@v3
-        if: matrix.python-version == '3.9'
+        if: matrix.python-version == '3.10'
         with:
           name: ${{ steps.build.outputs.version }}
           path: dist
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.9'
+      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.10'
         uses: pypa/gh-action-pypi-publish@v1.5.0
         with:
           user: __token__
           password: ${{ secrets.pypi_key }}
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.9'
+      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.10'
         uses: dawidd6/action-homebrew-bump-formula@master
         with:
           tap: jonchang/biology
