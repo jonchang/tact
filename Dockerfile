@@ -20,6 +20,7 @@ RUN apt-get update \
     libopenblas64-pthread-dev \
     locales \
     locales-all \
+    pkg-config \
     pypy3 \
     pypy3-dev \
     wget \
@@ -34,6 +35,7 @@ RUN apt-get update \
     liblapack-dev \
     libopenblas-pthread-dev \
     libopenblas64-pthread-dev \
+    pkg-config \
     pypy3-dev \
     wget \
   && apt-get autoremove -y \
