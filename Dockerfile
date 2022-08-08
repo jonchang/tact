@@ -3,6 +3,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
+ENV PATH=/root/.local/bin:$PATH
 
 COPY . /tact
 
@@ -21,13 +22,21 @@ RUN apt-get update \
     locales \
     locales-all \
     pkg-config \
+    python3 \
+    python3-venv \
     pypy3 \
     pypy3-dev \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
-  && pypy3.8 get-pip.py \
-  && pypy3.8 -mpip install ./tact \
-  && rm -rf tact get-pip.py \
+  && wget -nv -O get-poetry.py https://install.python-poetry.org \
+  && python3 get-pip.py \
+  && python3 get-poetry.py \
+  && cd tact \
+  && poetry env use $(which pypy3.8) \
+  && poetry install --no-dev \
+  && ln -s $(poetry env info --path) /root/.local/bin/ \
+  && cd .. \
+  && rm -rf tact get-pip.py get-poetry.py \
   && apt-get remove -y \
     g++ \
     gcc \
@@ -36,6 +45,8 @@ RUN apt-get update \
     libopenblas-pthread-dev \
     libopenblas64-pthread-dev \
     pkg-config \
+    python3 \
+    python3-venv \
     pypy3-dev \
     wget \
   && apt-get autoremove -y \
