@@ -46,6 +46,7 @@ RUN apt-get update \
     libopenblas64-pthread-dev \
     pkg-config \
     python3 \
+    python3-venv \
     pypy3-dev \
     wget \
   && apt-get autoremove -y \
