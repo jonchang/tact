@@ -26,7 +26,7 @@ RUN apt-get update \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
   && pypy3.8 get-pip.py \
-  && pypy3.8 -mpip install ./tact \
+  && pypy3.8 -mpip install --use-pep517 ./tact \
   && rm -rf tact get-pip.py \
   && apt-get remove -y \
     g++ \
