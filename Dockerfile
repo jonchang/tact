@@ -34,7 +34,7 @@ RUN apt-get update \
   && cd tact \
   && poetry env use $(which pypy3.8) \
   && poetry install --no-dev \
-  && ln -s $(poetry env info --path) /root/.local/bin/ \
+  && ln -s $(poetry env info --path)/bin/tact_* /root/.local/bin \
   && cd .. \
   && rm -rf tact get-pip.py get-poetry.py \
   && apt-get remove -y \
@@ -51,6 +51,5 @@ RUN apt-get update \
     wget \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
-  && rm -rf /root/.cache \
   && rm -rf /var/cache/* \
   && rm -rf /var/log/*
