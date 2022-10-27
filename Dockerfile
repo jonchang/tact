@@ -33,10 +33,10 @@ RUN apt-get update \
   && python3 get-poetry.py \
   && cd tact \
   && poetry env use $(which pypy3.8) \
-  && poetry install --no-dev \
+  && poetry install --only main \
   && ln -s $(poetry env info --path)/bin/tact_* /root/.local/bin \
   && cd .. \
-  && rm -rf tact get-pip.py get-poetry.py \
+  && rm -rf get-pip.py get-poetry.py \
   && apt-get remove -y \
     g++ \
     gcc \
