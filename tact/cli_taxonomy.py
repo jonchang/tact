@@ -13,7 +13,7 @@ def fix_file(filename):
     * Sorts the file
     * Ensures column names are unique
     """
-    with open(filename, "rU", encoding="utf-8") as rfile:
+    with open(filename, "r", encoding="utf-8") as rfile:
         lines = rfile.readlines()
 
     heads = collections.defaultdict(int)
