@@ -17,11 +17,11 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">= 3.8, < 3.12"
-scipy = "^1.8"
-numpy = "^1.23"
+scipy = "^1.10"
+numpy = "^1.24"
 click = ">=7,<9"
-DendroPy = "^4.5"
-portion = "^2.2"
+DendroPy = "^4.6"
+portion = "^2.4"
 toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
@@ -42,5 +42,5 @@ line-length = 118
 target-version = ['py38', 'py39', 'py310', 'py311']
 
 [build-system]
-requires = ["poetry_core"]
+requires = ["poetry_core", "meson-python>=0.12.1"]
 build-backend = "poetry.core.masonry.api"
