@@ -17,6 +17,7 @@ jobs:
           - "3.8"
           - "3.9"
           - "3.10"
+          - "3.11"
 
     steps:
       - name: Install apt packages
@@ -67,16 +68,16 @@ jobs:
           poetry version $new_tag
           poetry build
       - uses: actions/upload-artifact@v3
-        if: matrix.python-version == '3.10'
+        if: matrix.python-version == '3.11'
         with:
           name: ${{ steps.build.outputs.version }}
           path: dist
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.10'
+      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.11'
         uses: pypa/gh-action-pypi-publish@v1.8.5
         with:
           user: __token__
           password: ${{ secrets.pypi_key }}
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.10'
+      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.11'
         uses: dawidd6/action-homebrew-bump-formula@master
         with:
           tap: jonchang/biology

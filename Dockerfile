@@ -21,12 +21,13 @@ RUN apt-get update \
     libopenblas64-pthread-dev \
     locales \
     locales-all \
+    meson \
     pkg-config \
-    python3 \
-    python3-venv \
     pypy3 \
     pypy3-dev \
     pypy3-venv \
+    python3 \
+    python3-venv \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
   && wget -nv -O get-poetry.py https://install.python-poetry.org \
@@ -46,10 +47,11 @@ RUN apt-get update \
     liblapack-dev \
     libopenblas-pthread-dev \
     libopenblas64-pthread-dev \
+    meson \
     pkg-config \
+    pypy3-dev \
     python3 \
     python3-venv \
-    pypy3-dev \
     wget \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
