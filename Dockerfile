@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:23.04
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LC_ALL=C.UTF-8
@@ -32,7 +32,7 @@ RUN apt-get update \
   && python3 get-pip.py \
   && python3 get-poetry.py \
   && cd tact \
-  && poetry env use $(which pypy3.8) \
+  && poetry env use $(which pypy3.9) \
   && poetry install --only main \
   && ln -s $(poetry env info --path)/bin/tact_* /root/.local/bin \
   && cd .. \
