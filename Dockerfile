@@ -22,15 +22,15 @@ RUN apt-get update \
     locales \
     locales-all \
     pkg-config \
-    python3 \
-    python3-venv \
     pypy3 \
     pypy3-dev \
+    pypy3-venv \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
   && wget -nv -O get-poetry.py https://install.python-poetry.org \
-  && python3 get-pip.py \
-  && python3 get-poetry.py \
+  && rm /usr/lib/pypy3.9/EXTERNALLY-MANAGED \
+  && pypy3.9 get-pip.py \
+  && pypy3.9 get-poetry.py \
   && cd tact \
   && poetry env use $(which pypy3.9) \
   && poetry install --only main \
@@ -45,8 +45,6 @@ RUN apt-get update \
     libopenblas-pthread-dev \
     libopenblas64-pthread-dev \
     pkg-config \
-    python3 \
-    python3-venv \
     pypy3-dev \
     wget \
   && apt-get autoremove -y \
