@@ -42,6 +42,8 @@ TACT runs quite quickly for small datasets. However, for large datasets, it can 
 
 On smaller datasets, the overhead of instantiating a Docker container exceeds any speedup to be gained via PyPy. For larger datasets, the speedup to be gained via PyPy vastly outweighs the easier install of the Homebrew method.
 
+On M1 Macbooks, TACT experiences a significant performance penalty (~30-50x) when running under emulation using Docker. Using the `pipx` install method with Python 3.11 is recommended.
+
 ## What is crown capture probability?
 
 Crown capture probability is the probability that a sample of `k` taxa from a clade of `n` total taxa includes a root node, under a Yule process. See [Sanderson (1996)](https://doi.org/10.1093/sysbio/45.2.168) for the full manuscript describing this equation.
