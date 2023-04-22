@@ -20,8 +20,8 @@ python = ">= 3.8, < 3.12"
 scipy = "^1.8"
 numpy = "^1.23"
 click = ">=7,<9"
-DendroPy = "^4.6"
-portion = "^2.4"
+DendroPy = "^4.5"
+portion = "^2.2"
 toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
