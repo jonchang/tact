@@ -6,7 +6,7 @@ authors = ["Jonathan Chang <me@jonathanchang.org>"]
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/jonchang/tact"
-homepage = "https://github.com/jonchang/tact"
+homepage = "https://tact.jonathanchang.org"
 include = ["examples"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
