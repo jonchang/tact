@@ -4,7 +4,7 @@ TACT requires Python 3. When possible, I recommend using the [PyPy 3 implementat
 
 ## Docker
 
-If you can use Docker, this is the recommended method as it is both convenient to install and [fast for large datasets](https://tact.jonathanchang.org/troubleshooting/#why-is-tact-so-slow) thanks to PyPy.
+If you can use Docker, this is the recommended method as it is both convenient to install and [fast for large datasets](https://tact.jonathanchang.org/troubleshooting/#why-is-tact-so-slow) thanks to PyPy. Note that Docker images are only provided for x86_64 processors (`amd64`). Docker images are not automatically built for ARM processors and must either be built manually, or consider installing TACT with one of the other options below.
 
 Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
 
