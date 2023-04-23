@@ -77,9 +77,3 @@ jobs:
         with:
           user: __token__
           password: ${{ secrets.pypi_key }}
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.11'
-        uses: dawidd6/action-homebrew-bump-formula@master
-        with:
-          tap: jonchang/biology
-          formula: tact
-          token: ${{ secrets.GH_PAT }}
