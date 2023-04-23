@@ -20,14 +20,11 @@ RUN apt-get update \
     libopenblas64-0-pthread \
     libopenblas64-pthread-dev \
     locales \
-    locales-all \
     meson \
     pkg-config \
     pypy3 \
     pypy3-dev \
     pypy3-venv \
-    python3 \
-    python3-venv \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
   && wget -nv -O get-poetry.py https://install.python-poetry.org \
@@ -35,10 +32,10 @@ RUN apt-get update \
   && pypy3.9 get-pip.py \
   && pypy3.9 get-poetry.py \
   && cd tact \
-  && poetry env use $(which pypy3.9) \
-  && poetry install --only main \
-  && ln -s $(poetry env info --path)/bin/tact_* /root/.local/bin \
+  && poetry export -f requirements.txt -o requirements.txt --without-hashes --only main \
+  && pypy3.9 -mpip install -r requirements.txt --compile . \
   && cd .. \
+  && pypy3.9 get-poetry.py --uninstall \
   && rm -rf get-pip.py get-poetry.py \
   && apt-get remove -y \
     g++ \
@@ -50,10 +47,11 @@ RUN apt-get update \
     meson \
     pkg-config \
     pypy3-dev \
-    python3 \
-    python3-venv \
+    pypy3-venv \
     wget \
   && apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/* \
   && rm -rf /var/cache/* \
-  && rm -rf /var/log/*
+  && rm -rf /var/log/* \
+  && rm -rf ~/.cache \
+  && rm -rf ~/.local
