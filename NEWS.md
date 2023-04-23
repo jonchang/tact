@@ -1,5 +1,19 @@
 # Change History
 
+## tact 0.5.0
+
+* TACT has a new documentation website, available at [tact.jonathanchang.org](https://tact.jonathanchang.org).
+* Adds an experimental command, `tact_add_config`. This uses a configuration-based approach to specify nodes of interest where unsampled species will be placed. This feature is currently undocumented and is expected to have many bugs.
+* Adds a `--version` option to most commands.
+* Uses a new interval bounds checker to ensure that the union of all possible age constraints on a clade is itself an atomic (single) interval, rather than a disjunction of multiple such intervals.
+* Checks for a valid taxonomy tree are moved from `tact_build_taxonomic_tree` to `tact_add_taxa`, ensuring that taxonomic trees generated outside of TACT can still be appropriately validated.
+* Drops support for Python 3.7.
+* Adds support for Python 3.11.
+* Updates NumPy to 1.24.
+* Updates SciPy to 1.10.
+* Updates DendroPy to 4.6.
+* Updates the version of PyPy in the Docker image to use Python 3.9.
+
 ## tact 0.4.1
 
 * Extreme age ranges when using the Yule or birth-death models should now cause fewer optimization issues (reported by Alexandre Siqueira).
