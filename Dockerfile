@@ -1,4 +1,4 @@
-FROM ubuntu:23.04
+FROM ubuntu:23.10
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LC_ALL=C.UTF-8
