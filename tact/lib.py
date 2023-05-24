@@ -11,7 +11,8 @@ from math import exp
 from math import log
 
 import numpy as np
-from scipy.optimize import minimize, minimize_scalar, dual_annealing
+from scipy.optimize import minimize, dual_annealing
+from .optim import minimize_scalar
 
 # Raise on overflow
 np.seterr(all="raise")
