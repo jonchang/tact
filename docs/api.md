@@ -6,13 +6,30 @@ While TACT can be used as a Python library, its internal interface is subject to
 
 ## Numerical functions
 
+Functions in `tact/lib.py`.
+
 ::: tact.lib
 
 ## Tree functions
+
+Functions in `tact/tree_util.py`.
 
 ::: tact.tree_util
 
 ## FastMRCA
 
+Functions in `tact/fastmrca.py`.
+
 ::: tact.fastmrca
 
+## Validation
+
+Functions in `tact/validation.py`.
+
+::: tact.validation
+
+## Exceptions
+
+Functions in `tact/exceptions.py`.
+
+::: tact.exceptions
