@@ -55,7 +55,7 @@ def wrapped_lik_constant(x, sampling, ages):
         ages (list): vector of node ages
 
     Returns:
-        float: a likelihood
+        (float): a likelihood
     """
     return lik_constant(get_bd(*x), sampling, ages)
 
@@ -70,7 +70,7 @@ def wrapped_lik_constant_yule(x, sampling, ages):
         ages (list): vector of node ages
 
     Returns:
-        float: a likelihood
+        (float): a likelihood
     """
     return lik_constant((x, 0.0), sampling, ages)
 
@@ -84,10 +84,10 @@ def two_step_optim(func, x0, bounds, args):
         func (callable): function to optimize
         x0 (tuple): initial conditions
         bounds (tuple): boundary conditions
-        args (lsit): additional argumnets to pass to `func`
+        args (list): additional arguments to pass to `func`
 
     Returns:
-        tuple: optimized parameter values
+        params (tuple): optimized parameter values
     """
     try:
         result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
@@ -113,7 +113,8 @@ def optim_bd(ages, sampling, min_bound=1e-9):
         min_bound (float): minimum birth rate
 
     Returns:
-        float, float: birth and death rates
+        birth (float): optimized birth rate.
+        death (float): optimized death rate.
     """
     if max(ages) < 0.000001:
         init_r = 1e-3
@@ -136,7 +137,8 @@ def optim_yule(ages, sampling, min_bound=1e-9):
         min_bound (float): minimum birth rate
 
     Returns:
-        float, float: birth and death rates (where death is always 0)
+        birth (float): optimized birth rate.
+        death (float): optimized death rate. Always 0.
     """
     bounds = (min_bound, 100)
     result = minimize_scalar(wrapped_lik_constant_yule, bounds=bounds, args=(sampling, ages), method="Bounded")
@@ -238,7 +240,7 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
         survival (bool): assume survival of the process? (default: 1)
 
     Returns:
-        float: a likelihood
+        (float): likelihood of the birth-death process.
     """
     l = vec[0]  # noqa: E741
     m = vec[1]
@@ -266,7 +268,7 @@ def crown_capture_probability(n, k):
         k (int): sampled taxa
 
     Returns:
-        float: probability
+        (float): probability of including a root node.
     """
     if n < k:
         raise Exception(f"n must be greater than or equal to k (n={n}, k={k})")
@@ -296,7 +298,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
         tyoung (float): minimum simulated age bound (default: `0`)
 
     Returns:
-        list: vector of simulated waiting times.
+        (list): vector of simulated waiting times.
     """
     if told is None:
         told = max(ages)
