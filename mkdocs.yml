@@ -66,5 +66,7 @@ plugins:
       python:
         rendering:
           show_if_no_docstring: true
+        options:
+          heading_level: 3
     watch:
       - tact
