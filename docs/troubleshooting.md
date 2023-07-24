@@ -19,7 +19,7 @@ If you have a single rogue taxon that breaks up an otherwise monophyletic clade,
 
 Two solutions are possible here:
 
-1. Drop the rogue taxon and let TACT place it somewhere more appropriate, or
+1. Drop the rogue taxon (using e.g., `ape::drop.tip` in R) and let TACT place it somewhere more appropriate, or
 2. Expand the definition of your clade in the taxonomy file to include the rogue taxon.
 
 ## Why is TACT so slow?
