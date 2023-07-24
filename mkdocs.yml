@@ -4,6 +4,7 @@ theme:
   font: false
   features:
     - toc.integrate
+    - content.action.edit
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -39,6 +40,7 @@ extra:
       name: TACT on the Python Package Index
 
 repo_url: https://github.com/jonchang/tact
+edit_uri: edit/master/docs/
 site_author: Jonathan Chang
 site_dir: _site
 site_url: https://tact.jonathanchang.org
