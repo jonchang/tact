@@ -67,7 +67,7 @@ jobs:
           echo "::set-output name=version::$new_tag"
           poetry version $new_tag
           poetry build
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.11'
         with:
           name: ${{ steps.build.outputs.version }}
