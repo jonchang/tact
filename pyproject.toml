@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tact"
-version = "0.5.0"
+version = "0.6.0"
 description = "Taxonomic addition for complete trees: Adds tips to a backbone phylogeny using taxonomy simulated with birth-death models"
 authors = ["Jonathan Chang <me@jonathanchang.org>"]
 license = "MIT"

@@ -1,5 +1,13 @@
 # Change History
 
+## tact 0.6.0
+
+* There are no user-facing changes in this release of TACT.
+* The minimum required version of Python is 3.10.
+* Updates NumPy to 2.2.
+* Updates SciPy to 1.14.
+* Updates the version of PyPy in the Docker image to use Python 3.10.
+
 ## tact 0.5.0
 
 * TACT has a new documentation website, available at [tact.jonathanchang.org](https://tact.jonathanchang.org).
