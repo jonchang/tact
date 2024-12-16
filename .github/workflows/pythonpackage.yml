@@ -14,10 +14,10 @@ jobs:
       max-parallel: 4
       matrix:
         python-version:
-          - "3.8"
-          - "3.9"
           - "3.10"
           - "3.11"
+          - "3.12"
+          - "3.13"
 
     steps:
       - name: Install apt packages
@@ -68,11 +68,11 @@ jobs:
           poetry version $new_tag
           poetry build
       - uses: actions/upload-artifact@v4
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.13'
         with:
           name: ${{ steps.build.outputs.version }}
           path: dist
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.11'
+      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.13'
         uses: pypa/gh-action-pypi-publish@v1.9.0
         with:
           user: __token__
