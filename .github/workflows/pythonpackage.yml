@@ -40,7 +40,7 @@ jobs:
         run: |
           # double echo to strip whitespace
           gitd=$(echo $(git describe --tags))
-          echo "::set-output name=tag::$gitd"
+          echo "tag=$gitd"' >> $GITHUB_OUTPUT
           poetryv=$(echo v$(poetry version | cut -d ' ' -f2))
           echo $gitd
           echo $poetryv
@@ -64,7 +64,7 @@ jobs:
           # Torture git-describe into an acceptable Python version format
           new_tag=$(git describe --tags | cut -c2- | sed 's/-/+/' | sed 's/-/./g')
           echo $new_tag
-          echo "::set-output name=version::$new_tag"
+          echo "version=$new_tag" >> $GITHUB_OUTPUT
           poetry version $new_tag
           poetry build
       - uses: actions/upload-artifact@v4
@@ -72,8 +72,20 @@ jobs:
         with:
           name: ${{ steps.build.outputs.version }}
           path: dist
-      - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.13'
-        uses: pypa/gh-action-pypi-publish@v1.12.3
+  publish-to-pypi:
+    name: Publish distribution to PyPI
+    if: startsWith(github.event.ref, 'refs/tags')
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/tact
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
         with:
-          user: __token__
-          password: ${{ secrets.pypi_key }}
+          name: ${{ steps.build.outputs.version }}
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
