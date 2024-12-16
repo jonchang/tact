@@ -73,7 +73,7 @@ jobs:
           name: ${{ steps.build.outputs.version }}
           path: dist
       - if: startsWith(github.event.ref, 'refs/tags') && matrix.python-version == '3.13'
-        uses: pypa/gh-action-pypi-publish@v1.9.0
+        uses: pypa/gh-action-pypi-publish@v1.12.3
         with:
           user: __token__
           password: ${{ secrets.pypi_key }}
