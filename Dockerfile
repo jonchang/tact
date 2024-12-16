@@ -40,8 +40,7 @@ RUN apt-get update \
     gcc \
     gfortran \
     liblapack-dev \
-    libopenblas-pthread-dev \
-    libopenblas64-pthread-dev \
+    libopenblas-dev \
     meson \
     pkg-config \
     pypy3-dev \
