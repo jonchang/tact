@@ -15,10 +15,8 @@ RUN apt-get update \
     gfortran \
     liblapack-dev \
     liblapack3 \
-    libopenblas-pthread-dev \
-    libopenblas0-pthread \
-    libopenblas64-0-pthread \
-    libopenblas64-pthread-dev \
+    libopenblas-dev \
+    libopenblas0 \
     locales \
     meson \
     pkg-config \
