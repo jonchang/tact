@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM debian:trixie-slim
 ARG DEBIAN_FRONTEND=noninteractive
 
 ENV LC_ALL=C.UTF-8
@@ -28,14 +28,14 @@ RUN apt-get update \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
   && wget -nv -O get-poetry.py https://install.python-poetry.org \
-  && rm /usr/lib/pypy3.9/EXTERNALLY-MANAGED \
-  && pypy3.9 get-pip.py \
-  && pypy3.9 get-poetry.py \
+  && rm /usr/lib/pypy3.10/EXTERNALLY-MANAGED \
+  && pypy3.10 get-pip.py \
+  && pypy3.10 get-poetry.py \
   && cd tact \
   && poetry export -f requirements.txt -o requirements.txt --without-hashes --only main \
-  && pypy3.9 -mpip install -r requirements.txt --compile . \
+  && pypy3.10 -mpip install -r requirements.txt --compile . \
   && cd .. \
-  && pypy3.9 get-poetry.py --uninstall \
+  && pypy3.10 get-poetry.py --uninstall \
   && rm -rf get-pip.py get-poetry.py \
   && apt-get remove -y \
     g++ \
