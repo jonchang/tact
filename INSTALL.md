@@ -29,16 +29,6 @@ Here's a [screencast](https://asciinema.org/a/347571) of how to use the Docker c
 
 The above Docker image defaults to the latest tagged release. In the rare case you need to use a different version, a full list of tags is available on [Docker Hub](https://hub.docker.com/r/jonchang/tact/tags).
 
-## Homebrew
-
-[Install Homebrew on macOS](https://brew.sh) or [Install Homebrew on Linux or Windows 10](https://docs.brew.sh/Homebrew-on-Linux). Once Homebrew has been installed, run
-
-```sh
-brew install jonchang/biology/tact
-```
-
-This is easy to install if you don't have Docker access, but for large datasets, this can be [as much as five times slower](https://tact.jonathanchang.org/troubleshooting/#why-is-tact-so-slow).
-
 ## pipx
 
 [Install `pipx`](https://pipxproject.github.io/pipx/installation/), then run:
@@ -53,7 +43,12 @@ If you have PyPy3 installed, you can try to install a faster version using:
 pipx install --python pypy3 tact
 ```
 
-Note that this will take much longer to install and could fail if the proper dependencies (mainly openblas) aren't set up. On macOS, you'll need to run `brew install openblas gcc pypy3 pipx`, force-link `openblas`, and set the `MACOSX_DEPLOYMENT_TARGET` environment variable to your macOS version (e.g., `11.0`).
+Note that this will take much longer to install and could fail if the proper dependencies (mainly openblas) aren't set up.
+
+On macOS, you'll need to run `brew install openblas gcc pypy3 pipx`. You may also need to set certain environment variables:
+
+* `PKG_CONFIG_PATH`: this should be where `openblas.pc` lives (e.g., `/opt/homebrew/opt/openblas/lib/pkgconfig`)
+* `MACOSX_DEPLOYMENT_TARGET`: this should be your macOS version (e.g., `11.0`)
 
 ## Other
 
