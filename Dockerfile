@@ -30,6 +30,7 @@ RUN apt-get update \
   && pypy3.10 get-pip.py \
   && pypy3.10 get-poetry.py \
   && cd tact \
+  && poetry self add poetry-plugin-export \
   && poetry export -f requirements.txt -o requirements.txt --without-hashes --only main \
   && pypy3.10 -mpip install -r requirements.txt --compile . \
   && cd .. \
