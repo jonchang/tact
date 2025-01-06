@@ -1,35 +1,35 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Try to assign tips to a pre-existing tree based on a TOML configuration file
 # Jonathan Chang, Aug 14, 2021
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import dataclass, field, InitVar
-from collections import defaultdict
 import copy
 import logging
 import os
 import re
 import sys
-import typing
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import InitVar, dataclass, field
 
 import click
 import dendropy
 import toml
 
 from .lib import get_new_times
-from .tree_util import get_ages
-from .tree_util import get_birth_death_rates
-from .tree_util import get_min_age
-from .tree_util import get_tip_labels
-from .tree_util import graft_node
-from .tree_util import is_binary
-from .tree_util import lock_clade
-from .tree_util import unlock_clade
-from .tree_util import update_tree_view
+from .tree_util import (
+    get_ages,
+    get_birth_death_rates,
+    get_min_age,
+    get_tip_labels,
+    graft_node,
+    is_binary,
+    lock_clade,
+    unlock_clade,
+    update_tree_view,
+)
 from .validation import BackboneCommand
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ logging.logMultiprocessing = 0
 class TactConstraint:
     """Class for keeping track of a constraint in TACT (positive or negative)"""
 
-    mrca: typing.List[str] = field(default_factory=list)
+    mrca: list[str] = field(default_factory=list)
     stem: bool = False
 
     def __post_init__(self):
@@ -208,8 +208,7 @@ def do_replicate(backbone, to_tact, label):
     default=os.cpu_count() or 1,
 )
 def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
-    """
-    Add tips onto a BACKBONE phylogeny using a CONFIG file
+    """Add tips onto a BACKBONE phylogeny using a CONFIG file
     """
     logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:

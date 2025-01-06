@@ -8,12 +8,11 @@ from .validation import validate_tree_node_depths
 
 
 def fix_file(filename):
-    """
-    Slurps a file, and does various checks and fixes:
+    """Slurps a file, and does various checks and fixes:
     * Sorts the file
     * Ensures column names are unique
     """
-    with open(filename, "r", encoding="utf-8") as rfile:
+    with open(filename, encoding="utf-8") as rfile:
         lines = rfile.readlines()
 
     heads = collections.defaultdict(int)
@@ -32,7 +31,7 @@ def fix_file(filename):
 
 
 def ensure(st, ctx=""):
-    "Ensures that a cell is not empty."
+    """Ensures that a cell is not empty."""
     if len(st) == 0:
         if len(ctx) > 0:
             text = f" Offending line:\n{','.join(ctx)}"
@@ -54,8 +53,7 @@ def mangle_rank(row, names):
 
 
 def build_taxonomic_tree(filename):
-    """
-    Builds a taxonomic tree given a filename. Last column is assumed to
+    """Builds a taxonomic tree given a filename. Last column is assumed to
     be a species name. All ranks must nest completely within the next
     highest rank.
     """
@@ -75,7 +73,7 @@ def build_taxonomic_tree(filename):
     mangled_ranks = set()
     row = ["__TAXONOMIC_ROOT__", *next(reader)]
     mangled_row = mangle_rank(row, rank_names)
-    for orig, new in zip(row, mangled_row):
+    for orig, new in zip(row, mangled_row, strict=True):
         if orig != new:
             mangled_ranks.add((orig, new))
     row = mangled_row
@@ -93,13 +91,13 @@ def build_taxonomic_tree(filename):
             # Uniquify row names
             row = ["__TAXONOMIC_ROOT__", *row]
             mangled_row = mangle_rank(row, rank_names)
-            for orig, new in zip(row, mangled_row):
+            for orig, new in zip(row, mangled_row, strict=True):
                 if orig != new:
                     mangled_ranks.add((orig, new))
             row = mangled_row
 
             prev = None
-            for prev, cur in zip(reversed(stack), reversed(row)):
+            for prev, cur in zip(reversed(stack), reversed(row), strict=True):
                 ensure(cur, ctx=row)
                 if prev == cur:
                     break

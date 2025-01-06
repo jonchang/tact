@@ -1,6 +1,5 @@
 """Singleton object that helps speed up MRCA lookups."""
 
-from __future__ import division
 
 from .tree_util import get_tip_labels
 
@@ -8,16 +7,14 @@ global tree
 
 
 def initialize(phy):
-    """
-    Initialize the fastmrca singleton with a tree.
+    """Initialize the fastmrca singleton with a tree.
     """
     global tree
     tree = phy
 
 
 def bitmask(labels):
-    """
-    Gets a bitmask for the taxa in `labels`, potentially in parallel.
+    """Gets a bitmask for the taxa in `labels`, potentially in parallel.
     """
     global tree
     tn = tree.taxon_namespace

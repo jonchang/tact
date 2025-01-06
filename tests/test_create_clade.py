@@ -1,9 +1,7 @@
-from __future__ import division
 
-from hypothesis import given, assume
 import hypothesis.strategies as st
-
 from dendropy import TaxonNamespace
+from hypothesis import assume, given
 
 from tact.cli_add_taxa import create_clade
 from tact.tree_util import edge_iter

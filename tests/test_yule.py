@@ -1,7 +1,6 @@
-from __future__ import division
 
-from hypothesis import given, example
 import hypothesis.strategies as st
+from hypothesis import example, given
 
 from tact.lib import optim_yule
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 
 """Functions specifically to handle DendroPy tree objects."""
 
@@ -8,14 +7,12 @@ import random
 import dendropy
 import portion
 
-from .lib import optim_bd
-from .lib import optim_yule
 from .exceptions import DisjointConstraintError
+from .lib import optim_bd, optim_yule
 
 
 def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
-    """
-    Estimates the birth and death rates for the subtree descending from
+    """Estimates the birth and death rates for the subtree descending from
     `node` with sampling fraction `sampfrac`. Optionally restrict to a
     Yule pure-birth model.
     """
@@ -35,8 +32,7 @@ def get_monophyletic_node(tree, species):
 
 
 def get_ages(node, include_root=False):
-    """
-    Returns the list of ages of the children of a given `node`,
+    """Returns the list of ages of the children of a given `node`,
     optionally including the `node`'s age if `include_root` is True.
     """
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
@@ -54,8 +50,7 @@ def get_tip_labels(tree_or_node):
 
 
 def edge_iter(node, filter_fn=None):
-    """
-    Iterates over the child edge of `node` and all its descendants.
+    """Iterates over the child edge of `node` and all its descendants.
     Can optionally be filtered by `filter_fn`.
     """
     stack = list(node.child_edge_iter())
@@ -67,8 +62,7 @@ def edge_iter(node, filter_fn=None):
 
 
 def get_tree(path, namespace=None):
-    """
-    Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
+    """Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
     """
     tree = dendropy.Tree.get_from_path(path, schema="newick", taxon_namespace=namespace, rooting="default-rooted")
     update_tree_view(tree)
@@ -76,8 +70,7 @@ def get_tree(path, namespace=None):
 
 
 def update_tree_view(tree):
-    """
-    Mutates a DendroPy tree object with updated node ages and bipartition bitmask. We also
+    """Mutates a DendroPy tree object with updated node ages and bipartition bitmask. We also
     correct for minor ultrametricity errors.
 
     Returns a list of tip labels.
@@ -129,8 +122,7 @@ def compute_node_depths(tree):
 
 
 def graft_node(graft_recipient, graft, stem=False):
-    """
-    Grafts a node `graft` randomly in the subtree below node
+    """Grafts a node `graft` randomly in the subtree below node
     `graft_recipient`. The attribute `graft.age` must be set so
     we know where is the best place to graft the node. The node
     `graft` can optionally have child nodes, in this case the
@@ -192,8 +184,7 @@ def graft_node(graft_recipient, graft, stem=False):
 
 
 def lock_clade(node, stem=False):
-    """
-    Locks a clade descending from `node` so future grafts will avoid locked edges.
+    """Locks a clade descending from `node` so future grafts will avoid locked edges.
     """
     for edge in edge_iter(node):
         edge.label = "locked"
@@ -202,8 +193,7 @@ def lock_clade(node, stem=False):
 
 
 def unlock_clade(node, stem=False):
-    """
-    Unlocks a clade descending from `node` so new tips can be grafted to its edges.
+    """Unlocks a clade descending from `node` so new tips can be grafted to its edges.
     """
     for edge in edge_iter(node):
         edge.label = ""
@@ -217,15 +207,13 @@ def count_locked(node):
 
 
 def is_fully_locked(node):
-    """
-    Are all the edges below `node` locked?
+    """Are all the edges below `node` locked?
     """
     return all(x.label == "locked" for x in edge_iter(node))
 
 
 def get_min_age(node):
-    """
-    Gets the minimum possible age that could be generated in a clade under `node`,
+    """Gets the minimum possible age that could be generated in a clade under `node`,
     assuming that grafts to locked edges are restricted.
     """
     interval = get_age_intervals(node)
@@ -240,8 +228,7 @@ def get_min_age(node):
 
 
 def get_age_intervals(node):
-    """
-    Gets the (possibly disjoint) interval that could be generated in the
+    """Gets the (possibly disjoint) interval that could be generated in the
     clade under `node`, assuming that grafts to locked edges are restricted.
     """
     acc = portion.empty()

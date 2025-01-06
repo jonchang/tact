@@ -1,7 +1,7 @@
-import pytest
-import sys
 import os
+import sys
 
+import pytest
 from dendropy import Tree
 
 execution_number = range(2)

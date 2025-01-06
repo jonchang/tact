@@ -1,9 +1,8 @@
-from __future__ import division
-import pytest
-from hypothesis import given, assume
 import hypothesis.strategies as st
+import pytest
+from hypothesis import assume, given
 
-from tact.lib import p1, p1_orig, p1_exact, lik_constant
+from tact.lib import lik_constant, p1, p1_exact, p1_orig
 
 
 def test_lik_constant_exact(benchmark, birth, death, sampling, ages):

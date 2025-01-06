@@ -77,6 +77,9 @@ select = [
     "A"    # flake8-builtins
 ]
 
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
 [build-system]
 requires = ["poetry_core>=2.0"]
 build-backend = "poetry.core.masonry.api"
