@@ -77,6 +77,10 @@ select = [
     "A"    # flake8-builtins
 ]
 
+[tool.ruff.per-file-ignores]
+# Ignore all directories named `tests`.
+"tests/**" = ["D", "DOC"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
