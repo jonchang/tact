@@ -6,7 +6,9 @@ from dendropy import Tree
 execution_number = range(2)
 
 
-def run_tact(script_runner, tmp_path, config, backbone, args=[]):
+def run_tact(script_runner, tmp_path, config, backbone, args=None):
+    if args is None:
+        args = []
     config_path = tmp_path / "conf.toml"
     backbone_path = tmp_path / "backbone.tre"
     config_path.write_text(config)
@@ -48,7 +50,7 @@ def test_lone_singleton(script_runner, execution_number, tmp_path, focal_clade):
     backbone = "((A:1,B:1):1,C:2);"
     res = run_tact(script_runner, tmp_path, config, backbone)
     new_tips = [f"{focal_clade} tact {x}" for x in range(10)]
-    all_tips = set([focal_clade] + new_tips)
+    all_tips = {focal_clade, *new_tips}
     mrca_node = res.mrca(taxon_labels=all_tips)
-    mrca_tips = set([x.taxon.label for x in mrca_node.leaf_iter()])
+    mrca_tips = {x.taxon.label for x in mrca_node.leaf_iter()}
     assert all_tips == mrca_tips

@@ -10,7 +10,7 @@ from .validation import validate_tree_node_depths
 def fix_file(filename):
     """Slurps a file, and does various checks and fixes:
     * Sorts the file
-    * Ensures column names are unique
+    * Ensures column names are unique.
     """
     with open(filename, encoding="utf-8") as rfile:
         lines = rfile.readlines()
@@ -131,7 +131,7 @@ def build_taxonomic_tree(filename):
     type=click.Choice(["newick", "nexus", "nexml"]),
 )
 def main(taxonomy, output, schema):
-    """Generates a taxonomic tree from TAXONOMY.
+    r"""Generates a taxonomic tree from TAXONOMY.
 
     TAXONOMY is a comma-separated values file with several requirements.
 

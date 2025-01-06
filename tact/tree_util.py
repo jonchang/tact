@@ -62,8 +62,7 @@ def edge_iter(node, filter_fn=None):
 
 
 def get_tree(path, namespace=None):
-    """Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask.
-    """
+    """Gets a DendroPy tree from a path and precalculate its node ages and bipartition bitmask."""
     tree = dendropy.Tree.get_from_path(path, schema="newick", taxon_namespace=namespace, rooting="default-rooted")
     update_tree_view(tree)
     return tree
@@ -184,8 +183,7 @@ def graft_node(graft_recipient, graft, stem=False):
 
 
 def lock_clade(node, stem=False):
-    """Locks a clade descending from `node` so future grafts will avoid locked edges.
-    """
+    """Locks a clade descending from `node` so future grafts will avoid locked edges."""
     for edge in edge_iter(node):
         edge.label = "locked"
     if stem:
@@ -193,8 +191,7 @@ def lock_clade(node, stem=False):
 
 
 def unlock_clade(node, stem=False):
-    """Unlocks a clade descending from `node` so new tips can be grafted to its edges.
-    """
+    """Unlocks a clade descending from `node` so new tips can be grafted to its edges."""
     for edge in edge_iter(node):
         edge.label = ""
     if stem:
@@ -207,8 +204,7 @@ def count_locked(node):
 
 
 def is_fully_locked(node):
-    """Are all the edges below `node` locked?
-    """
+    """Are all the edges below `node` locked?"""
     return all(x.label == "locked" for x in edge_iter(node))
 
 

@@ -296,7 +296,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
 
     ages.sort(reverse=True)
     times = [x for x in ages if told >= x >= tyoung]
-    times = [told] + times + [tyoung]
+    times = [told, *times, tyoung]
     ranks = range(0, len(times))
     only_new = []
     while missing > 0:

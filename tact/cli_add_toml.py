@@ -6,7 +6,9 @@
 from __future__ import annotations
 
 import copy
+import functools
 import logging
+import operator
 import os
 import re
 import sys
@@ -42,7 +44,7 @@ logging.logMultiprocessing = 0
 
 @dataclass
 class TactConstraint:
-    """Class for keeping track of a constraint in TACT (positive or negative)"""
+    """Class for keeping track of a constraint in TACT (positive or negative)."""
 
     mrca: list[str] = field(default_factory=list)
     stem: bool = False
@@ -112,7 +114,7 @@ def ensure_mrca(tree, tips, node=None):
 def do_tact(tree, item):
     # First, get the MRCA of _all_ `include` leafs. This is the basis of our rate computation,
     # and how we actually implement polyphyletic groups.
-    included_tips = sum([x.mrca for x in item.include], [])
+    included_tips = functools.reduce(operator.iadd, [x.mrca for x in item.include], [])
     mrca_node = ensure_mrca(tree, included_tips)
 
     # Compute the rates on that (possibly expansive) MRCA node.
@@ -208,8 +210,7 @@ def do_replicate(backbone, to_tact, label):
     default=os.cpu_count() or 1,
 )
 def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
-    """Add tips onto a BACKBONE phylogeny using a CONFIG file
-    """
+    """Add tips onto a BACKBONE phylogeny using a CONFIG file."""
     logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)
@@ -225,7 +226,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     to_tact = [TactItem(**x) for x in config["tact"]]
 
     # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
-    to_tact.sort(key=lambda item: ensure_mrca(backbone, sum([x.mrca for x in item.include], [])).age)
+    to_tact.sort(key=lambda item: ensure_mrca(backbone, functools.reduce(operator.iadd, [x.mrca for x in item.include], [])).age)
 
     # Compute global birth/death rates. Not currently used (but could be?)
     backbone_tips = len(backbone.leaf_nodes())

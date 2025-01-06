@@ -100,6 +100,6 @@ class BackboneCommand(click.Command):
         return params
 
     def make_context(self, *args, **kwargs):
-        ctx = super(BackboneCommand, self).make_context(*args, **kwargs)
+        ctx = super().make_context(*args, **kwargs)
         ctx.params = self.validate_backbone_variables(ctx, ctx.params)
         return ctx

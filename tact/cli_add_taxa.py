@@ -83,8 +83,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
 
 
 def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
-    """Get `n_total` new branching times for a `node`.
-    """
+    """Get `n_total` new branching times for a `node`."""
     global mrca_rates
     taxon = taxonomy_node.label
     birth, death, ccp, _ = mrca_rates[taxon]
@@ -310,8 +309,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 )
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):
-    """Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
-    """
+    """Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny."""
     logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)
