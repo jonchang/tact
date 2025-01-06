@@ -45,10 +45,10 @@ jobs:
           echo $gitd
           echo $poetryv
       - name: Install package for testing
-        run: poetry install -v --with=dev
+        run: poetry install -v --all-extras
       - name: Lint with flake8
         run: |
-          pip install flake8
+          pipx install flake8
           # stop the build if there are Python syntax errors or undefined names
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           # exit-zero treats all errors as warnings
@@ -60,7 +60,7 @@ jobs:
       - name: Reinstall package for production
         run: |
           poetry env list --full-path | xargs rm -rf
-          poetry install -v --only=main
+          poetry install -v
       - name: Build distribution package
         id: build
         run: |
