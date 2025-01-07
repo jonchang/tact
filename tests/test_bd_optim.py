@@ -1,4 +1,3 @@
-
 import math
 
 import hypothesis.strategies as st

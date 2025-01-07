@@ -147,7 +147,7 @@ def do_tact(tree, item):
                 genera_map[genus].add(tip)
 
             if len(genera_map) > 1:
-                for genus, species in genera_map.items():
+                for species in genera_map.values():
                     node = tree.mrca(taxon_labels=species, start_node=inner_mrca_node)
                     if node and species == get_tip_labels(node):
                         if len(species) == 1:

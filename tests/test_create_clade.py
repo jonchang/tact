@@ -1,4 +1,3 @@
-
 import hypothesis.strategies as st
 from dendropy import TaxonNamespace
 from hypothesis import assume, given

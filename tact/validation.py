@@ -1,4 +1,3 @@
-
 """Various validation functions for `click` classes and parameters."""
 
 import collections

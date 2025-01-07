@@ -1,4 +1,3 @@
-
 """Functions specifically to handle DendroPy tree objects."""
 
 import math

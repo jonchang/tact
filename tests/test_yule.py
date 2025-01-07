@@ -1,4 +1,3 @@
-
 import hypothesis.strategies as st
 from hypothesis import example, given
 

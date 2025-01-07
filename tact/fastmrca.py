@@ -1,6 +1,5 @@
 """Singleton object that helps speed up MRCA lookups."""
 
-
 from .tree_util import get_tip_labels
 
 global tree

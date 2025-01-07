@@ -1,4 +1,5 @@
 """Command-line interface module to construct taxonomic phylogenies."""
+
 import collections
 import csv
 

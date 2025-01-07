@@ -1,6 +1,4 @@
-
 """Functions to handle various numerical operations, including optimization."""
-
 
 import random
 import sys
