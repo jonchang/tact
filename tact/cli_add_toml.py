@@ -47,7 +47,6 @@ class TactConstraint:
     stem: bool = False
 
     def __post_init__(self):
-        """Post-init function to mangle MRCA names and drop underscores."""
         self.mrca = [x.replace("_", " ") for x in self.mrca]
 
 
@@ -62,14 +61,12 @@ class TactItem:
     preserve_generic_monophyly: bool = False
 
     def __repr__(self):
-        """Repr text for the TACT item."""
         return (
             f"TactItem('{self.name}', missing={self.missing}, "
             + f"include={len(self.include)}, exclude={len(self.exclude)})"
         )
 
     def __post_init__(self, include, exclude):
-        """Post-init checks for a TACT item."""
         self.include = []
         if include is None:
             logging.error("Need at least one include for {self.name}!")
@@ -113,7 +110,6 @@ def ensure_mrca(tree, tips, node=None):
 
 
 def do_tact(tree, item):
-    """Master TACT function."""
     # First, get the MRCA of _all_ `include` leafs. This is the basis of our rate computation,
     # and how we actually implement polyphyletic groups.
     included_tips = reduce(operator.iadd, [x.mrca for x in item.include], [])
