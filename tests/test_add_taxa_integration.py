@@ -1,7 +1,7 @@
-import pytest
-import sys
 import os
+import sys
 
+import pytest
 from dendropy import Tree
 
 execution_number = range(2)
@@ -76,17 +76,17 @@ def test_yule(script_runner, execution_number, datadir):
 @pytest.mark.parametrize("stem", ["weirdness", "intrusion", "short_branch", "stem"])
 def test_monophyly(script_runner, execution_number, datadir, stem):
     tacted, taxed, bbone = run_tact(script_runner, datadir, stem)
-    extant = set([x.taxon.label for x in bbone.leaf_nodes()])
+    extant = {x.taxon.label for x in bbone.leaf_nodes()}
     for node in taxed.postorder_internal_node_iter(exclude_seed_node=True):
-        expected = set([x.taxon.label for x in node.leaf_nodes()])
+        expected = {x.taxon.label for x in node.leaf_nodes()}
         our_extant = extant & expected
         if len(our_extant) > 0:
             bbone_node = bbone.mrca(taxon_labels=our_extant)
-            bbone_tips = set([x.taxon.label for x in bbone_node.leaf_nodes()])
+            bbone_tips = {x.taxon.label for x in bbone_node.leaf_nodes()}
             if bbone_tips != our_extant:
                 continue
         mrca = tacted.mrca(taxon_labels=expected)
-        actual = set([x.taxon.label for x in mrca.leaf_nodes()])
+        actual = {x.taxon.label for x in mrca.leaf_nodes()}
         assert expected == actual
 
 

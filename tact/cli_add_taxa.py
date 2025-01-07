@@ -1,11 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 # Try to assign tips to a pre-existing tree based on a taxonomy
 # Jonathan Chang, May 13, 2016
 
-from __future__ import division
-from __future__ import print_function
 
 import csv
 import logging
@@ -18,21 +15,20 @@ import click
 import dendropy
 
 from . import fastmrca
-from .lib import crown_capture_probability
-from .lib import get_new_times
-from .tree_util import get_ages
-from .tree_util import get_birth_death_rates
-from .tree_util import get_min_age
-from .tree_util import get_short_branches
-from .tree_util import get_tip_labels
-from .tree_util import graft_node
-from .tree_util import is_binary
-from .tree_util import is_fully_locked
-from .tree_util import lock_clade
-from .tree_util import update_tree_view
-from .validation import validate_outgroups
-from .validation import validate_taxonomy_tree
-from .validation import BackboneCommand
+from .lib import crown_capture_probability, get_new_times
+from .tree_util import (
+    get_ages,
+    get_birth_death_rates,
+    get_min_age,
+    get_short_branches,
+    get_tip_labels,
+    graft_node,
+    is_binary,
+    is_fully_locked,
+    lock_clade,
+    update_tree_view,
+)
+from .validation import BackboneCommand, validate_outgroups, validate_taxonomy_tree
 
 logger = logging.getLogger(__name__)
 # Speed up logging for PyPy
@@ -87,9 +83,7 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
 
 
 def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
-    """
-    Get `n_total` new branching times for a `node`.
-    """
+    """Get `n_total` new branching times for a `node`."""
     global mrca_rates
     taxon = taxonomy_node.label
     birth, death, ccp, _ = mrca_rates[taxon]
@@ -131,7 +125,7 @@ def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, m
 
 
 def fill_new_taxa(namespace, node, new_taxa, times, stem=False):
-    for new_species, new_age in zip(new_taxa, times):
+    for new_species, new_age in zip(new_taxa, times, strict=True):
         new_node = dendropy.Node()
         new_node.annotations.add_new("creation_method", "fill_new_taxa")
         new_node.age = new_age
@@ -184,7 +178,7 @@ def create_clade(namespace, species, ages):
     # Lock the child of the seed node so that things can still attach to the stem of this new clade
     lock_clade(tree.seed_node.child_nodes()[0])
     if list(get_short_branches(tree.seed_node)):
-        logger.info("{} short branches detected".format(len(list(get_short_branches(tree.seed_node)))))
+        logger.info(f"{len(list(get_short_branches(tree.seed_node)))} short branches detected")
     return tree
 
 
@@ -315,9 +309,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 )
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):
-    """
-    Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny.
-    """
+    """Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny."""
     logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)

@@ -1,25 +1,19 @@
-# -*- coding: utf-8 -*-
-
 """Functions to handle various numerical operations, including optimization."""
-
-from __future__ import division
 
 import random
 import sys
 from decimal import Decimal as D
-from math import exp
-from math import log
+from math import exp, log
 
 import numpy as np
-from scipy.optimize import minimize, minimize_scalar, dual_annealing
+from scipy.optimize import dual_annealing, minimize, minimize_scalar
 
 # Raise on overflow
 np.seterr(all="raise")
 
 
 def get_bd(r, a):
-    """
-    Converts turnover and relative extinction to birth and death rates.
+    """Converts turnover and relative extinction to birth and death rates.
 
     Args:
         r (float): turnover or net diversification (birth - death)
@@ -32,8 +26,7 @@ def get_bd(r, a):
 
 
 def get_ra(b, d):
-    """
-    Converts birth and death to turnover and relative extinction rates.
+    """Converts birth and death to turnover and relative extinction rates.
 
     Args:
         b (float): birth rate
@@ -46,8 +39,7 @@ def get_ra(b, d):
 
 
 def wrapped_lik_constant(x, sampling, ages):
-    """
-    Wrapper for birth-death likelihood to make optimizing more convenient.
+    """Wrapper for birth-death likelihood to make optimizing more convenient.
 
     Args:
         x (float, float): turnover, relative extinction
@@ -61,8 +53,7 @@ def wrapped_lik_constant(x, sampling, ages):
 
 
 def wrapped_lik_constant_yule(x, sampling, ages):
-    """
-    Wrapper for Yule likelihood to make optimizing more convenient.
+    """Wrapper for Yule likelihood to make optimizing more convenient.
 
     Args:
         x (float): birth rate
@@ -76,9 +67,9 @@ def wrapped_lik_constant_yule(x, sampling, ages):
 
 
 def two_step_optim(func, x0, bounds, args):
-    """
-    Conduct a two-step function optimization, first by using the fast L-BFGS-B method,
-    and if that fails, use simulated annealing.
+    """Conduct a two-step function optimization.
+
+    First, use the fast L-BFGS-B method, and if that fails, use simulated annealing.
 
     Args:
         func (callable): function to optimize
@@ -104,8 +95,7 @@ def two_step_optim(func, x0, bounds, args):
 
 
 def optim_bd(ages, sampling, min_bound=1e-9):
-    """
-    Optimizes birth and death parameters given a vector of splitting times and sampling fraction.
+    """Optimizes birth and death parameters given a vector of splitting times and sampling fraction.
 
     Args:
         ages (list): vector of node ages
@@ -128,8 +118,7 @@ def optim_bd(ages, sampling, min_bound=1e-9):
 
 
 def optim_yule(ages, sampling, min_bound=1e-9):
-    """
-    Optimizes birth parameter under a Yule model, given a vector of splitting times and sampling fraction.
+    """Optimizes birth parameter under a Yule model, given a vector of splitting times and sampling fraction.
 
     Args:
         ages (list): vector of node ages
@@ -149,7 +138,7 @@ def optim_yule(ages, sampling, min_bound=1e-9):
 
 
 def p0_exact(t, l, m, rho):  # noqa: E741
-    "Exact version of `p0` using Decimal math."
+    """Exact version of `p0` using Decimal math."""
     t = D(t)
     l = D(l)  # noqa: E741
     m = D(m)
@@ -158,6 +147,23 @@ def p0_exact(t, l, m, rho):  # noqa: E741
 
 
 def p0(t, l, m, rho):  # noqa: E741
+    """Compute the probability of no sampled descendants.
+
+    Specifically, this is the probability that an individual alive at time `t` before today has no
+    sampled extinct or extant descendants, and assumes that there is no sampling in the past. This
+    can alternatively be interpreted as the probability of sampling zero extant individuals and
+    potentially infinite extinct individuals.
+
+    This equation is described as remark 3.2 in:
+
+    Stadler, T. (2010). Sampling-through-time in birth-death trees.
+    Journal of Theoretical Biology, 267(3), 396-404.
+
+    It was originally implemented as `TreePar:::p0`, whose original description was in:
+
+    Stadler, T. (2011). Mammalian phylogeny reveals recent diversification rate shifts.
+    Proceedings of the National Academy of Sciences, 108(15), 6187-6192.
+    """
     try:
         return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
     except FloatingPointError:
@@ -189,9 +195,25 @@ def p1_orig(t, l, m, rho):  # noqa: E741
 
 
 def p1(t, l, m, rho):  # noqa: E741
-    """
-    Optimized version of `p1_orig` using common subexpression elimination and strength reduction
-    from exponentiation to multiplication.
+    """Compute the probability of exactly one sampled descendant.
+
+    Specifically, the probability that an individual alive at time `t` before today has precisely one sampled
+    extant descendant and no sampled extinct descendant, and assumes that there is no sampling in the past.
+    This can alternatively be interpreted as the probability of sampling exactly one extant individual and
+    potentially infinite extinct individuals.
+
+    This implementation is an optimized version of `p1_orig`, using common subexpression elimination
+    and strength reduction from exponentiation to multiplication.
+
+    This equation is described as remark 3.2 in:
+
+    Stadler, T. (2010). Sampling-through-time in birth-death trees.
+    Journal of Theoretical Biology, 267(3), 396-404.
+
+    It was originally implemented as `TreePar:::p1`, whose original description was in:
+
+    Stadler, T. (2011). Mammalian phylogeny reveals recent diversification rate shifts.
+    Proceedings of the National Academy of Sciences, 108(15), 6187-6192.
     """
     try:
         ert = np.exp(-(l - m) * t, dtype=np.float64)
@@ -216,6 +238,16 @@ def intp1_exact(t, l, m):  # noqa: E741
 
 
 def intp1(t, l, m):  # noqa: E741
+    """Computes a constant necessary to sample the time of a missing speciation event.
+
+    This constant is not named, but was used in eqn A.2 and called c_2, described in:
+
+    N. Cusimano, T. Stadler, S. Renner. A new method for handling missing
+    species in diversification analysis applicable to randomly or
+    non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
+
+    This function was originally implemented as `TreeSim:::intp1`.
+    """
     try:
         return (1 - exp(-(l - m) * t)) / (l - m * exp(-(l - m) * t))
     except OverflowError:
@@ -223,11 +255,10 @@ def intp1(t, l, m):  # noqa: E741
 
 
 def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
-    """
-    Calculates the likelihood of a constant-rate birth-death process, conditioned
-    on the waiting times of a phylogenetic tree and degree of incomplete sampling.
+    """Calculates the likelihood of a constant-rate birth-death process.
 
-    Based off of the R function `TreePar::LikConstant` written by Tanja Stadler.
+    This likelihood function is conditioned on the waiting times of a phylogenetic tree and
+    degree of incomplete sampling. Based off of the R function `TreePar::LikConstant` written by Tanja Stadler.
 
     T. Stadler. On incomplete sampling under birth-death models and connections
     to the sampling-based coalescent. Jour. Theo. Biol. 261: 58-66, 2009.
@@ -238,6 +269,7 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
         t (list): vector of waiting times
         root (bool): include the root or not? (default: 1)
         survival (bool): assume survival of the process? (default: 1)
+        p1: (func): the `p1` function used to compute this likelihood.
 
     Returns:
         (float): likelihood of the birth-death process.
@@ -254,9 +286,10 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
 
 
 def crown_capture_probability(n, k):
-    """
-    Calculate the probability that a sample of `k` taxa from a clade
-    of `n` total taxa includes a root node, under a Yule process.
+    """Calculate the probability of observing the crown node of an incompletely sampled node.
+
+    That is, the probability that a sample of `k` taxa from a clade of `n` total taxa
+    includes the root (crown) node of the clade, under a Yule process.
 
     This equation is taken from:
 
@@ -279,11 +312,10 @@ def crown_capture_probability(n, k):
 
 # TODO: This could probably be optimized
 def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
-    """
-    Simulates new speciation events in an incomplete phylogeny assuming a
-    constant-rate birth-death process.
+    """Simulates new speciation events in an incomplete phylogeny.
 
-    Adapted from the R function `TreeSim::corsim` written by Tanja Stadler.
+    Assumes a constant-rate birth-death process. Adapted from the R function `TreeSim::corsim`,
+    written by Tanja Stadler.
 
     N. Cusimano, T. Stadler, S. Renner. A new method for handling missing
     species in diversification analysis applicable to randomly or
@@ -310,7 +342,7 @@ def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
 
     ages.sort(reverse=True)
     times = [x for x in ages if told >= x >= tyoung]
-    times = [told] + times + [tyoung]
+    times = [told, *times, tyoung]
     ranks = range(0, len(times))
     only_new = []
     while missing > 0:

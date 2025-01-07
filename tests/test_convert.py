@@ -1,8 +1,6 @@
-from __future__ import division
-
-import pytest
-from hypothesis import given, assume
 import hypothesis.strategies as st
+import pytest
+from hypothesis import assume, given
 
 from tact.lib import get_bd, get_ra
 

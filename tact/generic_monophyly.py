@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
-
 """Module that provides a generic monophyly singleton data object."""
 
 import re
 from collections import defaultdict
 
-from .tree_util import get_tip_labels
-from .tree_util import get_monophyletic_node
+from .tree_util import get_monophyletic_node, get_tip_labels
 
 _valid_monophyly = {}
 
 
 def init(tree):
+    """Initialize a monophyly singleton object."""
     if len(_valid_monophyly):
         return _valid_monophyly
 

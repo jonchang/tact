@@ -1,9 +1,7 @@
-from __future__ import division
-
 import math
 
-from hypothesis import given, settings, example
 import hypothesis.strategies as st
+from hypothesis import example, given, settings
 
 from tact.lib import optim_bd
 

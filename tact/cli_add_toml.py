@@ -1,35 +1,34 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-# Try to assign tips to a pre-existing tree based on a TOML configuration file
-# Jonathan Chang, Aug 14, 2021
+"""Command line interface to assign tips to a pre-existing tree based on a TOML configuration file."""
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import dataclass, field, InitVar
-from collections import defaultdict
 import copy
 import logging
+import operator
 import os
 import re
 import sys
-import typing
+from collections import defaultdict
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import InitVar, dataclass, field
+from functools import reduce
 
 import click
 import dendropy
 import toml
 
 from .lib import get_new_times
-from .tree_util import get_ages
-from .tree_util import get_birth_death_rates
-from .tree_util import get_min_age
-from .tree_util import get_tip_labels
-from .tree_util import graft_node
-from .tree_util import is_binary
-from .tree_util import lock_clade
-from .tree_util import unlock_clade
-from .tree_util import update_tree_view
+from .tree_util import (
+    get_ages,
+    get_birth_death_rates,
+    get_min_age,
+    get_tip_labels,
+    graft_node,
+    is_binary,
+    lock_clade,
+    unlock_clade,
+    update_tree_view,
+)
 from .validation import BackboneCommand
 
 logger = logging.getLogger(__name__)
@@ -42,9 +41,9 @@ logging.logMultiprocessing = 0
 
 @dataclass
 class TactConstraint:
-    """Class for keeping track of a constraint in TACT (positive or negative)"""
+    """Class for keeping track of a constraint in TACT (positive or negative)."""
 
-    mrca: typing.List[str] = field(default_factory=list)
+    mrca: list[str] = field(default_factory=list)
     stem: bool = False
 
     def __post_init__(self):
@@ -91,6 +90,7 @@ class TactItem:
 
 
 def ensure_mrca(tree, tips, node=None):
+    """Perform initial checks to ensure we can do MRCA calculations."""
     try:
         node = node if node else tree.seed_node
         return tree.mrca(taxon_labels=tips, start_node=node)
@@ -112,7 +112,7 @@ def ensure_mrca(tree, tips, node=None):
 def do_tact(tree, item):
     # First, get the MRCA of _all_ `include` leafs. This is the basis of our rate computation,
     # and how we actually implement polyphyletic groups.
-    included_tips = sum([x.mrca for x in item.include], [])
+    included_tips = reduce(operator.iadd, [x.mrca for x in item.include], [])
     mrca_node = ensure_mrca(tree, included_tips)
 
     # Compute the rates on that (possibly expansive) MRCA node.
@@ -143,7 +143,7 @@ def do_tact(tree, item):
                 genera_map[genus].add(tip)
 
             if len(genera_map) > 1:
-                for genus, species in genera_map.items():
+                for species in genera_map.values():
                     node = tree.mrca(taxon_labels=species, start_node=inner_mrca_node)
                     if node and species == get_tip_labels(node):
                         if len(species) == 1:
@@ -178,6 +178,7 @@ def do_tact(tree, item):
 
 
 def do_replicate(backbone, to_tact, label):
+    """Perform a replicate of a TACT analysis."""
     logger.info(f"<<< Replicate {label} >>>")
     tree = copy.deepcopy(backbone)
     for item in to_tact:
@@ -208,9 +209,7 @@ def do_replicate(backbone, to_tact, label):
     default=os.cpu_count() or 1,
 )
 def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
-    """
-    Add tips onto a BACKBONE phylogeny using a CONFIG file
-    """
+    """Add tips onto a BACKBONE phylogeny using a CONFIG file."""
     logger.addHandler(logging.FileHandler(output + ".log.txt"))
     if verbose >= 2:
         logger.setLevel(logging.DEBUG)
@@ -226,7 +225,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     to_tact = [TactItem(**x) for x in config["tact"]]
 
     # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
-    to_tact.sort(key=lambda item: ensure_mrca(backbone, sum([x.mrca for x in item.include], [])).age)
+    to_tact.sort(key=lambda ii: ensure_mrca(backbone, reduce(operator.iadd, [x.mrca for x in ii.include], [])).age)
 
     # Compute global birth/death rates. Not currently used (but could be?)
     backbone_tips = len(backbone.leaf_nodes())

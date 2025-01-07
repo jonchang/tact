@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Various validation functions for `click` classes and parameters."""
 
 import collections
@@ -7,10 +5,7 @@ import collections
 import click
 import dendropy
 
-from .tree_util import compute_node_depths
-from .tree_util import is_binary
-from .tree_util import is_ultrametric
-from .tree_util import update_tree_view
+from .tree_util import compute_node_depths, is_binary, is_ultrametric, update_tree_view
 
 
 def validate_outgroups(ctx, param, value):
@@ -51,8 +46,7 @@ def validate_taxonomy_tree(ctx, param, value):
 
 
 class BackboneCommand(click.Command):
-    """
-    Helper class to validate a Click Command that contains a backbone tree.
+    """Helper class to validate a Click Command that contains a backbone tree.
 
     At a minimum, the Command must contain a `backbone` parameter, which is validated by `validate_newick`
     and checked to ensure it is a binary tree.
@@ -67,10 +61,11 @@ class BackboneCommand(click.Command):
     """
 
     def validate_backbone_variables(self, ctx, params):
+        """Validates variables related to the backbone and taxonomy files."""
         if "taxonomy" in params:
             tn = params["taxonomy"].taxon_namespace
             tn.is_mutable = True
-            if "outgroups" in params and params["outgroups"]:
+            if params.get("outgroups"):
                 tn.new_taxa(params["outgroups"])
             tn.is_mutable = False
             try:
@@ -82,7 +77,7 @@ class BackboneCommand(click.Command):
                 This usually indicates your backbone has species that are not present in your
                 taxonomy. Outgroups not in the taxonomy can be excluded with the --outgroups argument.
                 """
-                raise click.BadParameter(msg)
+                raise click.BadParameter(msg) from None
         else:
             backbone = validate_newick(ctx, params, params["backbone"])
 
@@ -99,12 +94,13 @@ class BackboneCommand(click.Command):
 
                 Increase `--ultrametricity-precision` or use phytools::force.ultrametric in R
                 """
-                raise click.BadParameter(msg)
+                raise click.BadParameter(msg) from None
 
         params["backbone"] = backbone
         return params
 
     def make_context(self, *args, **kwargs):
-        ctx = super(BackboneCommand, self).make_context(*args, **kwargs)
+        """Set up the proper Click context for a command handler."""
+        ctx = super().make_context(*args, **kwargs)
         ctx.params = self.validate_backbone_variables(ctx, ctx.params)
         return ctx

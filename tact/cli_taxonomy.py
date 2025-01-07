@@ -1,3 +1,5 @@
+"""Command-line interface module to construct taxonomic phylogenies."""
+
 import collections
 import csv
 
@@ -8,12 +10,11 @@ from .validation import validate_tree_node_depths
 
 
 def fix_file(filename):
+    """Slurps a file, and does various checks and fixes.
+
+    These checks will sort the file and ensures column names are unique.
     """
-    Slurps a file, and does various checks and fixes:
-    * Sorts the file
-    * Ensures column names are unique
-    """
-    with open(filename, "r", encoding="utf-8") as rfile:
+    with open(filename, encoding="utf-8") as rfile:
         lines = rfile.readlines()
 
     heads = collections.defaultdict(int)
@@ -32,7 +33,7 @@ def fix_file(filename):
 
 
 def ensure(st, ctx=""):
-    "Ensures that a cell is not empty."
+    """Ensures that a cell is not empty."""
     if len(st) == 0:
         if len(ctx) > 0:
             text = f" Offending line:\n{','.join(ctx)}"
@@ -40,6 +41,10 @@ def ensure(st, ctx=""):
 
 
 def mangle_rank(row, names):
+    """Mangles a name with the rank associated with that name.
+
+    This ensures that when constructing the taxonomic tree, each node has a unique name.
+    """
     seen = set()
     new = []
     for idx, item in enumerate(row):
@@ -54,10 +59,9 @@ def mangle_rank(row, names):
 
 
 def build_taxonomic_tree(filename):
-    """
-    Builds a taxonomic tree given a filename. Last column is assumed to
-    be a species name. All ranks must nest completely within the next
-    highest rank.
+    """Builds a taxonomic tree given a filename referring to a CSV.
+
+    The last column is assumed to be a species name. All ranks must nest completely within the next highest rank.
     """
     lines = fix_file(filename)
     reader = csv.reader(lines)
@@ -75,7 +79,7 @@ def build_taxonomic_tree(filename):
     mangled_ranks = set()
     row = ["__TAXONOMIC_ROOT__", *next(reader)]
     mangled_row = mangle_rank(row, rank_names)
-    for orig, new in zip(row, mangled_row):
+    for orig, new in zip(row, mangled_row, strict=True):
         if orig != new:
             mangled_ranks.add((orig, new))
     row = mangled_row
@@ -93,13 +97,13 @@ def build_taxonomic_tree(filename):
             # Uniquify row names
             row = ["__TAXONOMIC_ROOT__", *row]
             mangled_row = mangle_rank(row, rank_names)
-            for orig, new in zip(row, mangled_row):
+            for orig, new in zip(row, mangled_row, strict=True):
                 if orig != new:
                     mangled_ranks.add((orig, new))
             row = mangled_row
 
             prev = None
-            for prev, cur in zip(reversed(stack), reversed(row)):
+            for prev, cur in zip(reversed(stack), reversed(row), strict=True):
                 ensure(cur, ctx=row)
                 if prev == cur:
                     break
@@ -133,7 +137,7 @@ def build_taxonomic_tree(filename):
     type=click.Choice(["newick", "nexus", "nexml"]),
 )
 def main(taxonomy, output, schema):
-    """Generates a taxonomic tree from TAXONOMY.
+    r"""Generates a taxonomic tree from TAXONOMY.
 
     TAXONOMY is a comma-separated values file with several requirements.
 
