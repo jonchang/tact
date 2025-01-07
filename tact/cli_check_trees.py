@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+"""Command-line interface module to check TACT results."""
 
 import csv
 import functools
@@ -14,6 +13,7 @@ from .tree_util import get_birth_death_rates, get_monophyletic_node, get_tip_lab
 
 
 def analyze_taxon(bb_tips, st_tips, backbone, simtaxed, taxon_node):
+    """Perform various checks for a given taxon."""
     taxon = taxon_node.label
     if not taxon:
         return None
@@ -90,7 +90,7 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
     All phylogenies should be in Newick format.
     """
     pool = multiprocessing.Pool(processes=cores)
-    click.echo("Using %d parallel cores" % cores, err=True)
+    click.echo(f"Using {cores} parallel cores", err=True)
     taxonomy = dendropy.Tree.get_from_path(taxonomy, schema="newick")
     tn = taxonomy.taxon_namespace
     click.echo("Taxonomy OK", err=True)

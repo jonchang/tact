@@ -1,12 +1,8 @@
-#!/usr/bin/env python
-
-# Try to assign tips to a pre-existing tree based on a TOML configuration file
-# Jonathan Chang, Aug 14, 2021
+"""Command line interface to assign tips to a pre-existing tree based on a TOML configuration file."""
 
 from __future__ import annotations
 
 import copy
-import functools
 import logging
 import operator
 import os
@@ -15,6 +11,7 @@ import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import InitVar, dataclass, field
+from functools import reduce
 
 import click
 import dendropy
@@ -50,6 +47,7 @@ class TactConstraint:
     stem: bool = False
 
     def __post_init__(self):
+        """Post-init function to mangle MRCA names and drop underscores."""
         self.mrca = [x.replace("_", " ") for x in self.mrca]
 
 
@@ -64,12 +62,14 @@ class TactItem:
     preserve_generic_monophyly: bool = False
 
     def __repr__(self):
+        """Repr text for the TACT item."""
         return (
             f"TactItem('{self.name}', missing={self.missing}, "
             + f"include={len(self.include)}, exclude={len(self.exclude)})"
         )
 
     def __post_init__(self, include, exclude):
+        """Post-init checks for a TACT item."""
         self.include = []
         if include is None:
             logging.error("Need at least one include for {self.name}!")
@@ -93,6 +93,7 @@ class TactItem:
 
 
 def ensure_mrca(tree, tips, node=None):
+    """Perform initial checks to ensure we can do MRCA calculations."""
     try:
         node = node if node else tree.seed_node
         return tree.mrca(taxon_labels=tips, start_node=node)
@@ -112,9 +113,10 @@ def ensure_mrca(tree, tips, node=None):
 
 
 def do_tact(tree, item):
+    """Master TACT function."""
     # First, get the MRCA of _all_ `include` leafs. This is the basis of our rate computation,
     # and how we actually implement polyphyletic groups.
-    included_tips = functools.reduce(operator.iadd, [x.mrca for x in item.include], [])
+    included_tips = reduce(operator.iadd, [x.mrca for x in item.include], [])
     mrca_node = ensure_mrca(tree, included_tips)
 
     # Compute the rates on that (possibly expansive) MRCA node.
@@ -180,6 +182,7 @@ def do_tact(tree, item):
 
 
 def do_replicate(backbone, to_tact, label):
+    """Perform a replicate of a TACT analysis."""
     logger.info(f"<<< Replicate {label} >>>")
     tree = copy.deepcopy(backbone)
     for item in to_tact:
@@ -226,7 +229,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     to_tact = [TactItem(**x) for x in config["tact"]]
 
     # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
-    to_tact.sort(key=lambda item: ensure_mrca(backbone, functools.reduce(operator.iadd, [x.mrca for x in item.include], [])).age)
+    to_tact.sort(key=lambda ii: ensure_mrca(backbone, reduce(operator.iadd, [x.mrca for x in ii.include], [])).age)
 
     # Compute global birth/death rates. Not currently used (but could be?)
     backbone_tips = len(backbone.leaf_nodes())

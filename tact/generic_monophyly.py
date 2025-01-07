@@ -1,4 +1,3 @@
-
 """Module that provides a generic monophyly singleton data object."""
 
 import re
@@ -10,6 +9,7 @@ _valid_monophyly = {}
 
 
 def init(tree):
+    """Initialize a monophyly singleton object."""
     if len(_valid_monophyly):
         return _valid_monophyly
 

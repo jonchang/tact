@@ -1,3 +1,4 @@
+"""Command-line interface module to construct taxonomic phylogenies."""
 import collections
 import csv
 
@@ -8,9 +9,9 @@ from .validation import validate_tree_node_depths
 
 
 def fix_file(filename):
-    """Slurps a file, and does various checks and fixes:
-    * Sorts the file
-    * Ensures column names are unique.
+    """Slurps a file, and does various checks and fixes.
+
+    These checks will sort the file and ensures column names are unique.
     """
     with open(filename, encoding="utf-8") as rfile:
         lines = rfile.readlines()
@@ -39,6 +40,10 @@ def ensure(st, ctx=""):
 
 
 def mangle_rank(row, names):
+    """Mangles a name with the rank associated with that name.
+
+    This ensures that when constructing the taxonomic tree, each node has a unique name.
+    """
     seen = set()
     new = []
     for idx, item in enumerate(row):
@@ -53,9 +58,9 @@ def mangle_rank(row, names):
 
 
 def build_taxonomic_tree(filename):
-    """Builds a taxonomic tree given a filename. Last column is assumed to
-    be a species name. All ranks must nest completely within the next
-    highest rank.
+    """Builds a taxonomic tree given a filename referring to a CSV.
+
+    The last column is assumed to be a species name. All ranks must nest completely within the next highest rank.
     """
     lines = fix_file(filename)
     reader = csv.reader(lines)

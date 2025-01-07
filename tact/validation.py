@@ -62,6 +62,7 @@ class BackboneCommand(click.Command):
     """
 
     def validate_backbone_variables(self, ctx, params):
+        """Validates variables related to the backbone and taxonomy files."""
         if "taxonomy" in params:
             tn = params["taxonomy"].taxon_namespace
             tn.is_mutable = True
@@ -77,7 +78,7 @@ class BackboneCommand(click.Command):
                 This usually indicates your backbone has species that are not present in your
                 taxonomy. Outgroups not in the taxonomy can be excluded with the --outgroups argument.
                 """
-                raise click.BadParameter(msg)
+                raise click.BadParameter(msg) from None
         else:
             backbone = validate_newick(ctx, params, params["backbone"])
 
@@ -94,12 +95,13 @@ class BackboneCommand(click.Command):
 
                 Increase `--ultrametricity-precision` or use phytools::force.ultrametric in R
                 """
-                raise click.BadParameter(msg)
+                raise click.BadParameter(msg) from None
 
         params["backbone"] = backbone
         return params
 
     def make_context(self, *args, **kwargs):
+        """Set up the proper Click context for a command handler."""
         ctx = super().make_context(*args, **kwargs)
         ctx.params = self.validate_backbone_variables(ctx, ctx.params)
         return ctx

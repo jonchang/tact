@@ -1,3 +1,5 @@
+"""Exceptions used by TACT."""
+
 class TactError(Exception):
     """Base class for errors raised by TACT."""
 

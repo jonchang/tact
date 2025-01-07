@@ -12,9 +12,11 @@ from .lib import optim_bd, optim_yule
 
 
 def get_birth_death_rates(node, sampfrac, yule=False, include_root=False):
-    """Estimates the birth and death rates for the subtree descending from
-    `node` with sampling fraction `sampfrac`. Optionally restrict to a
-    Yule pure-birth model.
+    """Estimate birth-death rates from a subtree.
+
+    These birth and death rates descend from `node` with sampling fraction `sampfrac`.
+
+    Optionally restrict to a Yule pure-birth model.
     """
     if yule:
         return optim_yule(get_ages(node, include_root), sampfrac)
@@ -32,7 +34,9 @@ def get_monophyletic_node(tree, species):
 
 
 def get_ages(node, include_root=False):
-    """Returns the list of ages of the children of a given `node`,
+    """Get list of ages under a node.
+
+    Returns the list of ages of the children of a given `node`,
     optionally including the `node`'s age if `include_root` is True.
     """
     ages = [x.age for x in node.ageorder_iter(include_leaves=False, descending=True)]
@@ -51,6 +55,7 @@ def get_tip_labels(tree_or_node):
 
 def edge_iter(node, filter_fn=None):
     """Iterates over the child edge of `node` and all its descendants.
+
     Can optionally be filtered by `filter_fn`.
     """
     stack = list(node.child_edge_iter())
@@ -69,8 +74,9 @@ def get_tree(path, namespace=None):
 
 
 def update_tree_view(tree):
-    """Mutates a DendroPy tree object with updated node ages and bipartition bitmask. We also
-    correct for minor ultrametricity errors.
+    """Perform an in-place update of a DendroPy tree object with node ages and bipartition bitmask.
+
+    We also correct for minor ultrametricity errors.
 
     Returns a list of tip labels.
     """
@@ -121,12 +127,11 @@ def compute_node_depths(tree):
 
 
 def graft_node(graft_recipient, graft, stem=False):
-    """Grafts a node `graft` randomly in the subtree below node
-    `graft_recipient`. The attribute `graft.age` must be set so
-    we know where is the best place to graft the node. The node
-    `graft` can optionally have child nodes, in this case the
-    `edge.length` attribute should be set on all child nodes if
-    the tree is to remain ultrametric.
+    """Grafts a node `graft` randomly in the subtree below node `graft_recipient`.
+
+    The attribute `graft.age` must be set so we know where the best place is to graft the node.
+    The node `graft` can optionally have child nodes, in this case the `edge.length` attribute
+    should be set on all child nodes if the tree is to remain ultrametric.
 
     We graft things "below" a node by picking one of the children
     of that node and forcing it to be sister to the grafted node
@@ -209,8 +214,9 @@ def is_fully_locked(node):
 
 
 def get_min_age(node):
-    """Gets the minimum possible age that could be generated in a clade under `node`,
-    assuming that grafts to locked edges are restricted.
+    """Gets the minimum possible age that could be generated in a clade under `node`.
+
+    This assumes that grafts to locked edges are restricted.
     """
     interval = get_age_intervals(node)
 
@@ -224,8 +230,9 @@ def get_min_age(node):
 
 
 def get_age_intervals(node):
-    """Gets the (possibly disjoint) interval that could be generated in the
-    clade under `node`, assuming that grafts to locked edges are restricted.
+    """Gets the (possibly disjoint) interval that could be generated in the clade under `node`.
+
+    This assumes that grafts to locked edges are restricted.
     """
     acc = portion.empty()
     for edge in edge_iter(node, lambda x: x.label != "locked"):
