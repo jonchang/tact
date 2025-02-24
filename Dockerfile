@@ -10,6 +10,7 @@ COPY . /tact
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
+    cargo \
     g++ \
     gcc \
     gfortran \
@@ -17,6 +18,7 @@ RUN apt-get update \
     liblapack3 \
     libopenblas-dev \
     libopenblas0 \
+    libssl-dev \
     locales \
     meson \
     pkg-config \
@@ -26,22 +28,24 @@ RUN apt-get update \
     wget \
   && wget -nv https://bootstrap.pypa.io/get-pip.py \
   && wget -nv -O get-poetry.py https://install.python-poetry.org \
-  && rm /usr/lib/pypy3.10/EXTERNALLY-MANAGED \
-  && pypy3.10 get-pip.py \
-  && pypy3.10 get-poetry.py \
+  && rm /usr/lib/pypy3.*/EXTERNALLY-MANAGED \
+  && pypy3 get-pip.py \
+  && pypy3 get-poetry.py \
   && cd tact \
   && poetry self add poetry-plugin-export \
   && poetry export -f requirements.txt -o requirements.txt --without-hashes --only main \
-  && pypy3.10 -mpip install -r requirements.txt --compile . \
+  && pypy3 -mpip install -r requirements.txt --compile . \
   && cd .. \
-  && pypy3.10 get-poetry.py --uninstall \
+  && pypy3 get-poetry.py --uninstall \
   && rm -rf get-pip.py get-poetry.py \
   && apt-get remove -y \
+    cargo \
     g++ \
     gcc \
     gfortran \
     liblapack-dev \
     libopenblas-dev \
+    libssl-dev \
     meson \
     pkg-config \
     pypy3-dev \
