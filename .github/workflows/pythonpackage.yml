@@ -70,7 +70,7 @@ jobs:
           echo "version=$new_tag" >> $GITHUB_OUTPUT
           poetry version $new_tag
           poetry build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: matrix.python-version == '3.13'
         with:
           name: ${{ steps.build.outputs.version }}
