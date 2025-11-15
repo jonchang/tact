@@ -2,11 +2,13 @@
 
 import random
 import sys
-from decimal import Decimal as D
+from decimal import Decimal as D, Overflow as DecimalOverflow
 from math import exp, log
 
 import numpy as np
-from scipy.optimize import dual_annealing, minimize, minimize_scalar
+# Use vendored optimization functions instead of scipy
+from .vendor.pyprima.src.pyprima import minimize as pyprima_minimize
+from .vendor.scipy_optimize import minimize_scalar_bounded
 
 # Raise on overflow
 np.seterr(all="raise")
@@ -49,7 +51,20 @@ def wrapped_lik_constant(x, sampling, ages):
     Returns:
         (float): a likelihood
     """
-    return lik_constant(get_bd(*x), sampling, ages)
+    # Check if parameters would result in invalid birth/death rates
+    # before calling the likelihood function to avoid errors
+    try:
+        birth, death = get_bd(*x)
+        # If birth rate is negative or death rate is negative, return a large penalty
+        # Since we're minimizing, a large positive value acts as a penalty
+        if birth <= 0 or death < 0:
+            return 1e10  # Large penalty value
+
+        return lik_constant((birth, death), sampling, ages)
+    except (ZeroDivisionError, ValueError, OverflowError, FloatingPointError, DecimalOverflow):
+        # If transformation or likelihood calculation fails due to numerical issues,
+        # return a large penalty to guide the optimizer away from this region
+        return 1e10
 
 
 def wrapped_lik_constant_yule(x, sampling, ages):
@@ -67,9 +82,10 @@ def wrapped_lik_constant_yule(x, sampling, ages):
 
 
 def two_step_optim(func, x0, bounds, args):
-    """Conduct a two-step function optimization.
+    """Conduct function optimization using COBYLA.
 
-    First, use the fast L-BFGS-B method, and if that fails, use simulated annealing.
+    Uses COBYLA (Constrained Optimization BY Linear Approximation) from pyprima,
+    a derivative-free optimization method that can handle bounded optimization.
 
     Args:
         func (callable): function to optimize
@@ -80,18 +96,55 @@ def two_step_optim(func, x0, bounds, args):
     Returns:
         params (tuple): optimized parameter values
     """
-    try:
-        result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
-        if result["success"]:
-            return result["x"].tolist()
-    except FloatingPointError:
-        pass
-
-    result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
-    if result["success"]:
-        return result["x"].tolist()
-
-    raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
+    # Convert x0 to numpy array if needed
+    x0 = np.asarray(x0)
+    
+    # Calculate appropriate trust region radius (rhobeg) based on bounds
+    # rhobeg should be about one tenth of the greatest expected change to a variable
+    # Using smaller steps can help find more precise solutions
+    bound_ranges = [b[1] - b[0] for b in bounds]
+    max_range = max(bound_ranges) if bound_ranges else 100.0
+    # Set rhobeg to 5% of the maximum range, but at least 0.05 and at most 5
+    # Smaller steps may help find solutions closer to L-BFGS-B results
+    rhobeg = max(0.05, min(0.05 * max_range, 5.0))
+    # Set rhoend to be smaller but still reasonable - 1e-4 instead of default 1e-6
+    # This allows the algorithm to converge while still taking reasonable steps initially
+    rhoend = max(1e-6, min(1e-4, 0.01 * rhobeg))
+    
+    # Use COBYLA for optimization with tuned trust region parameters
+    # pyprima's minimize accepts bounds as a list of (min, max) tuples, which matches our format
+    # Options are passed as a dictionary
+    options = {'rhobeg': rhobeg, 'rhoend': rhoend, 'quiet': True}
+    result = pyprima_minimize(
+        func, x0=x0, method='cobyla', bounds=bounds, args=args, options=options
+    )
+    
+    # Check if optimization was successful based on info code
+    # Info codes: 0=SMALL_TR_RADIUS, 1=FTARGET_ACHIEVED, 3=MAXFUN_REACHED, 20=MAXTR_REACHED are acceptable
+    # Negative codes indicate errors (NAN_INF_X=-1, NAN_INF_F=-2, etc.)
+    if result.info >= 0:
+        return result.x.tolist()
+    
+    # If COBYLA fails, raise an error
+    # Note: Previously this would fall back to dual_annealing, but we've removed
+    # that dependency. If needed, we could implement a simple random restart
+    # strategy here.
+    # 
+    # Original two-step optimization code (commented out):
+    # try:
+    #     result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
+    #     if result["success"]:
+    #         return result["x"].tolist()
+    # except FloatingPointError:
+    #     pass
+    # result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
+    # if result["success"]:
+    #     return result["x"].tolist()
+    
+    # Get error message from info code
+    from tact.vendor.pyprima.src.pyprima.common.message import get_info_string
+    error_msg = get_info_string("COBYLA", result.info)
+    raise Exception(f"Optimization failed: {error_msg} (code {result.info})")
 
 
 def optim_bd(ages, sampling, min_bound=1e-9):
@@ -130,11 +183,11 @@ def optim_yule(ages, sampling, min_bound=1e-9):
         death (float): optimized death rate. Always 0.
     """
     bounds = (min_bound, 100)
-    result = minimize_scalar(wrapped_lik_constant_yule, bounds=bounds, args=(sampling, ages), method="Bounded")
-    if result["success"]:
-        return (result["x"], 0.0)
+    result = minimize_scalar_bounded(wrapped_lik_constant_yule, bounds=bounds, args=(sampling, ages))
+    if result.success:
+        return (result.x, 0.0)
 
-    raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
+    raise Exception(f"Optimization failed: {result.message} (code {result.status})")
 
 
 def p0_exact(t, l, m, rho):  # noqa: E741

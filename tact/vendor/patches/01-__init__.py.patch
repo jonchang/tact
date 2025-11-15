@@ -1,0 +1,11 @@
+--- a/src/pyprima/__init__.py
++++ b/src/pyprima/__init__.py
+@@ -1,5 +1,6 @@
+ # Bounds may appear unused in this file but we need to import it to make it available to the user
+-from scipy.optimize import NonlinearConstraint, LinearConstraint, Bounds
++# Use compatibility layer instead of scipy
++from ._scipy_compat import NonlinearConstraint, LinearConstraint, Bounds
+ from .common._nonlinear_constraints import process_nl_constraints
+ from .common._linear_constraints import (
+     combine_multiple_linear_constraints,
+

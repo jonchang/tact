@@ -14,17 +14,17 @@ def run_tact(script_runner, tmp_path, config, backbone, args=None):
     config_path.write_text(config)
     backbone_path.write_text(backbone)
 
-    result = script_runner.run(
+    result = script_runner.run([
         "tact_add_config",
         "--config",
-        config_path,
+        str(config_path),
         "--backbone",
-        backbone_path,
+        str(backbone_path),
         "--output",
-        tmp_path / "pytest",
+        str(tmp_path / "pytest"),
         "-vv",
         *args,
-    )
+    ])
     assert result.returncode == 0
 
     output = tmp_path / "pytest.newick.tre"
