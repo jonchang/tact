@@ -47,15 +47,25 @@ site_url: https://tact.jonathanchang.org
 
 nav:
   - Home: index.md
-  - install.md
-  - tutorial.md
-  - Background: background.md
-  - Troubleshooting: troubleshooting.md
-  - contributing.md
-  - news.md
-  - license.md
-  - commands.md
-  - api.md
+  - Getting started:
+    - Installation: install.md
+    - Background: background.md
+    - Tutorial: tutorial.md
+  - Using TACT:
+    - Command reference: commands.md
+    - Troubleshooting: troubleshooting.md
+  - Reference:
+    - News: news.md
+    - API reference: api.md
+  - For developers:
+    - Contributing: contributing.md
+    - License: license.md
+    - Third-party licenses: third-party-licenses.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 
 plugins:
 - search
