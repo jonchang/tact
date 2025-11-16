@@ -1,6 +1,6 @@
 # Introducing TACT
 
-!!! note "For more details"
+!!! abstract "For more details"
     The best way to understand TACT, why it exists, and how it's used, is in my **[point of view paper in _Systematic Biology_](https://academic.oup.com/sysbio/article/69/3/602/5658637?guestAccessKey=cfe86cce-9d88-4f62-80ce-1f66a8f5ff1d)**. This page provides a brief, accessible overview.
 
 Understanding how species diversify over time—the rates at which new species arise and go extinct—is fundamental to explaining major biodiversity patterns on Earth. These patterns range from the [**latitudinal diversity gradient**](https://en.wikipedia.org/wiki/Latitudinal_diversity_gradient) to temporal patterns of [**mass extinction**](https://en.wikipedia.org/wiki/Extinction_event) and recovery. To study diversification, researchers typically need complete or near-complete [**phylogenies**](https://en.wikipedia.org/wiki/Phylogenetic_tree), evolutionary trees that include all or most species in the group they're studying.
