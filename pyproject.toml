@@ -56,6 +56,9 @@ classifiers = [
 
 [tool.ruff]
 line-length = 118
+exclude = [
+    "tact/vendor/**",
+]
 
 [tool.ruff.lint]
 fixable = ["ALL"]

@@ -12,25 +12,27 @@ def run_tact(script_runner, datadir, stem):
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
     taxed = Tree.get(path=taxonomy, schema="newick")
     bbone = Tree.get(path=backbone, schema="newick", rooting="default-rooted")
-    result = script_runner.run([
-        "tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem, "-vv"
-    ])
+    result = script_runner.run(
+        ["tact_add_taxa", "--taxonomy", taxonomy, "--backbone", backbone, "--output", ".tact-pytest-" + stem, "-vv"]
+    )
     assert result.returncode == 0
     output = ".tact-pytest-" + stem + ".newick.tre"
     tacted = Tree.get(path=output, schema="newick", rooting="default-rooted")
     ss = tacted.as_ascii_plot()
     sys.stderr.write(ss)
-    result = script_runner.run([
-        "tact_check_results",
-        output,
-        "--taxonomy",
-        taxonomy,
-        "--backbone",
-        backbone,
-        "--output",
-        ".tact-pytest-" + stem + ".check.csv",
-        "--cores=1",
-    ])
+    result = script_runner.run(
+        [
+            "tact_check_results",
+            output,
+            "--taxonomy",
+            taxonomy,
+            "--backbone",
+            backbone,
+            "--output",
+            ".tact-pytest-" + stem + ".check.csv",
+            "--cores=1",
+        ]
+    )
     assert result.returncode == 0
     return (tacted, taxed, bbone)
 
@@ -41,33 +43,37 @@ def test_yule(script_runner, execution_number, datadir):
     taxonomy = os.path.join(datadir, "stem2.taxonomy.tre")
     taxed = Tree.get(path=taxonomy, schema="newick")
     bbone = Tree.get(path=backbone, schema="newick", rooting="default-rooted")
-    result = script_runner.run([
-        "tact_add_taxa",
-        "--taxonomy",
-        taxonomy,
-        "--backbone",
-        backbone,
-        "--output",
-        ".tact-pytest-yule",
-        "-vv",
-        "--yule",
-    ])
+    result = script_runner.run(
+        [
+            "tact_add_taxa",
+            "--taxonomy",
+            taxonomy,
+            "--backbone",
+            backbone,
+            "--output",
+            ".tact-pytest-yule",
+            "-vv",
+            "--yule",
+        ]
+    )
     assert result.returncode == 0
     output = ".tact-pytest-yule.newick.tre"
     tacted = Tree.get(path=output, schema="newick", rooting="default-rooted")
     ss = tacted.as_ascii_plot()
     sys.stderr.write(ss)
-    result = script_runner.run([
-        "tact_check_results",
-        output,
-        "--taxonomy",
-        taxonomy,
-        "--backbone",
-        backbone,
-        "--output",
-        ".tact-pytest-yule.check.csv",
-        "--cores=1",
-    ])
+    result = script_runner.run(
+        [
+            "tact_check_results",
+            output,
+            "--taxonomy",
+            taxonomy,
+            "--backbone",
+            backbone,
+            "--output",
+            ".tact-pytest-yule.check.csv",
+            "--cores=1",
+        ]
+    )
     assert result.returncode == 0
     return (tacted, taxed, bbone)
 

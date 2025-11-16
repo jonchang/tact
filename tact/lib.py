@@ -2,10 +2,12 @@
 
 import random
 import sys
-from decimal import Decimal as D, Overflow as DecimalOverflow
+from decimal import Decimal as D
+from decimal import Overflow as DecimalOverflow
 from math import exp, log
 
 import numpy as np
+
 # Use vendored optimization functions instead of scipy
 from .vendor.pyprima.src.pyprima import minimize as pyprima_minimize
 from .vendor.scipy_optimize import minimize_scalar_bounded
@@ -98,7 +100,7 @@ def two_step_optim(func, x0, bounds, args):
     """
     # Convert x0 to numpy array if needed
     x0 = np.asarray(x0)
-    
+
     # Calculate appropriate trust region radius (rhobeg) based on bounds
     # rhobeg should be about one tenth of the greatest expected change to a variable
     # Using smaller steps can help find more precise solutions
@@ -110,26 +112,24 @@ def two_step_optim(func, x0, bounds, args):
     # Set rhoend to be smaller but still reasonable - 1e-4 instead of default 1e-6
     # This allows the algorithm to converge while still taking reasonable steps initially
     rhoend = max(1e-6, min(1e-4, 0.01 * rhobeg))
-    
+
     # Use COBYLA for optimization with tuned trust region parameters
     # pyprima's minimize accepts bounds as a list of (min, max) tuples, which matches our format
     # Options are passed as a dictionary
-    options = {'rhobeg': rhobeg, 'rhoend': rhoend, 'quiet': True}
-    result = pyprima_minimize(
-        func, x0=x0, method='cobyla', bounds=bounds, args=args, options=options
-    )
-    
+    options = {"rhobeg": rhobeg, "rhoend": rhoend, "quiet": True}
+    result = pyprima_minimize(func, x0=x0, method="cobyla", bounds=bounds, args=args, options=options)
+
     # Check if optimization was successful based on info code
     # Info codes: 0=SMALL_TR_RADIUS, 1=FTARGET_ACHIEVED, 3=MAXFUN_REACHED, 20=MAXTR_REACHED are acceptable
     # Negative codes indicate errors (NAN_INF_X=-1, NAN_INF_F=-2, etc.)
     if result.info >= 0:
         return result.x.tolist()
-    
+
     # If COBYLA fails, raise an error
     # Note: Previously this would fall back to dual_annealing, but we've removed
     # that dependency. If needed, we could implement a simple random restart
     # strategy here.
-    # 
+    #
     # Original two-step optimization code (commented out):
     # try:
     #     result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
@@ -140,9 +140,10 @@ def two_step_optim(func, x0, bounds, args):
     # result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
     # if result["success"]:
     #     return result["x"].tolist()
-    
+
     # Get error message from info code
     from tact.vendor.pyprima.src.pyprima.common.message import get_info_string
+
     error_msg = get_info_string("COBYLA", result.info)
     raise Exception(f"Optimization failed: {error_msg} (code {result.info})")
 
