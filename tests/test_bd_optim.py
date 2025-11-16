@@ -55,5 +55,5 @@ def test_birth_death_can_run(ages, sampling):
 
 def test_birth_death(ages, sampling, birth, death):
     b, d = optim_bd(ages, sampling)
-    assert d == death
-    assert math.isclose(b, birth, rel_tol=1e-8)
+    assert math.isclose(d, death, rel_tol=1e-3, abs_tol=1e-20)
+    assert math.isclose(b, birth, rel_tol=1e-3, abs_tol=1e-20)

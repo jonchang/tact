@@ -15,8 +15,7 @@ readme = "README.md"
 requires-python = ">=3.10,<4"
 dynamic = ["classifiers"]
 dependencies = [
-    "scipy>=1.13",
-    "numpy>=2.2",
+    "numpy (>=2.2,<3)",
     "click>=7,<9",
     "DendroPy>=4.5,<6.0",
     "portion>=2.2",
@@ -25,11 +24,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest~=6.2",
-    "pytest-cov~=2.12",
-    "pytest-benchmark~=3.4",
-    "pytest-console-scripts~=1.2",
-    "hypothesis~=6.14",
+    "pytest (>=9.0.1,<10.0.0)",
+    "pytest-cov (>=7.0.0,<8.0.0)",
+    "pytest-benchmark (>=5.2.3,<6.0.0)",
+    "pytest-console-scripts (>=1.4.1,<2.0.0)",
+    "hypothesis (>=6.148.0,<7.0.0)",
 ]
 
 [project.urls]
@@ -57,6 +56,9 @@ classifiers = [
 
 [tool.ruff]
 line-length = 118
+exclude = [
+    "tact/vendor/**",
+]
 
 [tool.ruff.lint]
 fixable = ["ALL"]

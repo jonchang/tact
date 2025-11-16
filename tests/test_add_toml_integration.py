@@ -15,15 +15,17 @@ def run_tact(script_runner, tmp_path, config, backbone, args=None):
     backbone_path.write_text(backbone)
 
     result = script_runner.run(
-        "tact_add_config",
-        "--config",
-        config_path,
-        "--backbone",
-        backbone_path,
-        "--output",
-        tmp_path / "pytest",
-        "-vv",
-        *args,
+        [
+            "tact_add_config",
+            "--config",
+            str(config_path),
+            "--backbone",
+            str(backbone_path),
+            "--output",
+            str(tmp_path / "pytest"),
+            "-vv",
+            *args,
+        ]
     )
     assert result.returncode == 0
 
