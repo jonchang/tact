@@ -7,7 +7,7 @@ This directory contains vendored code from pyprima, specifically the `cobyla` so
 - **Repository**: https://github.com/scipy/scipy
 - **Path**: `scipy/_lib/pyprima/pyprima/`
 - **Git commit**: 4899522c2a1a613b35bf5599680804ab641adb1d
-- **License**: BSD 3-Clause (see [LICENSE.txt](LICENSE.txt))
+- **License**: BSD 3-Clause (see [`LICENCE.txt`](LICENCE.txt))
 
 ## About
 
