@@ -4,22 +4,23 @@
 [![Build status](https://github.com/jonchang/tact/workflows/Python%20package/badge.svg)](https://github.com/jonchang/tact/actions)
 [![Docker Hub](https://img.shields.io/docker/pulls/jonchang/tact.svg)](https://hub.docker.com/r/jonchang/tact)
 
-TACT is a Python app for stochastic polytomy resolution. It uses birth-death-sampling estimators across an ultrametric phylogeny to generate branching times for unsampled taxa, using taxonomic information to compatibly place new taxa onto a backbone phylogeny.
+TACT is a tool for stochastic polytomy resolution, and generates complete phylogenies from incomplete ones. It uses birth-death-sampling estimators across an ultrametric phylogeny to generate branching times for unsampled taxa, using taxonomic information to compatibly place these unsampled taxa onto a backbone phylogeny.
 
 ## Getting started with TACT
 
-* [Installing](https://tact.jonathanchang.org/install/)
-* [Introduction and background](https://tact.jonathanchang.org/background/)
-* [Example analysis](https://tact.jonathanchang.org/tutorial/)
-* [Troubleshooting problems](https://tact.jonathanchang.org/troubleshooting/)
+* [Install TACT](https://tact.jonathanchang.org/install/)
+* [Read the background](https://tact.jonathanchang.org/background/)
+* [Try the tutorial](https://tact.jonathanchang.org/tutorial/)
+* [Check the commands](https://tact.jonathanchang.org/commands/)
+* [Solutions to common problems](https://tact.jonathanchang.org/troubleshooting/)
 
 ## Citation
 
-TACT is described more fully in its manuscript. If you use TACT, please cite:
+If you use TACT in your research, please cite:
 
 * Chang, J., Rabosky, D. L., & Alfaro, M. E. (2019). Estimating diversification rates on incompletely-sampled phylogenies: theoretical concerns and practical solutions. Systematic Biology. doi:[10.1093/sysbio/syz081](https://doi.org/10.1093/sysbio/syz081)
 
-TACT owes its existence to much foundational work in the area of stochastic polytomy resolution, namely PASTIS and CorSiM.
+TACT builds on foundational work in stochastic polytomy resolution, particularly:
 
 * Thomas, G. H., Hartmann, K., Jetz, W., Joy, J. B., Mimoto, A., & Mooers, A. O. (2013). PASTIS: an R package to facilitate phylogenetic assembly with soft taxonomic inferences. Methods in Ecology and Evolution, 4(11), 1011–1017. doi:[10.1111/2041-210x.12117](https://doi.org/10.1111/2041-210X.12117)
 

@@ -1,21 +1,40 @@
 # Troubleshooting TACT
 
-## Initial steps
+This guide helps you diagnose and fix common problems when using TACT. If you're new to TACT, you might want to start with the [Tutorial](tutorial.md) or [Background](background.md) first.
 
-First, ensure that you've [installed the latest version of TACT](install.md). Next, run TACT in extra verbose mode (`-vvv`) and consult the log files. This will often flag any issues around monophyly or other problems that TACT might be struggling with.
+## Initial Steps
+
+If something isn't working:
+
+1. Make sure you've [installed the latest version of TACT](install.md) and it's working:
+   ```sh
+   tact_add_taxa --version
+   ```
+
+2. Use `-vvv` (three v's) to get detailed, verbose logging:
+   ```sh
+   tact_add_taxa --backbone yourtree.tre --taxonomy yourtaxonomy.tre --output result -vvv
+   ```
+
+3. Look at `{output}.log.txt` for detailed information about what TACT is doing and any warnings or errors.
+
+The verbose output and log files will often flag issues around monophyly or other problems that TACT might be struggling with.
 
 ## Why is TACT breaking up my monophyletic clades?
 
-There are two things to check here:
+ TACT tries to preserve monophyly when placing unsampled species, but sometimes it appears to "break up" groups that should stay together.
 
-1. Is the clade defined in the taxonomy file?
-2. Is the clade actually monophyletic?
+There are two things to check:
 
-If the clade isn't defined, TACT won't consider it when restricting placements in monophyletic clades.
+1. **Is the clade defined in the taxonomy file?** If the clade isn't defined in your taxonomy file, TACT won't know to preserve it as a monophyletic group.
 
-If the clade is defined, then check that the clade is actually monophyletic. If you have a clade M comprised of tips A, B, and C, with a most recent common ancestor node X, clade M is monophyletic if and only if the tips descending from node X are exactly A, B, and C.
+2. **Is the clade actually monophyletic in your backbone tree?** A clade is monophyletic if all species in that group share a single common ancestor, and that ancestor has no other descendants outside the group. 
 
-If you have a single rogue taxon that breaks up an otherwise monophyletic clade, TACT will mark all edges of that clade as being valid placement points for unsampled taxa. This can cause a mostly nice-looking group to turn into a complete mess.
+!!! example
+
+    If you have a clade M with species A, B, and C, and their most recent common ancestor is node X, the clade is monophyletic only if node X has exactly three descendants: A, B, and C (and no others).
+
+If you have a single "rogue" species that breaks up an otherwise monophyletic clade, TACT will mark all edges of that clade as valid placement points for unsampled taxa. This can cause a mostly nice-looking group to turn into a complete mess.
 
 Two solutions are possible here:
 
@@ -46,7 +65,7 @@ On M1 Macbooks, TACT experiences a significant performance penalty (~30-50x) whe
 
 ## What is crown capture probability?
 
-Crown capture probability is the probability that a sample of `k` taxa from a clade of `n` total taxa includes a root node, under a Yule process. See [Sanderson (1996)](https://doi.org/10.1093/sysbio/45.2.168) for the full manuscript describing this equation.
+**Crown capture probability** is the probability that when you sample `k` species from a clade containing `n` total species, your sample includes the crown node (the most recent common ancestor of all living species in that clade). This is calculated under a Yule (pure-birth) model of diversification. See [Sanderson (1996)](https://doi.org/10.1093/sysbio/45.2.168) for the full mathematical description.
 
 This probability is used in two key places in TACT as a cutoff, and can be tweaked using the `--min-ccp` parameter to `tact_add_taxa`.
 
@@ -74,11 +93,15 @@ TACT will generate a single new divergence time constrained so that it will atta
 
 ## Tree is not ultrametric
 
-TACT tests for the ultrametricity of your phylogeny prior to doing any work on it. If it falls outside a certain precision threshold (by default, 1e-6, or roughly six digits after the decimal point), it'll refuse to run. This is mostly intended as a smoke test to ensure that you haven't accidentally passed a phylogram or extinct-tip phylogeny to TACT.
+TACT requires ultrametric trees because it uses time-based calculations to place unsampled species.
 
-Otherwise, if the tree is mostly ultrametric, it'll just tweak the ages a bit to make sure everything lines up. This won't really affect your results, and I go into more exhaustive detail in my [blog post on this subject](https://jonathanchang.org/blog/three-ways-to-check-and-fix-ultrametric-phylogenies/).
+TACT tests for ultrametricity before running. If your tree falls outside a certain precision threshold (by default, 1e-6, or roughly six digits after the decimal point), TACT will refuse to run. This is mostly intended as a safety check to ensure that you haven't accidentally passed a [phylogram](https://en.wikipedia.org/wiki/Phylogram) (a tree with branch lengths in units of change, not time) or a phylogeny with extinct tips to TACT.
+
+If your tree is mostly ultrametric but has minor rounding errors, TACT will automatically adjust the ages slightly to make everything line up. This won't really affect your results. For more details on checking and fixing ultrametric trees, see this [blog post](https://jonathanchang.org/blog/three-ways-to-check-and-fix-ultrametric-phylogenies/).
 
 ## Backbone tree is not binary
 
-This sometimes occurs when you have a basal trifurcation in the phylogeny, representing an unrooted tree. You'll need to resolve the root of the phylogeny somehow to root the tree. TACT will generally assume that a basal trifurcation represents a rooted tree, but this doesn't always happen.
+TACT requires binary trees as input.
+
+This error sometimes occurs when you have a basal trifurcation (three branches at the root) in your phylogeny, which often represents an unrooted tree. You'll need to root your tree before using it with TACT. TACT will generally assume that a basal trifurcation represents a rooted tree, but this doesn't always work correctly, so it's better to root your tree explicitly using an outgroup or other method before running TACT.
 
