@@ -48,8 +48,8 @@ jobs:
         run: |
           # double echo to strip whitespace
           gitd=$(echo $(git describe --tags))
-          echo "tag=$gitd"' >> $GITHUB_OUTPUT
-          poetryv=$(echo v$(poetry version | cut -d ' ' -f2))
+          echo "tag=$gitd" >> $GITHUB_OUTPUT
+          poetryv=$(echo v$(poetry version --short))
           echo $gitd
           echo $poetryv
       - name: Install package for testing
