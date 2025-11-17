@@ -1,10 +1,17 @@
-# Installing
+# Installing TACT
 
-TACT requires Python 3. When possible, I recommend using the [PyPy 3 implementation](https://www.pypy.org/) as it can significantly speed up TACT analyses, particularly on large datasets. In addition, TACT depends on the [click](https://click.palletsprojects.com), [DendroPy](https://dendropy.org), [NumPy](https://numpy.org), and [SciPy](https://www.scipy.org/) packages.
+TACT is a Python-based tool that relies on several key scientific packages, including [click](https://click.palletsprojects.com), [DendroPy](https://jeetsukumaran.github.io/DendroPy/), and [NumPy](https://numpy.org), which are automatically installed when you install TACT.
 
-## Docker
+For faster performance, especially with large datasets, using the [PyPy 3 implementation of Python](https://www.pypy.org/) is recommended (when available), as it can significantly speed up analyses.
 
-If you can use Docker, this is the recommended method as it is both convenient to install and [fast for large datasets](https://tact.jonathanchang.org/troubleshooting/#why-is-tact-so-slow) thanks to PyPy. Note that Docker images are only provided for x86_64 processors (`amd64`). Docker images are not automatically built for ARM processors and must either be built manually, or consider installing TACT with one of the other options below.
+!!! tip "Which installation method should I use?"
+    - **Docker** (recommended): Easiest to install and fastest for large datasets. Works on Windows, Mac, and Linux.
+    - **pipx**: Good alternative if you can't use Docker. Also supports PyPy for better performance.
+    - **Other methods**: Not recommended or supported.
+
+## Docker (recommended)
+
+If you can use Docker, this is the **recommended installation method**. It's both convenient to install and [fast for large datasets](troubleshooting.md#why-is-tact-so-slow) thanks to PyPy.
 
 Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
 
@@ -31,26 +38,43 @@ The above Docker image defaults to the latest tagged release. In the rare case y
 
 ## pipx
 
-[Install `pipx`](https://pipxproject.github.io/pipx/installation/), then run:
+[pipx](https://pipx.pypa.io) is a tool that installs Python applications in isolated environments. This is a good alternative if you can't use Docker.
+
+### Basic Installation
+
+First, [install `pipx`](https://pipx.pypa.io/stable/installation/), then run:
 
 ```sh
 pipx install tact
 ```
 
-If you have PyPy3 installed, you can try to install a faster version using:
+This installs TACT with the standard Python interpreter (CPython). This works fine for small to medium datasets.
+
+### Faster Installation with PyPy (Optional)
+
+If you have PyPy3 installed, you can install a faster version of TACT:
 
 ```sh
 pipx install --python pypy3 tact
 ```
 
-Note that this will take much longer to install and could fail if the proper dependencies (mainly openblas) aren't set up.
+!!! warning "PyPy installation issues"
+    - This will take much longer to install than the standard version
+    - Installation may fail if the proper dependencies (mainly openblas) aren't set up
+    - On macOS, you'll need to run: `brew install openblas gcc pypy3 pipx`
+    - You may also need to set environment variables:
+        - `PKG_CONFIG_PATH`: should point to where `openblas.pc` lives (e.g., `/opt/homebrew/opt/openblas/lib/pkgconfig`)
+        - `MACOSX_DEPLOYMENT_TARGET`: should be your macOS version (e.g., `11.0`)
 
-On macOS, you'll need to run `brew install openblas gcc pypy3 pipx`. You may also need to set certain environment variables:
+## Verifying Your Installation
 
-* `PKG_CONFIG_PATH`: this should be where `openblas.pc` lives (e.g., `/opt/homebrew/opt/openblas/lib/pkgconfig`)
-* `MACOSX_DEPLOYMENT_TARGET`: this should be your macOS version (e.g., `11.0`)
+After installing, verify that TACT is working correctly:
 
-## Other
+```sh
+tact_add_taxa --version
+```
 
-Other ways of installing TACT, including unpacking the tarball somewhere or directly using `pip`, are neither supported nor recommended.
-# 
+You should see the version number. If you get a "command not found" error, make sure TACT is in your PATH.
+
+!!! tip "Next steps"
+    Once TACT is installed, check out the **[Tutorial](tutorial.md)** to learn how to use it, or read the **[Background](background.md)** to understand what TACT does.
