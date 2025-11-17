@@ -18,11 +18,29 @@ on:
       - '*.md'
 
 jobs:
-  docker:
-    runs-on: ubuntu-latest
+  # build single-platform docker images on native runners
+  build:
+    strategy:
+      matrix:
+        include:
+        - platform: linux/amd64
+          platform-pair: linux-amd64
+          runs-on: ubuntu-24.04
+        - platform: linux/arm64
+          platform-pair: linux-arm64
+          runs-on: ubuntu-24.04-arm
+
+    name: Docker (${{ matrix.platform }})
+    runs-on: ${{ matrix.runs-on }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Docker meta
         id: meta
@@ -39,9 +57,6 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Login to DockerHub
         if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'
         uses: docker/login-action@v3
@@ -57,10 +72,112 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Build and push by digest (DockerHub)
+        if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'
         uses: docker/build-push-action@v6
+        id: build-dockerhub
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=jonchang/tact,push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+
+      - name: Build and push by digest (GHCR)
+        uses: docker/build-push-action@v6
+        id: build-ghcr
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          outputs: type=image,name=ghcr.io/jonchang/tact,push-by-digest=true,name-canonical=true,push=${{ github.event_name != 'pull_request' }}
+
+      - name: Export digests
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p /tmp/digests
+          if [ "${{ github.actor }}" != "dependabot[bot]" ]; then
+            digest="${{ steps.build-dockerhub.outputs.digest }}"
+            echo "${digest#sha256:}" > /tmp/digests/dockerhub-digest
+          fi
+          digest="${{ steps.build-ghcr.outputs.digest }}"
+          echo "${digest#sha256:}" > /tmp/digests/ghcr-digest
+
+      - name: Upload digests
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v5
+        with:
+          name: digests-${{ matrix.platform-pair }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # merge single-platform images into multiplatform images
+  merge:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v6
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            jonchang/tact
+            ghcr.io/jonchang/tact
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha
+
+      - name: Login to DockerHub
+        if: github.actor != 'dependabot[bot]'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push merged image (DockerHub)
+        if: github.actor != 'dependabot[bot]'
+        working-directory: /tmp/digests
+        run: |
+          # Extract all Docker image tags from the Docker metadata JSON, prepend each with "-t " (required by buildx), and convert them into a single space-separated string
+          tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          digests=$(cat digests-linux-amd64/dockerhub-digest digests-linux-arm64/dockerhub-digest | sed 's/^/jonchang\/tact@sha256:/' | tr '\n' ' ')
+          docker buildx imagetools create $tags $digests
+
+      - name: Create and push merged image (GHCR)
+        working-directory: /tmp/digests
+        run: |
+          # Extract all Docker image tags from the Docker metadata JSON, prepend each with "-t " (required by buildx), and convert them into a single space-separated string
+          tags=$(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          digests=$(cat digests-linux-amd64/ghcr-digest digests-linux-arm64/ghcr-digest | sed 's/^/ghcr.io\/jonchang\/tact@sha256:/' | tr '\n' ' ')
+          docker buildx imagetools create $tags $digests
+
+      - name: Inspect Docker images
+        run: |
+          if [ "${{ github.actor }}" != "dependabot[bot]" ]; then
+            docker buildx imagetools inspect "jonchang/tact:${{ steps.meta.outputs.version }}"
+          fi
+          docker buildx imagetools inspect "ghcr.io/jonchang/tact:${{ steps.meta.outputs.version }}"
