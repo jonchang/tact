@@ -40,7 +40,7 @@ The above Docker image defaults to the latest tagged release. In the rare case y
 
 [pipx](https://pipx.pypa.io) is a tool that installs Python applications in isolated environments. This is a good alternative if you can't use Docker.
 
-### Basic Installation
+### Basic installation
 
 First, [install `pipx`](https://pipx.pypa.io/stable/installation/), then run:
 
@@ -50,9 +50,9 @@ pipx install tact
 
 This installs TACT with the standard Python interpreter (CPython). This works fine for small to medium datasets.
 
-### Faster Installation with PyPy (Optional)
+### Faster installation with PyPy
 
-If you have PyPy3 installed, you can install a faster version of TACT:
+If you have PyPy3 installed, you can optionally install a faster version of TACT:
 
 ```sh
 pipx install --python pypy3 tact
@@ -66,7 +66,7 @@ pipx install --python pypy3 tact
         - `PKG_CONFIG_PATH`: should point to where `openblas.pc` lives (e.g., `/opt/homebrew/opt/openblas/lib/pkgconfig`)
         - `MACOSX_DEPLOYMENT_TARGET`: should be your macOS version (e.g., `11.0`)
 
-## Verifying Your Installation
+## Verifying your installation
 
 After installing, verify that TACT is working correctly:
 

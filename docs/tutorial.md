@@ -2,7 +2,7 @@
 
 This tutorial walks you through a complete TACT analysis using example data. By the end, you'll know how to use TACT to add missing species to an incomplete phylogeny.
 
-!!! note "What You'll Learn"
+!!! note "What you'll learn"
     - How to prepare your data for TACT
     - How to build a taxonomic tree from a CSV file
     - How to run TACT to add missing species
@@ -94,7 +94,7 @@ Open `checkresults.csv` in a spreadsheet program (Excel, Google Sheets, etc.) an
 
 For more details on interpreting results and troubleshooting issues, see the [Troubleshooting Guide](troubleshooting.md).
 
-## What's Next?
+## What's next?
 
 Now that you've completed your first TACT analysis, you can:
 
@@ -103,5 +103,5 @@ Now that you've completed your first TACT analysis, you can:
 - **Explore commands**: Check the [Command Reference](commands.md) for detailed documentation and advanced options
 - **Troubleshoot**: If you encountered issues, see the [Troubleshooting Guide](troubleshooting.md)
 
-!!! warning "Important Limitation"
+!!! warning "Important limitations"
     **Do not use TACT-generated trees for trait evolution analyses.** TACT is designed for diversification rate studies, not trait evolution. See the [Background](background.md#important-limitations) for details.

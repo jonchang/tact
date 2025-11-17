@@ -105,3 +105,5 @@ TACT requires binary trees as input.
 
 This error sometimes occurs when you have a basal trifurcation (three branches at the root) in your phylogeny, which often represents an unrooted tree. You'll need to root your tree before using it with TACT. TACT will generally assume that a basal trifurcation represents a rooted tree, but this doesn't always work correctly, so it's better to root your tree explicitly using an outgroup or other method before running TACT.
 
+!!! tip "Next steps"
+    Ready to use TACT? Check out the [tutorial](tutorial.md) to continue learning about TACT, or refer to the [command reference](commands.md) to customize your analysis.

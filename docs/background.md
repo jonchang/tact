@@ -93,7 +93,9 @@ TACT and other stochastic polytomy resolution methods address a key weakness of 
 
 The main advantage of TACT over other stochastic polytomy resolvers (like PASTIS or CorSiM) is that TACT estimates diversification rates locally for each taxonomic group, rather than assuming a single rate across the entire tree. This allows for more accurate placement of unsampled taxa when rates vary across the phylogeny.
 
-Ready to try TACT? Check out the **[Tutorial](tutorial.md)** for a step-by-step walkthrough with example data, or see the **[Command Reference](commands.md)** for detailed documentation of all TACT commands.
+!!! tip "Ready to try TACT?"
+
+    Check out the **[Tutorial](tutorial.md)** for a step-by-step walkthrough with example data, or see the **[Command Reference](commands.md)** for detailed documentation.
 
 ## Important Limitations
 

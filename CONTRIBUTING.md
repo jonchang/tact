@@ -2,6 +2,9 @@
 
 ## Bug reports and feature requests
 
+!!! note "No funding or guaranteed support"
+    TACT is an [unfunded project](https://github.com/sponsors/jonchang) maintained in my spare time. Support is provided on a best-effort basis, and responses may sometimes be delayed.
+
 Open a bug report or a feature request via [GitHub Issues](https://github.com/jonchang/tact/issues/new/choose).
 
 ## Developing
@@ -22,7 +25,7 @@ $ poetry run pytest
 $ poetry run tact_add_taxa --version
 ```
 
-**Python version:** TACT requires Python 3.10 or higher (for PyPy compatibility).
+TACT requires Python 3.11 or higher (for PyPy compatibility).
 
 ## Pull requests
 
