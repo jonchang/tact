@@ -2,8 +2,10 @@
 
 import random
 import sys
+from collections.abc import Callable
 from decimal import Decimal as D
 from math import exp, log
+from typing import Any
 
 import numpy as np
 from scipy.optimize import dual_annealing, minimize, minimize_scalar
@@ -12,99 +14,112 @@ from scipy.optimize import dual_annealing, minimize, minimize_scalar
 np.seterr(all="raise")
 
 
-def get_bd(r, a):
-    """Converts turnover and relative extinction to birth and death rates.
+def get_bd(r: float, a: float) -> tuple[float, float]:
+    """Convert turnover and relative extinction to birth and death rates.
 
     Args:
-        r (float): turnover or net diversification (birth - death)
-        a (float): relative extinction (death / birth)
+        r: Turnover rate (net diversification, birth - death).
+        a: Relative extinction rate (death / birth).
 
     Returns:
-        (float, float): birth, death
+        Tuple of (birth rate, death rate).
     """
     return -r / (a - 1), -a * r / (a - 1)
 
 
-def get_ra(b, d):
-    """Converts birth and death to turnover and relative extinction rates.
+def get_ra(b: float, d: float) -> tuple[float, float]:
+    """Convert birth and death rates to turnover and relative extinction.
 
     Args:
-        b (float): birth rate
-        d (float): extinction rate
+        b: Birth rate.
+        d: Death rate.
 
     Returns:
-        (float, float): turnover, relative extinction
+        Tuple of (turnover rate, relative extinction rate).
     """
     return (b - d, d / b)
 
 
-def wrapped_lik_constant(x, sampling, ages):
-    """Wrapper for birth-death likelihood to make optimizing more convenient.
+def wrapped_lik_constant(x: tuple[float, float], sampling: float, ages: list[float]) -> float:
+    """Wrapper for birth-death likelihood function for optimization.
+
+    Converts turnover and relative extinction parameters to birth/death rates
+    before computing the likelihood.
 
     Args:
-        x (float, float): turnover, relative extinction
-        sampling (float): sampling fraction (0, 1]
-        ages (list): vector of node ages
+        x: Tuple of (turnover, relative extinction).
+        sampling: Sampling fraction in (0, 1].
+        ages: List of node ages.
 
     Returns:
-        (float): a likelihood
+        Negative log-likelihood value.
     """
     return lik_constant(get_bd(*x), sampling, ages)
 
 
-def wrapped_lik_constant_yule(x, sampling, ages):
-    """Wrapper for Yule likelihood to make optimizing more convenient.
+def wrapped_lik_constant_yule(x: float, sampling: float, ages: list[float]) -> float:
+    """Wrapper for Yule model likelihood function for optimization.
+
+    Assumes zero extinction (pure birth process).
 
     Args:
-        x (float): birth rate
-        sampling (float): sampling fraction (0, 1]
-        ages (list): vector of node ages
+        x: Birth rate.
+        sampling: Sampling fraction in (0, 1].
+        ages: List of node ages.
 
     Returns:
-        (float): a likelihood
+        Negative log-likelihood value.
     """
     return lik_constant((x, 0.0), sampling, ages)
 
 
-def two_step_optim(func, x0, bounds, args):
-    """Conduct a two-step function optimization.
+def two_step_optim(
+    func: Callable[..., float], x0: tuple[float, ...], bounds: tuple[tuple[float, float], ...], args: tuple[Any, ...]
+) -> list[float]:
+    """Optimize a function using a two-step approach.
 
-    First, use the fast L-BFGS-B method, and if that fails, use simulated annealing.
+    First attempts L-BFGS-B (fast gradient-based method), then falls back to
+    simulated annealing if L-BFGS-B fails.
 
     Args:
-        func (callable): function to optimize
-        x0 (tuple): initial conditions
-        bounds (tuple): boundary conditions
-        args (list): additional arguments to pass to `func`
+        func: Objective function to minimize.
+        x0: Initial parameter values.
+        bounds: Parameter bounds as tuples of (min, max) for each parameter.
+        args: Additional arguments to pass to the objective function.
 
     Returns:
-        params (tuple): optimized parameter values
+        Optimized parameter values as a list.
+
+    Raises:
+        Exception: If both optimization methods fail.
     """
     try:
         result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
         if result["success"]:
-            return result["x"].tolist()
+            return result["x"].tolist()  # type: ignore[no-any-return]
     except FloatingPointError:
         pass
 
     result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
     if result["success"]:
-        return result["x"].tolist()
+        return result["x"].tolist()  # type: ignore[no-any-return]
 
     raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 
 
-def optim_bd(ages, sampling, min_bound=1e-9):
-    """Optimizes birth and death parameters given a vector of splitting times and sampling fraction.
+def optim_bd(ages: list[float], sampling: float, min_bound: float = 1e-9) -> tuple[float, float]:
+    """Optimize birth and death rates from node ages under a birth-death model.
+
+    Uses maximum likelihood estimation with the Magallon-Sanderson crown estimator
+    for initial values.
 
     Args:
-        ages (list): vector of node ages
-        sampling (float): sampling fraction (0, 1]
-        min_bound (float): minimum birth rate
+        ages: List of node ages (splitting times).
+        sampling: Sampling fraction in (0, 1].
+        min_bound: Minimum allowed birth rate (default: 1e-9).
 
     Returns:
-        birth (float): optimized birth rate.
-        death (float): optimized death rate.
+        Tuple of (optimized birth rate, optimized death rate).
     """
     if max(ages) < 0.000001:
         init_r = 1e-3
@@ -117,17 +132,21 @@ def optim_bd(ages, sampling, min_bound=1e-9):
     return get_bd(*result)
 
 
-def optim_yule(ages, sampling, min_bound=1e-9):
-    """Optimizes birth parameter under a Yule model, given a vector of splitting times and sampling fraction.
+def optim_yule(ages: list[float], sampling: float, min_bound: float = 1e-9) -> tuple[float, float]:
+    """Optimize birth rate under a Yule (pure birth) model.
+
+    Assumes zero extinction rate.
 
     Args:
-        ages (list): vector of node ages
-        sampling (float): sampling fraction (0, 1]
-        min_bound (float): minimum birth rate
+        ages: List of node ages (splitting times).
+        sampling: Sampling fraction in (0, 1].
+        min_bound: Minimum allowed birth rate (default: 1e-9).
 
     Returns:
-        birth (float): optimized birth rate.
-        death (float): optimized death rate. Always 0.
+        Tuple of (optimized birth rate, 0.0).
+
+    Raises:
+        Exception: If optimization fails.
     """
     bounds = (min_bound, 100)
     result = minimize_scalar(wrapped_lik_constant_yule, bounds=bounds, args=(sampling, ages), method="Bounded")
@@ -137,32 +156,47 @@ def optim_yule(ages, sampling, min_bound=1e-9):
     raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 
 
-def p0_exact(t, l, m, rho):  # noqa: E741
-    """Exact version of `p0` using Decimal math."""
-    t = D(t)
-    l = D(l)  # noqa: E741
-    m = D(m)
-    rho = D(rho)
-    return D(1) - rho * (l - m) / (rho * l + (l * (D(1) - rho) - m) * (-(l - m) * t).exp())
+def p0_exact(t: float, l: float, m: float, rho: float) -> D:  # noqa: E741
+    """Compute p0 using exact Decimal arithmetic.
+
+    Used as fallback when floating-point arithmetic fails due to overflow.
+
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
+        rho: Sampling fraction.
+
+    Returns:
+        Probability of no sampled descendants as a Decimal.
+    """
+    t_dec = D(t)
+    l_dec = D(l)
+    m_dec = D(m)
+    rho_dec = D(rho)
+    return D(1) - rho_dec * (l_dec - m_dec) / (
+        rho_dec * l_dec + (l_dec * (D(1) - rho_dec) - m_dec) * (-(l_dec - m_dec) * t_dec).exp()
+    )
 
 
-def p0(t, l, m, rho):  # noqa: E741
+def p0(t: float, l: float, m: float, rho: float) -> float:  # noqa: E741
     """Compute the probability of no sampled descendants.
 
-    Specifically, this is the probability that an individual alive at time `t` before today has no
-    sampled extinct or extant descendants, and assumes that there is no sampling in the past. This
-    can alternatively be interpreted as the probability of sampling zero extant individuals and
-    potentially infinite extinct individuals.
+    Probability that an individual alive at time `t` before present has no sampled
+    descendants (extant or extinct), assuming no past sampling. Falls back to
+    exact Decimal arithmetic if floating-point overflow occurs.
 
-    This equation is described as remark 3.2 in:
+    Reference: Stadler (2010), Journal of Theoretical Biology 267(3):396-404,
+    remark 3.2. Originally implemented as `TreePar:::p0`.
 
-    Stadler, T. (2010). Sampling-through-time in birth-death trees.
-    Journal of Theoretical Biology, 267(3), 396-404.
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
+        rho: Sampling fraction.
 
-    It was originally implemented as `TreePar:::p0`, whose original description was in:
-
-    Stadler, T. (2011). Mammalian phylogeny reveals recent diversification rate shifts.
-    Proceedings of the National Academy of Sciences, 108(15), 6187-6192.
+    Returns:
+        Probability of no sampled descendants.
     """
     try:
         return 1 - rho * (l - m) / (rho * l + (l * (1 - rho) - m) * exp(-(l - m) * t))
@@ -170,23 +204,45 @@ def p0(t, l, m, rho):  # noqa: E741
         return float(p0_exact(t, l, m, rho))
 
 
-def p1_exact(t, l, m, rho):  # noqa: E741
-    """Exact version of `p1` using Decimal math."""
-    t = D(t)
-    l = D(l)  # noqa: E741
-    m = D(m)
-    rho = D(rho)
-    num = rho * (l - m) ** D(2) * (-(l - m) * t).exp()
-    denom = (rho * l + (l * (1 - rho) - m) * (-(l - m) * t).exp()) ** D(2)
+def p1_exact(t: float, l: float, m: float, rho: float) -> D:  # noqa: E741
+    """Compute p1 using exact Decimal arithmetic.
+
+    Used as fallback when floating-point arithmetic fails due to overflow.
+
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
+        rho: Sampling fraction.
+
+    Returns:
+        Probability of exactly one sampled descendant as a Decimal.
+    """
+    t_dec = D(t)
+    l_dec = D(l)
+    m_dec = D(m)
+    rho_dec = D(rho)
+    num = rho_dec * (l_dec - m_dec) ** D(2) * (-(l_dec - m_dec) * t_dec).exp()
+    denom = (rho_dec * l_dec + (l_dec * (D(1) - rho_dec) - m_dec) * (-(l_dec - m_dec) * t_dec).exp()) ** D(2)
     return num / denom
 
 
-def p1_orig(t, l, m, rho):  # noqa: E741
-    """Original version of `p1`, here for testing and comparison purposes."""
+def p1_orig(t: float, l: float, m: float, rho: float) -> float:  # noqa: E741
+    """Original implementation of p1 for testing and comparison.
+
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
+        rho: Sampling fraction.
+
+    Returns:
+        Probability of exactly one sampled descendant.
+    """
     try:
         num = rho * (l - m) ** 2 * np.exp(-(l - m) * t)
         denom = (rho * l + (l * (1 - rho) - m) * np.exp(-(l - m) * t)) ** 2
-        res = num / denom
+        res: float = num / denom
     except (OverflowError, FloatingPointError):
         res = float(p1_exact(t, l, m, rho))
     if res == 0.0:
@@ -194,32 +250,30 @@ def p1_orig(t, l, m, rho):  # noqa: E741
     return res
 
 
-def p1(t, l, m, rho):  # noqa: E741
+def p1(t: float, l: float, m: float, rho: float) -> float:  # noqa: E741
     """Compute the probability of exactly one sampled descendant.
 
-    Specifically, the probability that an individual alive at time `t` before today has precisely one sampled
-    extant descendant and no sampled extinct descendant, and assumes that there is no sampling in the past.
-    This can alternatively be interpreted as the probability of sampling exactly one extant individual and
-    potentially infinite extinct individuals.
+    Probability that an individual alive at time `t` before present has precisely
+    one sampled extant descendant and no sampled extinct descendants, assuming
+    no past sampling. Optimized version using common subexpression elimination.
 
-    This implementation is an optimized version of `p1_orig`, using common subexpression elimination
-    and strength reduction from exponentiation to multiplication.
+    Reference: Stadler (2010), Journal of Theoretical Biology 267(3):396-404,
+    remark 3.2. Originally implemented as `TreePar:::p1`.
 
-    This equation is described as remark 3.2 in:
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
+        rho: Sampling fraction.
 
-    Stadler, T. (2010). Sampling-through-time in birth-death trees.
-    Journal of Theoretical Biology, 267(3), 396-404.
-
-    It was originally implemented as `TreePar:::p1`, whose original description was in:
-
-    Stadler, T. (2011). Mammalian phylogeny reveals recent diversification rate shifts.
-    Proceedings of the National Academy of Sciences, 108(15), 6187-6192.
+    Returns:
+        Probability of exactly one sampled descendant.
     """
     try:
         ert = np.exp(-(l - m) * t, dtype=np.float64)
         num = rho * (l - m) ** 2 * ert
         denom = (rho * l + (l * (1 - rho) - m) * ert) ** 2
-        res = num / denom
+        res: float = num / denom
     except (OverflowError, FloatingPointError):
         res = float(p1_exact(t, l, m, rho))
     if res == 0.0:
@@ -227,26 +281,41 @@ def p1(t, l, m, rho):  # noqa: E741
     return res
 
 
-def intp1_exact(t, l, m):  # noqa: E741
-    """Exact version of `intp1` using Decimal math."""
-    l = D(l)  # noqa: E741
-    m = D(m)
-    t = D(t)
-    num = D(1) - (-(l - m) * t).exp()
-    denom = l - m * (-(l - m) * t).exp()
+def intp1_exact(t: float, l: float, m: float) -> D:  # noqa: E741
+    """Compute intp1 using exact Decimal arithmetic.
+
+    Used as fallback when floating-point arithmetic fails due to overflow.
+
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
+
+    Returns:
+        Integration constant as a Decimal.
+    """
+    l_dec = D(l)
+    m_dec = D(m)
+    t_dec = D(t)
+    num = D(1) - (-(l_dec - m_dec) * t_dec).exp()
+    denom = l_dec - m_dec * (-(l_dec - m_dec) * t_dec).exp()
     return num / denom
 
 
-def intp1(t, l, m):  # noqa: E741
-    """Computes a constant necessary to sample the time of a missing speciation event.
+def intp1(t: float, l: float, m: float) -> float:  # noqa: E741
+    """Compute integration constant for sampling missing speciation event times.
 
-    This constant is not named, but was used in eqn A.2 and called c_2, described in:
+    This is a portion of the cdf used to perform inverse-transform sampling of missing speciation event times
+    under a constant-rate birth-death model. It is the c_2 term from equation A.2 in Cusimano et al. (2012),
+    Systematic Biology 61(5):785-792. Originally implemented as `TreeSim:::intp1`.
 
-    N. Cusimano, T. Stadler, S. Renner. A new method for handling missing
-    species in diversification analysis applicable to randomly or
-    non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
+    Args:
+        t: Time before present.
+        l: Birth rate (lambda).
+        m: Death rate (mu).
 
-    This function was originally implemented as `TreeSim:::intp1`.
+    Returns:
+        Integration constant value.
     """
     try:
         return (1 - exp(-(l - m) * t)) / (l - m * exp(-(l - m) * t))
@@ -254,25 +323,30 @@ def intp1(t, l, m):  # noqa: E741
         return float(intp1_exact(t, l, m))
 
 
-def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
-    """Calculates the likelihood of a constant-rate birth-death process.
+def lik_constant(
+    vec: tuple[float, float],
+    rho: float,
+    t: list[float],
+    root: int = 1,
+    survival: int = 1,
+    p1: Callable[[float, float, float, float], float] = p1,
+) -> float:
+    """Calculate likelihood of a constant-rate birth-death process.
 
-    This likelihood function is conditioned on the waiting times of a phylogenetic tree and
-    degree of incomplete sampling. Based off of the R function `TreePar::LikConstant` written by Tanja Stadler.
-
-    T. Stadler. On incomplete sampling under birth-death models and connections
-    to the sampling-based coalescent. Jour. Theo. Biol. 261: 58-66, 2009.
+    Likelihood conditioned on waiting times and incomplete sampling. Based on
+    `TreePar::LikConstant` by Tanja Stadler. Reference: Stadler (2009), Journal
+    of Theoretical Biology 261:58-66.
 
     Args:
-        vec (float, float): two element tuple of birth and death
-        rho (float): sampling fraction
-        t (list): vector of waiting times
-        root (bool): include the root or not? (default: 1)
-        survival (bool): assume survival of the process? (default: 1)
-        p1: (func): the `p1` function used to compute this likelihood.
+        vec: Tuple of (birth rate, death rate).
+        rho: Sampling fraction.
+        t: List of waiting times (will be sorted in place).
+        root: Include root contribution (1) or not (0). Default: 1.
+        survival: Assume process survival (1) or not (0). Default: 1.
+        p1: Function to compute p1 probability (default: `p1`).
 
     Returns:
-        (float): likelihood of the birth-death process.
+        Negative log-likelihood value.
     """
     l = vec[0]  # noqa: E741
     m = vec[1]
@@ -285,52 +359,59 @@ def lik_constant(vec, rho, t, root=1, survival=1, p1=p1):
     return -lik
 
 
-def crown_capture_probability(n, k):
-    """Calculate the probability of observing the crown node of an incompletely sampled node.
+def crown_capture_probability(n: int, k: int) -> float:
+    """Calculate probability of observing the crown node in an incomplete sample.
 
-    That is, the probability that a sample of `k` taxa from a clade of `n` total taxa
-    includes the root (crown) node of the clade, under a Yule process.
+    Probability that a random sample of `k` taxa from a clade of `n` total taxa
+    includes the crown (root) node, under a Yule process.
 
-    This equation is taken from:
-
-    Sanderson, M. J. 1996. How many taxa must be sampled to identify
-    the root node of a large clade? Systematic Biology 45:168-173
+    Reference: Sanderson (1996), Systematic Biology 45:168-173.
 
     Args:
-        n (int): total number of taxa
-        k (int): sampled taxa
+        n: Total number of taxa in the clade.
+        k: Number of sampled taxa.
 
     Returns:
-        (float): probability of including a root node.
+        Probability of crown node inclusion.
+
+    Raises:
+        Exception: If `n < k`.
     """
     if n < k:
         raise Exception(f"n must be greater than or equal to k (n={n}, k={k})")
     if n == 1 and k == 1:
-        return 0  # not technically correct but it works for our purposes
+        return 0.0  # not technically correct but it works for our purposes
     return 1 - 2 * (n - k) / ((n - 1) * (k + 1))
 
 
 # TODO: This could probably be optimized
-def get_new_times(ages, birth, death, missing, told=None, tyoung=None):
-    """Simulates new speciation events in an incomplete phylogeny.
+def get_new_times(
+    ages: list[float],
+    birth: float,
+    death: float,
+    missing: int,
+    told: float | None = None,
+    tyoung: float | None = None,
+) -> list[float]:
+    """Simulate new speciation event times in an incomplete phylogeny.
 
-    Assumes a constant-rate birth-death process. Adapted from the R function `TreeSim::corsim`,
-    written by Tanja Stadler.
-
-    N. Cusimano, T. Stadler, S. Renner. A new method for handling missing
-    species in diversification analysis applicable to randomly or
-    non-randomly sampled phylogenies. Syst. Biol., 61(5): 785-792, 2012.
+    Simulates missing speciation events under a constant-rate birth-death process.
+    Adapted from `TreeSim::corsim` by Tanja Stadler. Reference: Cusimano et al.
+    (2012), Systematic Biology 61(5):785-792.
 
     Args:
-        ages (list): vector of waiting times
-        birth (float): birth rate
-        death (float): death rate
-        missing (int): number of missing taxa to simulate
-        told (float): maximum simulated age (default: `max(ages)`)
-        tyoung (float): minimum simulated age bound (default: `0`)
+        ages: List of existing waiting times (will be sorted in place).
+        birth: Birth rate.
+        death: Death rate.
+        missing: Number of missing taxa to simulate.
+        told: Maximum simulated age. Defaults to `max(ages)`.
+        tyoung: Minimum simulated age. Defaults to 0.
 
     Returns:
-        (list): vector of simulated waiting times.
+        List of simulated waiting times, sorted in descending order.
+
+    Raises:
+        Exception: If zero or negative branch lengths are detected.
     """
     if told is None:
         told = max(ages)
