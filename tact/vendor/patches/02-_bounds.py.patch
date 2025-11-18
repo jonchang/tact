@@ -1,9 +1,0 @@
---- a/src/pyprima/common/_bounds.py
-+++ b/src/pyprima/common/_bounds.py
-@@ -1,4 +1,4 @@
- import numpy as np
--from scipy.optimize import Bounds
-+from .._scipy_compat import Bounds
- 
- def process_bounds(bounds, lenx0):
-
