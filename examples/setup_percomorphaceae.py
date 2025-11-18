@@ -18,6 +18,7 @@ def download_file(url, dest):
 
 
 def main():
+    """Sets up the dataset."""
     with tempfile.TemporaryDirectory() as temp_dir:
         # Download phylogeny
         phylogeny_url = "https://fishtreeoflife.org/downloads/taxonomy/subdivision/Percomorphaceae.tre"
@@ -36,7 +37,7 @@ def main():
         # Filter to Percomorphaceae entries
         print("Filtering taxonomy to Percomorphaceae entries...")
         filtered_rows = []
-        with open(taxonomy_csv, "r", encoding="utf-8") as f:
+        with open(taxonomy_csv, encoding="utf-8") as f:
             reader = csv.reader(f)
             header = next(reader)
             filtered_rows.append(header)
@@ -98,4 +99,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

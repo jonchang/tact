@@ -6,7 +6,6 @@ from decimal import Decimal as D
 from math import exp, log
 
 import numpy as np
-
 from scipy.optimize import dual_annealing, minimize, minimize_scalar
 
 # Raise on overflow
