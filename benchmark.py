@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-"""
-Benchmarking script for TACT performance across different Python implementations.
+"""Benchmarking script for TACT performance across different Python implementations.
 
 This script measures the execution time of TACT commands using uv to manage Python versions:
 - uv (pypy) - PyPy 3.11
 - uv (python3.14) - Python 3.14 without JIT
 - uv (python3.14-jit) - Python 3.14 with experimental JIT (PYTHON_JIT=1)
 
-uv automatically downloads and manages Python versions, ensuring Python 3.14 has JIT enabled. The JIT version sets PYTHON_JIT=1
-environment variable and verifies JIT is enabled using sys._jit.is_enabled().
+uv automatically downloads and manages Python versions, ensuring Python 3.14 has JIT enabled.
+The JIT version sets PYTHON_JIT=1 environment variable and verifies JIT is enabled.
 
 Usage:
     python benchmark.py [--dataset carangaria|percomorphaceae] [--runs N] [--warmup N]
@@ -19,12 +18,11 @@ import json
 import os
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
 from statistics import mean, stdev
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 
 class BenchmarkRunner:
@@ -35,7 +33,7 @@ class BenchmarkRunner:
         dataset: str = "carangaria",
         runs: int = 5,
         warmup: int = 1,
-        examples_dir: Optional[Path] = None,
+        examples_dir: Path | None = None,
     ):
         """Initialize the benchmark runner.
 
@@ -74,7 +72,7 @@ class BenchmarkRunner:
             },
         }
 
-    def setup_dataset(self) -> Tuple[Path, Path, Path]:
+    def setup_dataset(self) -> tuple[Path, Path, Path]:
         """Set up the dataset files and return paths to backbone, taxonomy, and output.
 
         Returns:
@@ -110,7 +108,7 @@ class BenchmarkRunner:
         return tre_file, csv_file, taxonomy_file, output_base
 
     def build_taxonomy(
-        self, csv_file: Path, taxonomy_file: Path, run_cmd: List[str], env: Optional[Dict[str, str]] = None
+        self, csv_file: Path, taxonomy_file: Path, run_cmd: list[str], env: dict[str, str] | None = None
     ) -> float:
         """Build the taxonomy tree from CSV.
 
@@ -123,12 +121,7 @@ class BenchmarkRunner:
         Returns:
             Execution time in seconds
         """
-        cmd = run_cmd + [
-            "tact_build_taxonomic_tree",
-            str(csv_file),
-            "--output",
-            str(taxonomy_file),
-        ]
+        cmd = [*run_cmd, "tact_build_taxonomic_tree", str(csv_file), "--output", str(taxonomy_file)]
 
         # Merge with current environment
         process_env = os.environ.copy()
@@ -155,8 +148,8 @@ class BenchmarkRunner:
         backbone: Path,
         taxonomy: Path,
         output_base: Path,
-        run_cmd: List[str],
-        env: Optional[Dict[str, str]] = None,
+        run_cmd: list[str],
+        env: dict[str, str] | None = None,
     ) -> float:
         """Run tact_add_taxa command.
 
@@ -170,7 +163,8 @@ class BenchmarkRunner:
         Returns:
             Execution time in seconds
         """
-        cmd = run_cmd + [
+        cmd = [
+            *run_cmd,
             "tact_add_taxa",
             "--backbone",
             str(backbone),
@@ -186,7 +180,7 @@ class BenchmarkRunner:
             process_env.update(env)
 
         start = time.perf_counter()
-        result = subprocess.run(
+        subprocess.run(
             cmd,
             capture_output=True,
             text=True,
@@ -197,7 +191,7 @@ class BenchmarkRunner:
 
         return elapsed
 
-    def ensure_python_version(self, name: str, impl_config: Dict[str, Any]) -> bool:
+    def ensure_python_version(self, name: str, impl_config: dict[str, Any]) -> bool:
         """Ensure a Python version is installed via uv and verify it works.
 
         Args:
@@ -216,7 +210,7 @@ class BenchmarkRunner:
                 check=True,
             )
         except (subprocess.CalledProcessError, FileNotFoundError):
-            print(f"Error: uv is not installed. Please install uv first:")
+            print("Error: uv is not installed. Please install uv first:")
             print("  curl -LsSf https://astral.sh/uv/install.sh | sh")
             return False
 
@@ -255,9 +249,9 @@ class BenchmarkRunner:
 
         # For Python 3.14 with JIT, verify JIT is enabled
         if name == "uv (python3.14-jit)":
-            print(f"Verifying Python 3.14 JIT is enabled...", end=" ", flush=True)
+            print("Verifying Python 3.14 JIT is enabled...", end=" ", flush=True)
             try:
-                code = "import sys; jit = getattr(sys, '_jit', None); print('True' if jit and jit.is_enabled() else 'False')"
+                code = "import sys;j=getattr(sys,'_jit',None);print('True' if j and j.is_enabled() else 'False')"
                 process_env = os.environ.copy()
                 process_env["PYTHON_JIT"] = "1"
                 result = subprocess.run(
@@ -280,12 +274,12 @@ class BenchmarkRunner:
     def benchmark_implementation(
         self,
         name: str,
-        run_cmd: List[str],
+        run_cmd: list[str],
         backbone: Path,
         taxonomy: Path,
         output_base: Path,
-        env: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, float]:
+        env: dict[str, str] | None = None,
+    ) -> dict[str, float]:
         """Benchmark a single Python implementation.
 
         Args:
@@ -299,9 +293,9 @@ class BenchmarkRunner:
         Returns:
             Dictionary with timing statistics
         """
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"Benchmarking: {name}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         times = []
 
@@ -309,7 +303,7 @@ class BenchmarkRunner:
         if self.warmup > 0:
             print(f"Running {self.warmup} warmup run(s)...")
             for i in range(self.warmup):
-                print(f"  Warmup {i+1}/{self.warmup}...", end=" ", flush=True)
+                print(f"  Warmup {i + 1}/{self.warmup}...", end=" ", flush=True)
                 try:
                     self.run_tact_add_taxa(backbone, taxonomy, output_base, run_cmd, env)
                     print("✓")
@@ -320,7 +314,7 @@ class BenchmarkRunner:
         # Actual benchmark runs
         print(f"\nRunning {self.runs} benchmark run(s)...")
         for i in range(self.runs):
-            print(f"  Run {i+1}/{self.runs}...", end=" ", flush=True)
+            print(f"  Run {i + 1}/{self.runs}...", end=" ", flush=True)
             try:
                 elapsed = self.run_tact_add_taxa(backbone, taxonomy, output_base, run_cmd, env)
                 times.append(elapsed)
@@ -346,7 +340,7 @@ class BenchmarkRunner:
             "runs": times,
         }
 
-    def run(self) -> Dict[str, Dict[str, float]]:
+    def run(self) -> dict[str, dict[str, float]]:
         """Run all benchmarks.
 
         Returns:
@@ -408,7 +402,7 @@ class BenchmarkRunner:
             shutil.rmtree(self.temp_dir)
             print(f"\nCleaned up temporary directory: {self.temp_dir}")
 
-    def format_results(self, results: Dict[str, Dict[str, float]]) -> str:
+    def format_results(self, results: dict[str, dict[str, float]]) -> str:
         """Format results as a markdown table.
 
         Args:
@@ -456,24 +450,22 @@ class BenchmarkRunner:
             # Format mean with std dev (matching hyperfine format)
             mean_str = f"{mean_time:.3f} ± {std_time:.3f}" if std_time > 0 else f"{mean_time:.3f}"
 
-            lines.append(
-                f"| `{name}` | {mean_str} | {min_time:.3f} | {max_time:.3f} | {relative_str} |"
-            )
+            lines.append(f"| `{name}` | {mean_str} | {min_time:.3f} | {max_time:.3f} | {relative_str} |")
 
         return "\n".join(lines)
 
     def __enter__(self):
+        """Enter the context."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context."""
         self.cleanup()
 
 
 def main():
     """Main entry point."""
-    parser = argparse.ArgumentParser(
-        description="Benchmark TACT performance across different Python implementations"
-    )
+    parser = argparse.ArgumentParser(description="Benchmark TACT performance across different Python implementations")
     parser.add_argument(
         "--dataset",
         choices=["carangaria", "percomorphaceae"],
@@ -516,9 +508,9 @@ def main():
         if args.json:
             print("\n" + json.dumps(results, indent=2))
         else:
-            print("\n" + "="*60)
+            print("\n" + "=" * 60)
             print("RESULTS")
-            print("="*60)
+            print("=" * 60)
             print(runner.format_results(results))
 
 

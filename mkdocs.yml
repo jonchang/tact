@@ -60,7 +60,6 @@ nav:
   - For developers:
     - Contributing: contributing.md
     - License: license.md
-    - Third-party licenses: third-party-licenses.md
 
 markdown_extensions:
   - admonition
