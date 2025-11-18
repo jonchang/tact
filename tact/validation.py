@@ -28,7 +28,7 @@ def validate_newick(ctx, param, value, **kwargs):
 def validate_tree_node_depths(ctx, param, value):
     """Validates a DendroPy tree, ensuring that the node depth is equal for all tips."""
     node_depths = compute_node_depths(value)
-    stats = collections.defaultdict(int)
+    stats: collections.defaultdict[int, int] = collections.defaultdict(int)
     for v in node_depths.values():
         stats[v] += 1
     if len(stats) > 1:
