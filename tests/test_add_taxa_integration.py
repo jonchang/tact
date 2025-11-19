@@ -42,8 +42,8 @@ def run_tact(script_runner, datadir, stem, tmp_path):
 def test_yule(script_runner, execution_number, datadir, tmp_path):
     backbone = os.path.join(datadir, "stem2.backbone.tre")
     taxonomy = os.path.join(datadir, "stem2.taxonomy.tre")
-    taxed = Tree.get(path=taxonomy, schema="newick")
-    bbone = Tree.get(path=backbone, schema="newick", rooting="default-rooted")
+    Tree.get(path=taxonomy, schema="newick")
+    Tree.get(path=backbone, schema="newick", rooting="default-rooted")
     output_base = tmp_path / "tact-pytest-yule"
     result = script_runner.run(
         [
