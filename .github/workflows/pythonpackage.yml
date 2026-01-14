@@ -70,7 +70,7 @@ jobs:
       - name: Install package for testing
         run: poetry install -v --all-extras
       - name: Test with pytest
-        run: poetry run pytest --script-launch-mode=subprocess
+        run: poetry run pytest --script-launch-mode=subprocess -W error::DeprecationWarning
       - name: Reinstall package for production
         run: |
           poetry env list --full-path | xargs rm -rf
