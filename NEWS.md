@@ -1,5 +1,12 @@
 # Change History
 
+## tact 0.8.0
+
+* Docker images are now built for ARM using native runners ([#380](https://github.com/jonchang/tact/pull/380)).
+* The SciPy-based optimizer has been restored due to poor optimization performance ([#382](https://github.com/jonchang/tact/pull/382)).
+* The minimum required version of Python is now 3.11 ([#381](https://github.com/jonchang/tact/pull/381)).
+* Various documentation improvements and dependency updates (NumPy, SciPy, urllib3, GitHub Actions).
+
 ## tact 0.7.0
 
 * TACT has migrated to using a pure-Python optimizer (pyprima, [#379](https://github.com/jonchang/tact/pull/379)). This removes the dependency on SciPy and should make it much easier to use TACT when the Docker installation method is not available. Our benchmarking shows that the speed and accuracy is comparable to the existing L-BFGS-B and simulated annealing optimizers.
