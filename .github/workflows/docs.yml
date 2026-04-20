@@ -30,7 +30,7 @@ jobs:
       - name: Build documentation
         run: |
           mkdocs build
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
   deploy:
     runs-on: ubuntu-slim
     concurrency:
