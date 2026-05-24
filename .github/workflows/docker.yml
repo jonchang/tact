@@ -59,8 +59,18 @@ jobs:
             type=semver,pattern={{major}}
             type=sha
 
+      - name: Check DockerHub permissions
+        id: dockerhub
+        shell: bash
+        run: |
+          if [ -z $"{{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "dockerhub=false" >> $GITHUB_OUTPUT
+          else
+            echo "dockerhub=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Login to DockerHub
-        if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'
+        if: steps.dockerhub.outputs.dockerhub == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ github.repository_owner }}
@@ -75,7 +85,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push by digest (DockerHub)
-        if: github.event_name != 'pull_request' || github.actor != 'dependabot[bot]'
+        if: github.event_name != 'pull_request' && steps.dockerhub.outputs.dockerhub == 'true'
         uses: docker/build-push-action@v7
         id: build-dockerhub
         with:
@@ -97,7 +107,7 @@ jobs:
         if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
-          if [ "${{ github.actor }}" != "dependabot[bot]" ]; then
+          if [ steps.dockerhub.outputs.dockerhub == 'true' ]; then
             digest="${{ steps.build-dockerhub.outputs.digest }}"
             echo "${digest#sha256:}" > /tmp/digests/dockerhub-digest
           fi
@@ -147,7 +157,7 @@ jobs:
             type=sha
 
       - name: Login to DockerHub
-        if: github.actor != 'dependabot[bot]'
+        if: steps.dockerhub.outputs.dockerhub == 'true'
         uses: docker/login-action@v4
         with:
           username: ${{ github.repository_owner }}
@@ -161,7 +171,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create and push merged image (DockerHub)
-        if: github.actor != 'dependabot[bot]'
+        if: steps.dockerhub.outputs.dockerhub == 'true'
         working-directory: /tmp/digests
         run: |
           # Extract all Docker image tags from the Docker metadata JSON, prepend each with "-t " (required by buildx), and convert them into a single space-separated string
@@ -179,7 +189,7 @@ jobs:
 
       - name: Inspect Docker images
         run: |
-          if [ "${{ github.actor }}" != "dependabot[bot]" ]; then
+          if [ steps.dockerhub.outputs.dockerhub == 'true' ]; then
             docker buildx imagetools inspect "jonchang/tact:${{ steps.meta.outputs.version }}"
           fi
           docker buildx imagetools inspect "ghcr.io/jonchang/tact:${{ steps.meta.outputs.version }}"
