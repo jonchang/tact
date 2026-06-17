@@ -1114,18 +1114,18 @@ testing = ["coverage", "pytest", "pytest-benchmark"]
 
 [[package]]
 name = "portion"
-version = "2.6.1"
+version = "2.6.2"
 description = "Python data structure and operations for intervals"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "portion-2.6.1-py3-none-any.whl", hash = "sha256:764d0be5479842f011feccc6f4bf80454dd944ef16309fceb2b5ae229cf05df3"},
-    {file = "portion-2.6.1.tar.gz", hash = "sha256:44b1f7d57e052993c4157e519dc447e57b87a4e5e00a77c1c50e7044104e53c6"},
+    {file = "portion-2.6.2-py3-none-any.whl", hash = "sha256:86be115afafa776174dc5eac82afb6496c9fa3684f5b3a844c3139535c51085e"},
+    {file = "portion-2.6.2.tar.gz", hash = "sha256:fbf334143dbac5d07ffa411784e2b29e4e1f21203385019a93e2c1a8f443da16"},
 ]
 
 [package.dependencies]
-sortedcontainers = ">=2.2,<3.0"
+sortedcontainers = ">=2.4,<3.0"
 
 [[package]]
 name = "py-cpuinfo"
@@ -1656,4 +1656,4 @@ dev = ["hypothesis", "mkdocs", "mkdocs-git-revision-date-localized-plugin", "mkd
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4"
-content-hash = "655f66c945f095219bdcbb100ccf72141641875507fa3f24016f861d2cbb8837"
+content-hash = "36e38cc2008a17942cd2052408b2fdb6c2bbb548d2731c1dce28d11753bf030b"
