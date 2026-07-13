@@ -310,14 +310,14 @@ toml = ["tomli ; python_full_version <= \"3.11.0a6\""]
 
 [[package]]
 name = "dendropy"
-version = "5.0.8"
+version = "5.0.10"
 description = "A Python library for phylogenetics and phylogenetic computing: reading, writing, simulation, processing and manipulation of phylogenetic trees (phylogenies) and characters."
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
 files = [
-    {file = "DendroPy-5.0.8-py3-none-any.whl", hash = "sha256:6fa3fe71c67cf71d262cf33f12395735de9cd439852d0bd2d229c19df89a2992"},
-    {file = "DendroPy-5.0.8.tar.gz", hash = "sha256:1aa901399dc588d56f155930992dd03549f5d8e617ae09a65686bbda98b6ace3"},
+    {file = "dendropy-5.0.10-py3-none-any.whl", hash = "sha256:65fe155c3fc880311db5bdcbe6e48bf2a830275d3ee4839ccf8967c7f57e8cfc"},
+    {file = "dendropy-5.0.10.tar.gz", hash = "sha256:3d749f54fba88236f0cac5bd6247cd226e896d2a439032ec25055d6773f3b2bd"},
 ]
 
 [package.dependencies]
@@ -1656,4 +1656,4 @@ dev = ["hypothesis", "mkdocs", "mkdocs-git-revision-date-localized-plugin", "mkd
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<4"
-content-hash = "ca64d5de85baaf593e99954cd67de2bf2665d3b59999d72930110a9a78568642"
+content-hash = "4a6c00c72a0ec7addda9784e8fc9422d23f641fe218d46037976bd0ba3295964"
