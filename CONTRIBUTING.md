@@ -25,7 +25,7 @@ $ poetry run pytest
 $ poetry run tact_add_taxa --version
 ```
 
-TACT requires Python 3.11 or higher (for PyPy compatibility).
+TACT requires Python 3.12 or higher.
 
 ## Pull requests
 
