@@ -208,7 +208,46 @@ def compute_node_depths(tree: dendropy.Tree) -> dict[str, int]:
     return res
 
 
-def graft_node(graft_recipient: dendropy.Node, graft: dendropy.Node, stem: bool = False) -> dendropy.Node:
+def set_leafset_bitmask(node: dendropy.Node, bitmask: int) -> None:
+    """Set the leafset bitmask of the edge subtending a node.
+
+    Args:
+        node: Node whose subtending edge should be updated.
+        bitmask: Bitmask of the taxa descending from the node.
+    """
+    node.edge.bipartition = dendropy.Bipartition(
+        leafset_bitmask=bitmask, compile_bipartition=False, is_mutable=True, is_rooted=True
+    )
+
+
+def encode_leafset_bitmasks(node: dendropy.Node, taxon_namespace: dendropy.TaxonNamespace) -> int:
+    """Compute and store leafset bitmasks for every edge in a subtree.
+
+    Args:
+        node: Node representing the root of the subtree.
+        taxon_namespace: Taxon namespace that the leaves of the subtree belong to.
+
+    Returns:
+        Bitmask of the taxa in the subtree.
+    """
+    bitmask = 0
+    for nd in node.postorder_iter():
+        if nd.is_leaf():
+            bitmask = taxon_namespace.taxon_bitmask(nd.taxon)
+        else:
+            bitmask = 0
+            for child in nd.child_node_iter():
+                bitmask |= child.edge.bipartition.leafset_bitmask
+        set_leafset_bitmask(nd, bitmask)
+    return bitmask
+
+
+def graft_node(
+    graft_recipient: dendropy.Node,
+    graft: dendropy.Node,
+    stem: bool = False,
+    taxon_namespace: dendropy.TaxonNamespace | None = None,
+) -> dendropy.Node:
     """Graft a node randomly into a subtree.
 
     Grafts a node into the subtree below the recipient node, randomly selecting
@@ -221,10 +260,18 @@ def graft_node(graft_recipient: dendropy.Node, graft: dendropy.Node, stem: bool 
     3. Tail node older than graft node
     4. Not be locked
 
+    If `taxon_namespace` is given, ensure that the tree is left ready for MRCA lookups
+    without a subsequent call to `update_tree_view`. Prior to grafting, the bitmasks of
+    the tree must be up-to-date, and every node in the grafted subtree must already have
+    its age set.
+    * leafset bitmasks are computed for the grafted subtree
+    * new taxa are added to the bitmask of every edge between the graft and the root
+
     Args:
         graft_recipient: Node representing the clade to graft into.
         graft: Node to graft (must have age attribute set).
         stem: If True, allow grafting on the stem edge. Default: False.
+        taxon_namespace: If given, keep the leafset bitmasks of the tree up to date. Default: None.
 
     Returns:
         The crown node of the clade (may be the graft if it becomes the new crown).
@@ -268,6 +315,15 @@ def graft_node(graft_recipient: dendropy.Node, graft: dendropy.Node, stem: bool 
     if focal_node.edge.length < 0:
         raise Exception("negative branch length")
     graft.add_child(focal_node)
+
+    if taxon_namespace is not None:
+        new_taxa = 0
+        for child in graft.child_node_iter():
+            if child is not focal_node:
+                new_taxa |= encode_leafset_bitmasks(child, taxon_namespace)
+        set_leafset_bitmask(graft, new_taxa | focal_node.edge.bipartition.leafset_bitmask)
+        for ancestor in graft.ancestor_iter():
+            set_leafset_bitmask(ancestor, new_taxa | ancestor.edge.bipartition.leafset_bitmask)
 
     # return the (potentially new) crown of the clade
     if graft_recipient.parent_node == graft:

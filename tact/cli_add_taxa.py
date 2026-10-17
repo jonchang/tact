@@ -26,7 +26,6 @@ from .tree_util import (
     is_binary,
     is_fully_locked,
     lock_clade,
-    update_tree_view,
 )
 from .validation import BackboneCommand, validate_outgroups, validate_taxonomy_tree
 
@@ -132,7 +131,7 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False):
         new_leaf = new_node.new_child(taxon=namespace.require_taxon(new_species), edge_length=new_age)
         new_leaf.annotations.add_new("creation_method", "fill_new_taxa")
         new_leaf.age = 0
-        node = graft_node(node, new_node, stem)
+        node = graft_node(node, new_node, stem, taxon_namespace=namespace)
 
     count_short_branches = len(list(get_short_branches(node)))
     if count_short_branches:
@@ -443,9 +442,9 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
             # Generate a new tree
             new_tree = create_clade(tn, full_node_species, times)
             # Update our current MRCA node (because we might have attached to stem)
-            node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp)
-            tree_tips = update_tree_view(tree)
+            node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp, taxon_namespace=tn)
             # Update our view of what's in the tree
+            tree_tips.update(full_node_species)
             extant_species = tree_tips.intersection(species)
             # We've added this clade so pop it off our stack
             full_clades.remove(clade)
@@ -468,7 +467,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
         times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
         node = fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff
-        tree_tips = update_tree_view(tree)
+        tree_tips.update(species)
         # Since only monophyletic nodes get to here, lock this clade
         lock_clade(node)
         if not is_binary(node):
