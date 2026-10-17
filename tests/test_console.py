@@ -1,11 +1,13 @@
-"""Tests for log messages on the console and in the log file."""
+"""Tests for log messages and progress reporting on the console and in the log file."""
 
+import csv
+import io
 import logging
 import os
 
 import pytest
 
-from tact import cli_add_taxa, cli_add_toml, console
+from tact import cli_add_taxa, cli_add_toml, cli_check_trees, console
 
 INFO_MESSAGE = "Backbone needs to add"
 DEBUG_MESSAGE = "Computing root birth and death rates."
@@ -26,6 +28,14 @@ def read_log(output):
         return fh.read()
 
 
+@pytest.fixture
+def terminal(monkeypatch):
+    """Pretend that standard error is a terminal."""
+    monkeypatch.setattr(console, "_isatty", lambda stream: True)
+    # click checks for itself before drawing the bar
+    monkeypatch.setattr("click._termui_impl.isatty", lambda stream: True)
+
+
 @pytest.mark.parametrize(
     ("verbose", "console_info", "console_debug", "file_debug"),
     [
@@ -43,6 +53,7 @@ def test_log_levels(run_cli, stem2, tmp_path, verbose, console_info, console_deb
     # the log file always has INFO messages
     assert INFO_MESSAGE in log
     assert (DEBUG_MESSAGE in log) == file_debug
+    assert result.stdout == ""
 
 
 def test_add_config_logs_to_console(run_cli, tmp_path):
@@ -67,3 +78,47 @@ def test_setup_logging_replaces_handlers(tmp_path):
         console.reset_logging()
     assert read_log(tmp_path / "first") == ""
     assert read_log(tmp_path / "second") == "only in the second log\n"
+
+
+def test_progress_without_terminal(run_cli, stem2, tmp_path):
+    output = tmp_path / "out"
+    result = run_cli(cli_add_taxa.main, add_taxa_args(stem2, output))
+    lines = result.stderr.splitlines()
+    assert any(line.startswith("Rates: ") and line.endswith("(100%)") for line in lines)
+    assert any(line.startswith("TACT: ") and line.endswith("(100%)") for line in lines)
+    assert "[" not in result.stderr
+    assert "TACT: " in read_log(output)
+    assert result.stdout == ""
+
+
+def test_progress_bar_on_terminal(run_cli, stem2, tmp_path, terminal):
+    output = tmp_path / "out"
+    result = run_cli(cli_add_taxa.main, add_taxa_args(stem2, output))
+    assert "TACT  [" in result.stderr
+    assert "TACT: " not in result.stderr
+    # progress messages still go to the log file
+    assert "TACT: " in read_log(output)
+    assert result.stdout == ""
+
+
+def test_no_progress_bar_when_logging_to_terminal(run_cli, stem2, tmp_path, terminal):
+    result = run_cli(cli_add_taxa.main, add_taxa_args(stem2, tmp_path / "out", "-v"))
+    assert "TACT  [" not in result.stderr
+    # reported once, by the log handler
+    assert sum(line.startswith("TACT: ") and line.endswith("(100%)") for line in result.stderr.splitlines()) == 1
+
+
+@pytest.mark.parametrize("on_terminal", [False, True])
+def test_check_results_csv_on_stdout(run_cli, stem2, tmp_path, request, on_terminal):
+    backbone, taxonomy = stem2
+    output = tmp_path / "out"
+    run_cli(cli_add_taxa.main, add_taxa_args(stem2, output))
+    if on_terminal:
+        request.getfixturevalue("terminal")
+    args = [f"{output}.newick.tre", "--backbone", backbone, "--taxonomy", taxonomy, "--cores=1"]
+    result = run_cli(cli_check_trees.main, args)
+    rows = list(csv.reader(io.StringIO(result.stdout)))
+    assert rows[0][0] == "node"
+    assert len(rows) > 1
+    assert all(rows)
+    assert "Checking" in result.stderr

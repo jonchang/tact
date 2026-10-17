@@ -15,7 +15,7 @@ import click
 import dendropy
 
 from . import fastmrca
-from .console import setup_logging
+from .console import progressbar, setup_logging
 from .lib import crown_capture_probability, get_new_times
 from .tree_util import (
     get_ages,
@@ -256,12 +256,10 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
         root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips), yule
     )
 
-    with click.progressbar(
+    with progressbar(
         taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True),
-        width=12,
         label="Rates",
         length=nnodes,
-        show_pos=True,
         item_show_func=lambda x: x.label if x else None,
     ) as progress:
         for node in progress:
@@ -328,13 +326,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
 
     initial_length = len(tree_tips)
 
-    bar = click.progressbar(
-        label="TACT",
-        length=len(all_possible_tips) - initial_length,
-        show_pos=True,
-        width=12,
-        item_show_func=lambda x: x,
-    )
+    bar = progressbar(label="TACT", length=len(all_possible_tips) - initial_length, item_show_func=lambda x: x)
 
     def bar_update():
         diff = len(tree_tips) - initial_length - bar.pos
@@ -466,11 +458,10 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
 
     assert is_binary(tree.seed_node)
     # Reset terminal because we aren't using the context manager
-    bar.render_finish()
+    bar.finish()
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")
-    print()
 
 
 if __name__ == "__main__":

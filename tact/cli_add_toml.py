@@ -17,7 +17,7 @@ import click
 import dendropy
 import toml
 
-from .console import setup_logging
+from .console import progressbar, setup_logging
 from .lib import get_new_times
 from .tree_util import (
     get_ages,
@@ -227,7 +227,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
         acc = []
         for idx in range(replicates):
             acc.append(executor.submit(do_replicate, backbone, to_tact, idx))
-        with click.progressbar(as_completed(acc), width=12, label="TACT", length=replicates) as rf:
+        with progressbar(as_completed(acc), label="TACT", length=replicates) as rf:
             for future in rf:
                 results.append(future.result())
 
