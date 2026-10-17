@@ -204,7 +204,7 @@ def process_node(backbone_tree, backbone_bitmask, taxon_node, min_ccp, default_b
     if not taxon:
         logger.debug(f"MRCA: skipping unlabeled rank with {len(species)} species")
         return
-    all_bitmask = backbone_tree.taxon_namespace.taxa_bitmask(labels=species)
+    all_bitmask = fastmrca.bitmask(species)
     extant_bitmask = all_bitmask & backbone_bitmask
     if extant_bitmask is None or extant_bitmask == 0:
         logger.debug(f"MRCA: {taxon} not present in backbone")
@@ -255,7 +255,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 
     # Compute the rate of the root taxonomic node to use as a default value...
     logger.debug("Computing root birth and death rates.")
-    extant_bitmask = backbone_bitmask & backbone_tree.taxon_namespace.taxa_bitmask(labels=all_possible_tips)
+    extant_bitmask = backbone_bitmask & fastmrca.bitmask(all_possible_tips)
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     root_birth, root_death = get_birth_death_rates(
         root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips), yule
