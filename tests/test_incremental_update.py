@@ -4,12 +4,9 @@ import os
 import random
 
 import dendropy
-import numpy as np
 import pytest
-from click.testing import CliRunner
 
 from tact import cli_add_taxa, fastmrca
-from tact.cli_taxonomy import build_taxonomic_tree
 from tact.tree_util import get_tip_labels, graft_node, update_tree_view
 
 DATASETS = ["weirdness", "intrusion", "short_branch", "stem", "stem2"]
@@ -100,29 +97,6 @@ def test_graft_without_namespace_needs_full_refresh(small_tree):
     assert_tree_view_current(small_tree)
 
 
-def run_add_taxa(backbone, taxonomy, output, seed):
-    """Run `tact_add_taxa` in this process with a fixed random seed and return its output files."""
-    random.seed(seed)
-    # SciPy's annealing fallback draws from NumPy's global state
-    np.random.seed(seed)  # noqa: NPY002
-    # rates are kept in a module-level dict that would otherwise leak between runs
-    cli_add_taxa.mrca_rates.clear()
-    handlers = list(cli_add_taxa.logger.handlers)
-    try:
-        result = CliRunner().invoke(
-            cli_add_taxa.main,
-            ["--backbone", str(backbone), "--taxonomy", str(taxonomy), "--output", str(output)],
-            catch_exceptions=False,
-        )
-    finally:
-        for handler in cli_add_taxa.logger.handlers[:]:
-            if handler not in handlers:
-                cli_add_taxa.logger.removeHandler(handler)
-                handler.close()
-    assert result.exit_code == 0, result.output
-    return {ext: open(f"{output}.{ext}", "rb").read() for ext in ("newick.tre", "rates.csv")}
-
-
 def clade_ages(newick, tn):
     """Map every clade in a tree, as a leafset bitmask, to its age."""
     tree = dendropy.Tree.get(data=newick.decode(), schema="newick", rooting="default-rooted", taxon_namespace=tn)
@@ -130,7 +104,7 @@ def clade_ages(newick, tn):
     return {node.edge.bipartition.leafset_bitmask: node.age for node in tree.preorder_node_iter()}
 
 
-def check_every_graft(monkeypatch, tmp_path, backbone, taxonomy, seed):
+def check_every_graft(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed):
     """The tree view must be current after each graft over a whole run of `tact_add_taxa`."""
     grafts = 0
 
@@ -142,11 +116,11 @@ def check_every_graft(monkeypatch, tmp_path, backbone, taxonomy, seed):
         return result
 
     monkeypatch.setattr(cli_add_taxa, "graft_node", checked_graft_node)
-    run_add_taxa(backbone, taxonomy, tmp_path / "checked", seed)
+    add_taxa(backbone, taxonomy, tmp_path / "checked", seed=seed)
     assert grafts > 0
 
 
-def check_matches_full_refresh(monkeypatch, tmp_path, backbone, taxonomy, seed):
+def check_matches_full_refresh(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed):
     """`tact_add_taxa` must build the same tree as it did when refreshing the whole tree per graft."""
 
     def refreshing_graft_node(*args, **kwargs):
@@ -154,10 +128,10 @@ def check_matches_full_refresh(monkeypatch, tmp_path, backbone, taxonomy, seed):
         update_tree_view(fastmrca.tree)
         return result
 
-    incremental = run_add_taxa(backbone, taxonomy, tmp_path / "incremental", seed)
+    incremental = add_taxa(backbone, taxonomy, tmp_path / "incremental", seed=seed)
     with monkeypatch.context() as patch:
         patch.setattr(cli_add_taxa, "graft_node", refreshing_graft_node)
-        reference = run_add_taxa(backbone, taxonomy, tmp_path / "reference", seed)
+        reference = add_taxa(backbone, taxonomy, tmp_path / "reference", seed=seed)
 
     assert incremental["rates.csv"] == reference["rates.csv"]
     tn = dendropy.TaxonNamespace()
@@ -169,36 +143,28 @@ def check_matches_full_refresh(monkeypatch, tmp_path, backbone, taxonomy, seed):
     for clade, age in ours.items():
         assert age == pytest.approx(theirs[clade], abs=1e-9)
     # a different seed gives a different tree
-    assert run_add_taxa(backbone, taxonomy, tmp_path / "other", seed + 1)["newick.tre"] != incremental["newick.tre"]
+    assert add_taxa(backbone, taxonomy, tmp_path / "other", seed=seed + 1)["newick.tre"] != incremental["newick.tre"]
 
 
 @pytest.mark.parametrize("seed", range(3))
 @pytest.mark.parametrize("stem", DATASETS)
-def test_add_taxa_tree_view_current_after_every_graft(monkeypatch, datadir, tmp_path, stem, seed):
+def test_add_taxa_tree_view_current_after_every_graft(monkeypatch, add_taxa, datadir, tmp_path, stem, seed):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
-    check_every_graft(monkeypatch, tmp_path, backbone, taxonomy, seed)
+    check_every_graft(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed)
 
 
 @pytest.mark.parametrize("seed", range(3))
 @pytest.mark.parametrize("stem", DATASETS)
-def test_add_taxa_matches_full_refresh(monkeypatch, datadir, tmp_path, stem, seed):
+def test_add_taxa_matches_full_refresh(monkeypatch, add_taxa, datadir, tmp_path, stem, seed):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
-    check_matches_full_refresh(monkeypatch, tmp_path, backbone, taxonomy, seed)
+    check_matches_full_refresh(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed)
 
 
-@pytest.fixture
-def carangaria(datadir, tmp_path):
-    examples = os.path.join(os.path.dirname(os.path.dirname(datadir)), "examples")
-    taxonomy = tmp_path / "Carangaria.taxonomy.tre"
-    build_taxonomic_tree(os.path.join(examples, "Carangaria.csv")).write_to_path(str(taxonomy), schema="newick")
-    return os.path.join(examples, "Carangaria.tre"), taxonomy
+def test_add_taxa_tree_view_current_after_every_graft_carangaria(monkeypatch, add_taxa, carangaria, tmp_path):
+    check_every_graft(monkeypatch, add_taxa, tmp_path, *carangaria, 0)
 
 
-def test_add_taxa_tree_view_current_after_every_graft_carangaria(monkeypatch, carangaria, tmp_path):
-    check_every_graft(monkeypatch, tmp_path, *carangaria, 0)
-
-
-def test_add_taxa_matches_full_refresh_carangaria(monkeypatch, carangaria, tmp_path):
-    check_matches_full_refresh(monkeypatch, tmp_path, *carangaria, 0)
+def test_add_taxa_matches_full_refresh_carangaria(monkeypatch, add_taxa, carangaria, tmp_path):
+    check_matches_full_refresh(monkeypatch, add_taxa, tmp_path, *carangaria, 0)
