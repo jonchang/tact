@@ -15,6 +15,7 @@ import click
 import dendropy
 
 from . import fastmrca
+from .console import setup_logging
 from .lib import crown_capture_probability, get_new_times
 from .tree_util import (
     get_ages,
@@ -30,11 +31,6 @@ from .tree_util import (
 from .validation import BackboneCommand, validate_outgroups, validate_taxonomy_tree
 
 logger = logging.getLogger(__name__)
-# Speed up logging for PyPy
-logging._srcfile = None
-logging.logThreads = 0
-logging.logProcesses = 0
-logging.logMultiprocessing = 0
 
 global invalid_map
 invalid_map = {}
@@ -309,14 +305,7 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):
     """Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny."""
-    logger.addHandler(logging.FileHandler(output + ".log.txt"))
-    if verbose >= 2:
-        logger.setLevel(logging.DEBUG)
-    elif verbose == 1:
-        logger.setLevel(logging.INFO)
-    else:
-        logger.setLevel(logging.WARNING)
-        logger.addHandler(logging.StreamHandler())
+    setup_logging(output, verbose)
 
     tree = backbone
     tn = tree.taxon_namespace
