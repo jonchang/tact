@@ -6,6 +6,7 @@ import csv
 import click
 import dendropy
 
+from .console import progressbar
 from .validation import validate_tree_node_depths
 
 
@@ -92,7 +93,8 @@ def build_taxonomic_tree(filename):
     to_add = []
     stack = row
     known_nodes = {}
-    with click.progressbar(enumerate(reader), width=12, label="Generating taxonomy", length=len(lines)) as rf:
+    # the header and first row were read above
+    with progressbar(enumerate(reader), label="Generating taxonomy", length=len(lines) - 2) as rf:
         for _, row in rf:
             # Uniquify row names
             row = ["__TAXONOMIC_ROOT__", *row]

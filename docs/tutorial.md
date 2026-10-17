@@ -52,9 +52,9 @@ This creates `Carangaria.taxonomy.tre`, a [Newick format](https://en.wikipedia.o
 Now we'll run TACT to add the missing species from the taxonomy tree onto the backbone phylogeny. This is the main TACT command:
 
 ```console
-$ tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted --verbose --verbose
-Rates  [####################################]  226/226
-TACT  [####################################]  642/642  Carangaria
+$ tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
+Rates  [############]  227/227
+TACT  [############]  642/642  Carangaria
 ```
 
 You'll see two progress bars:
@@ -62,13 +62,15 @@ You'll see two progress bars:
 - **Rates**: TACT is estimating diversification rates for each taxonomic group
 - **TACT**: TACT is adding unsampled species to the tree
 
+If the output is not a terminal (for example, in the log of a cluster job), or if you add `--verbose`, TACT prints a line every 10% of the way instead of drawing bars.
+
 ### Understanding the output files
 
 TACT creates several files with the prefix `Carangaria.tacted` (the argument we passed to `--output`):
 
 - **`Carangaria.tacted.newick.tre`** and **`Carangaria.tacted.nexus.tre`**: Your complete phylogenies in Newick and NEXUS formats. These are your main results—complete, binary trees ready for downstream analysis.
 - **`Carangaria.tacted.rates.csv`**: Estimated diversification rates (birth and death rates) for each taxonomic group. This shows what rates TACT used when placing species.
-- **`Carangaria.tacted.log.txt`**: Detailed log file with verbose output about what TACT is doing and why. Useful for troubleshooting if something goes wrong.
+- **`Carangaria.tacted.log.txt`**: Log of what TACT did and why. Useful for troubleshooting if something goes wrong. Add `-v` to also see these messages as TACT runs, or `-vv` to include debugging messages.
 
 ## Checking your results
 

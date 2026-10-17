@@ -9,6 +9,7 @@ import os
 import click
 import dendropy
 
+from .console import progressbar
 from .tree_util import get_birth_death_rates, get_monophyletic_node, get_tip_labels, get_tree
 
 
@@ -134,7 +135,7 @@ def main(simulated, backbone, taxonomy, output, cores, chunksize):
             ]
         )
 
-        with click.progressbar(it, width=12, length=nnodes) as prog:
+        with progressbar(it, label="Checking", length=nnodes) as prog:
             for result in prog:
                 if result:
                     writer.writerow(result)

@@ -11,9 +11,9 @@ If something isn't working:
    tact_add_taxa --version
    ```
 
-2. Use `-vvv` (three v's) to get detailed, verbose logging:
+2. Use `-vv` (two v's) to see debugging messages as TACT runs:
    ```sh
-   tact_add_taxa --backbone yourtree.tre --taxonomy yourtaxonomy.tre --output result -vvv
+   tact_add_taxa --backbone yourtree.tre --taxonomy yourtaxonomy.tre --output result -vv
    ```
 
 3. Look at `{output}.log.txt` for detailed information about what TACT is doing and any warnings or errors.

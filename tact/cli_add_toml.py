@@ -17,6 +17,7 @@ import click
 import dendropy
 import toml
 
+from .console import progressbar, setup_logging
 from .lib import get_new_times
 from .tree_util import (
     get_ages,
@@ -32,11 +33,6 @@ from .tree_util import (
 from .validation import BackboneCommand
 
 logger = logging.getLogger(__name__)
-# Speed up logging for PyPy
-logging._srcfile = None
-logging.logThreads = 0
-logging.logProcesses = 0
-logging.logMultiprocessing = 0
 
 
 @dataclass
@@ -210,14 +206,7 @@ def do_replicate(backbone, to_tact, label):
 )
 def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
     """Add tips onto a BACKBONE phylogeny using a CONFIG file."""
-    logger.addHandler(logging.FileHandler(output + ".log.txt"))
-    if verbose >= 2:
-        logger.setLevel(logging.DEBUG)
-    elif verbose == 1:
-        logger.setLevel(logging.INFO)
-    else:
-        logger.setLevel(logging.WARNING)
-        logger.addHandler(logging.StreamHandler())
+    setup_logging(output, verbose)
 
     logger.info("Reading configuration")
     config = toml.load(config)
@@ -238,7 +227,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
         acc = []
         for idx in range(replicates):
             acc.append(executor.submit(do_replicate, backbone, to_tact, idx))
-        with click.progressbar(as_completed(acc), width=12, label="TACT", length=replicates) as rf:
+        with progressbar(as_completed(acc), label="TACT", length=replicates) as rf:
             for future in rf:
                 results.append(future.result())
 

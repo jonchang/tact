@@ -65,17 +65,17 @@ tact_add_taxa [OPTIONS]
 * `--min-ccp FLOAT` (0-1, default: 0.8): Minimum [crown capture probability](troubleshooting.md#what-is-crown-capture-probability)
 * `--yule`: Use Yule (pure-birth) model (extinction = 0)
 * `--ultrametricity-precision FLOAT` (default: 1e-6): [Ultrametricity check precision](troubleshooting.md#tree-is-not-ultrametric)
-* `-v, --verbose`: Verbose output (repeatable: `-v`, `-vv`, `-vvv`)
+* `-v, --verbose`: Show more log messages as TACT runs: `-v` for details of each step, `-vv` for debugging messages
 
 **Output files:**
 
 * `{output}.newick.tre`, `{output}.nexus.tre`: Complete binary ultrametric phylogenies (primary output)
 * `{output}.rates.csv`: Estimated diversification rates (columns: `taxon`, `birth`, `death`, `ccp`, `source`)
-* `{output}.log.txt`: Detailed log (use `-vv` or `-vvv` for more detail)
+* `{output}.log.txt`: Log of what TACT did and why (includes debugging messages with `-vv`)
 
 **Example:**
 ```bash
-tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted -vv
+tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
 ```
 
 ## `tact_check_results`

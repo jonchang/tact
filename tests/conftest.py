@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from click.testing import CliRunner
 
-from tact import cli_add_taxa, cli_add_toml
+from tact import cli_add_taxa, console
 from tact.cli_taxonomy import build_taxonomic_tree
 
 
@@ -30,16 +30,10 @@ def run_cli():
             # SciPy's annealing fallback draws from NumPy's global state
             np.random.seed(seed)  # noqa: NPY002
         cli_add_taxa.mrca_rates.clear()
-        loggers = [cli_add_taxa.logger, cli_add_toml.logger]
-        before = {logger: list(logger.handlers) for logger in loggers}
         try:
             result = CliRunner().invoke(command, [str(arg) for arg in args], catch_exceptions=False)
         finally:
-            for logger in loggers:
-                for handler in logger.handlers[:]:
-                    if handler not in before[logger]:
-                        logger.removeHandler(handler)
-                        handler.close()
+            console.reset_logging()
         assert result.exit_code == exit_code, result.output
         return result
 
