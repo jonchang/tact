@@ -55,7 +55,7 @@ def reset_logging() -> None:
 
 def _isatty(stream) -> bool:
     try:
-        return stream.isatty()
+        return bool(stream.isatty())
     except (AttributeError, ValueError):
         return False
 
