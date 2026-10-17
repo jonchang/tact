@@ -4,12 +4,9 @@ import os
 import random
 
 import dendropy
-import numpy as np
 import pytest
-from click.testing import CliRunner
 
-from tact import cli_add_taxa, fastmrca
-from tact.cli_taxonomy import build_taxonomic_tree
+from tact import fastmrca
 from tact.tree_util import get_monophyletic_node, get_tip_labels, update_tree_view
 
 DATASETS = ["weirdness", "intrusion", "short_branch", "stem", "stem2"]
@@ -125,49 +122,24 @@ def test_requires_initialization(monkeypatch):
         fastmrca.get(["A"])
 
 
-def run_add_taxa(backbone, taxonomy, output, seed):
-    random.seed(seed)
-    # SciPy's annealing fallback draws from NumPy's global state
-    np.random.seed(seed)  # noqa: NPY002
-    # rates are kept in a module-level dict that would otherwise leak between runs
-    cli_add_taxa.mrca_rates.clear()
-    handlers = list(cli_add_taxa.logger.handlers)
-    try:
-        result = CliRunner().invoke(
-            cli_add_taxa.main,
-            ["--backbone", str(backbone), "--taxonomy", str(taxonomy), "--output", str(output)],
-            catch_exceptions=False,
-        )
-    finally:
-        for handler in cli_add_taxa.logger.handlers[:]:
-            if handler not in handlers:
-                cli_add_taxa.logger.removeHandler(handler)
-                handler.close()
-    assert result.exit_code == 0, result.output
-    return {ext: open(f"{output}.{ext}", "rb").read() for ext in ("newick.tre", "nexus.tre", "rates.csv")}
-
-
-def assert_output_unchanged(monkeypatch, tmp_path, backbone, taxonomy, seed):
+def assert_output_unchanged(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed):
     """`tact_add_taxa` must write the same files with the label index as with DendroPy's lookup."""
-    indexed = run_add_taxa(backbone, taxonomy, tmp_path / "indexed", seed)
+    indexed = add_taxa(backbone, taxonomy, tmp_path / "indexed", seed=seed)
     with monkeypatch.context() as patch:
         patch.setattr(fastmrca, "bitmask", dendropy_bitmask)
-        reference = run_add_taxa(backbone, taxonomy, tmp_path / "reference", seed)
+        reference = add_taxa(backbone, taxonomy, tmp_path / "reference", seed=seed)
     assert indexed == reference
     # a different seed gives a different tree
-    assert run_add_taxa(backbone, taxonomy, tmp_path / "other", seed + 1)["newick.tre"] != indexed["newick.tre"]
+    assert add_taxa(backbone, taxonomy, tmp_path / "other", seed=seed + 1)["newick.tre"] != indexed["newick.tre"]
 
 
 @pytest.mark.parametrize("seed", range(3))
 @pytest.mark.parametrize("stem", DATASETS)
-def test_add_taxa_output_unchanged(monkeypatch, datadir, tmp_path, stem, seed):
+def test_add_taxa_output_unchanged(monkeypatch, add_taxa, datadir, tmp_path, stem, seed):
     backbone = os.path.join(datadir, stem + ".backbone.tre")
     taxonomy = os.path.join(datadir, stem + ".taxonomy.tre")
-    assert_output_unchanged(monkeypatch, tmp_path, backbone, taxonomy, seed)
+    assert_output_unchanged(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed)
 
 
-def test_add_taxa_output_unchanged_carangaria(monkeypatch, datadir, tmp_path):
-    examples = os.path.join(os.path.dirname(os.path.dirname(datadir)), "examples")
-    taxonomy = tmp_path / "Carangaria.taxonomy.tre"
-    build_taxonomic_tree(os.path.join(examples, "Carangaria.csv")).write_to_path(str(taxonomy), schema="newick")
-    assert_output_unchanged(monkeypatch, tmp_path, os.path.join(examples, "Carangaria.tre"), taxonomy, 0)
+def test_add_taxa_output_unchanged_carangaria(monkeypatch, add_taxa, carangaria, tmp_path):
+    assert_output_unchanged(monkeypatch, add_taxa, tmp_path, *carangaria, 0)

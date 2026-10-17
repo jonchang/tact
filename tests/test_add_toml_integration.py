@@ -3,10 +3,12 @@ import sys
 import pytest
 from dendropy import Tree
 
+from tact import cli_add_toml
+
 execution_number = range(2)
 
 
-def run_tact(script_runner, tmp_path, config, backbone, args=None):
+def run_tact(run_cli, tmp_path, config, backbone, args=None):
     if args is None:
         args = []
     config_path = tmp_path / "conf.toml"
@@ -14,20 +16,10 @@ def run_tact(script_runner, tmp_path, config, backbone, args=None):
     config_path.write_text(config)
     backbone_path.write_text(backbone)
 
-    result = script_runner.run(
-        [
-            "tact_add_config",
-            "--config",
-            str(config_path),
-            "--backbone",
-            str(backbone_path),
-            "--output",
-            str(tmp_path / "pytest"),
-            "-vv",
-            *args,
-        ]
+    run_cli(
+        cli_add_toml.main,
+        ["--config", config_path, "--backbone", backbone_path, "--output", tmp_path / "pytest", "-vv", *args],
     )
-    assert result.returncode == 0
 
     output = tmp_path / "pytest.newick.tre"
     tacted = Tree.get(path=output, schema="newick", rooting="default-rooted")
@@ -38,7 +30,7 @@ def run_tact(script_runner, tmp_path, config, backbone, args=None):
 
 @pytest.mark.parametrize("execution_number", execution_number)
 @pytest.mark.parametrize("focal_clade", ["A", "B", "C"])
-def test_lone_singleton(script_runner, execution_number, tmp_path, focal_clade):
+def test_lone_singleton(run_cli, execution_number, tmp_path, focal_clade):
     config = f"""
     [[tact]]
     name = "{focal_clade}"
@@ -50,7 +42,7 @@ def test_lone_singleton(script_runner, execution_number, tmp_path, focal_clade):
     """
 
     backbone = "((A:1,B:1):1,C:2);"
-    res = run_tact(script_runner, tmp_path, config, backbone)
+    res = run_tact(run_cli, tmp_path, config, backbone)
     new_tips = [f"{focal_clade} tact {x}" for x in range(10)]
     all_tips = {focal_clade, *new_tips}
     mrca_node = res.mrca(taxon_labels=all_tips)
