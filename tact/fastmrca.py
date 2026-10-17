@@ -9,6 +9,25 @@ if TYPE_CHECKING:
 
 tree: "dendropy.Tree | None" = None
 
+# Maps each label in a DendroPy tree to the combined bitmask of the taxa carrying that label.
+# `TaxonNamespace.taxa_bitmask(labels=...)` scans the whole namespace once per label, which
+# is quadratic. Cache per-label bitmasks to improve lookup speed for large clades.
+_label_bitmasks: dict[str, int] = {}
+_namespace_size = -1
+
+
+def _index_labels(tn: "dendropy.TaxonNamespace") -> None:
+    """Rebuild the label to bitmask index for a taxon namespace."""
+    global _namespace_size
+    _label_bitmasks.clear()
+    for taxon in tn:
+        if taxon.label is None:
+            continue
+        # normalize labels the same way DendroPy does when it matches them
+        key = taxon.label if tn.is_case_sensitive else str(taxon.label).lower()
+        _label_bitmasks[key] = _label_bitmasks.get(key, 0) | tn.taxon_bitmask(taxon)
+    _namespace_size = len(tn)
+
 
 def initialize(phy: "dendropy.Tree") -> None:
     """Initialize the fastmrca singleton with a tree.
@@ -18,10 +37,16 @@ def initialize(phy: "dendropy.Tree") -> None:
     """
     global tree
     tree = phy
+    _index_labels(phy.taxon_namespace)
 
 
 def bitmask(labels: list[str]) -> int:
     """Get a bitmask for the specified taxa labels.
+
+    Intended to be equivalent to DendroPy's `TaxonNamespace.taxa_bitmask(labels=labels)`.
+
+    * Labels that are not in the namespace are ignored
+    * Case sensitivity of the namespace is respected
 
     Args:
         labels: List of taxon labels.
@@ -36,7 +61,17 @@ def bitmask(labels: list[str]) -> int:
     if tree is None:
         raise RuntimeError("fastmrca not initialized")
     tn = tree.taxon_namespace
-    return tn.taxa_bitmask(labels=labels)  # type: ignore[no-any-return]
+    if len(tn) != _namespace_size:
+        # taxa were added to or removed from the namespace since the index was built
+        _index_labels(tn)
+    mask = 0
+    if tn.is_case_sensitive:
+        for label in labels:
+            mask |= _label_bitmasks.get(label, 0)
+    else:
+        for label in labels:
+            mask |= _label_bitmasks.get(str(label).lower(), 0)
+    return mask
 
 
 def get(labels: list[str]) -> "dendropy.Node | None":
