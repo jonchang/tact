@@ -120,20 +120,24 @@ class PlacementReport:
             species: Labels of the added species.
             taxon: Taxon whose clade in the tree they were added to.
             new_clade: Label of the clade generated for them, if they were added as a new clade.
+
+        Raises:
+            ValueError: If `taxon` does not contain the expected taxon of a species.
         """
         for name in sorted(species):
             expected = self._expected.get(name, taxon)
             skipped = []
             ranks_up = 0
             current = expected
-            while current is not None and current != taxon:
+            while current != taxon:
+                if current is None:
+                    raise ValueError(
+                        f"{name} was placed in {taxon}, which does not contain its expected taxon {expected}"
+                    )
                 if current in self.not_monophyletic:
                     skipped.append(current)
                 current = self._parents.get(current)
                 ranks_up += 1
-            if current is None:
-                # not below `taxon` in the taxonomy, which should not happen
-                skipped, ranks_up = [], ""
             intruders = self.not_monophyletic.get(expected, []) if skipped else []
             self._writer.writerow(
                 [

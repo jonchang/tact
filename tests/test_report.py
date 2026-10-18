@@ -83,6 +83,12 @@ def test_unlabelled_ranks_are_not_counted(tmp_path):
     assert row["skipped_taxa"] == "A"
 
 
+def test_placed_outside_expected_taxon(tmp_path):
+    with make_report(tmp_path, "((A_a,A_b)A,(B_c)B)F;", {"A a", "B c"}) as report:
+        with pytest.raises(ValueError, match="A b was placed in B, which does not contain its expected taxon A"):
+            report.placed(["A b"], "B")
+
+
 def test_intruders_are_backbone_tips(tmp_path):
     with make_report(tmp_path, "((A_a,A_b,A_c)A,(B_d,B_e)B)F;", {"A a", "A b", "B d"}) as report:
         # B e was added earlier and is not reported as an intruder
