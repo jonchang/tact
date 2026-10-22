@@ -25,7 +25,7 @@ $ poetry run pytest
 $ poetry run tact_add_taxa --version
 ```
 
-TACT requires Python 3.11 or higher (for PyPy compatibility).
+TACT requires Python 3.12 or higher.
 
 ## Pull requests
 
@@ -49,7 +49,7 @@ Tests are automatically run on all supported Python versions via GitHub Actions 
 
 1. **Verify CI passes**: [GitHub Actions](https://github.com/jonchang/tact/actions)
 
-2. **Update outdated packages** if needed. Always check for the presence of relevant compiled wheels, especially for NumPy with PyPy.
+2. **Update outdated packages** if needed. Always check that NumPy and SciPy have compiled wheels for every supported Python version, since the Docker image only installs dependencies from wheels.
    ```bash
    poetry show --outdated
    poetry update [package]
@@ -105,11 +105,11 @@ After pushing the tag:
 
 5. **Update GitHub release notes**: [Create a release](https://github.com/jonchang/tact/releases/new) and include highlights from NEWS.md
 
-6. **Announce new version**: Announce on Twitter or other relevant channels
+6. **Announce new version**: Announce on Twitter, Bluesky and other relevant channels
 
 **Important notes:**
 
 - GitHub Actions workflows automatically build and publish the new version to PyPI, and build container images for Docker Hub and GitHub Packages when a tag matching `v*.*.*` is pushed.
 - PyPI publishing uses trusted publishing aka OIDC (no manual upload needed).
-- Docker images are built using PyPy 3.10, which also serves as the PyPy compatibility test.
+- Docker images are built on the official Python "slim" image, with dependencies pinned to the versions in `poetry.lock`. Bump `PYTHON_VERSION` in the `Dockerfile` when a new Python release has wheels for all dependencies.
 - All tests run automatically in CI before the release is published.

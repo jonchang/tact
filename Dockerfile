@@ -1,59 +1,30 @@
-FROM debian:trixie-slim
-ARG DEBIAN_FRONTEND=noninteractive
+ARG PYTHON_VERSION=3.15
 
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-ENV PATH=/root/.local/bin:$PATH
+# Stage 1: build wheel and pin dependencies to poetry.lock versions
+FROM python:${PYTHON_VERSION}-slim AS build
 
-COPY . /tact
+ENV PIP_NO_CACHE_DIR=1 \
+  PIP_DISABLE_PIP_VERSION_CHECK=1 \
+  PIP_ROOT_USER_ACTION=ignore
 
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    cargo \
-    g++ \
-    gcc \
-    gfortran \
-    liblapack-dev \
-    liblapack3 \
-    libopenblas-dev \
-    libopenblas0 \
-    libssl-dev \
-    locales \
-    meson \
-    pkg-config \
-    pypy3 \
-    pypy3-dev \
-    pypy3-venv \
-    wget \
-  && wget -nv https://bootstrap.pypa.io/get-pip.py \
-  && wget -nv -O get-poetry.py https://install.python-poetry.org \
-  && rm /usr/lib/pypy3.*/EXTERNALLY-MANAGED \
-  && pypy3 get-pip.py \
-  && pypy3 get-poetry.py \
-  && cd tact \
-  && poetry self add poetry-plugin-export \
-  && poetry export -f requirements.txt -o requirements.txt --without-hashes --only main \
-  && pypy3 -mpip install -r requirements.txt --compile . \
-  && cd .. \
-  && pypy3 get-poetry.py --uninstall \
-  && rm -rf get-pip.py get-poetry.py \
-  && apt-get remove -y \
-    cargo \
-    g++ \
-    gcc \
-    gfortran \
-    liblapack-dev \
-    libopenblas-dev \
-    libssl-dev \
-    meson \
-    pkg-config \
-    pypy3-dev \
-    pypy3-venv \
-    wget \
-  && apt-get autoremove -y \
-  && rm -rf /var/lib/apt/lists/* \
-  && rm -rf /var/cache/* \
-  && rm -rf /var/log/* \
-  && rm -rf ~/.cache \
-  && rm -rf ~/.local
+RUN pip install poetry poetry-plugin-export
+
+COPY . /src
+WORKDIR /src
+RUN poetry build -f wheel -o /dist \
+  && poetry export -f requirements.txt -o /dist/requirements.txt --only main
+
+# Stage 2: install from wheels only to avoid compiling numpy/scipy
+FROM python:${PYTHON_VERSION}-slim
+
+ENV PIP_NO_CACHE_DIR=1 \
+  PIP_DISABLE_PIP_VERSION_CHECK=1 \
+  PIP_ROOT_USER_ACTION=ignore \
+  # avoid thread pool penalty from small linalg operations
+  OPENBLAS_NUM_THREADS=1
+
+RUN --mount=type=bind,from=build,source=/dist,target=/dist \
+  pip install --only-binary=:all: --require-hashes -r /dist/requirements.txt \
+  && pip install --no-deps /dist/*.whl
+
+CMD ["bash"]
