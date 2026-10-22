@@ -2,6 +2,7 @@
 
 import csv
 from collections.abc import Iterable
+from typing import Self
 
 import dendropy
 
@@ -47,7 +48,7 @@ class PlacementReport:
         backbone_tips: Labels of the tips in the backbone before any species are added.
     """
 
-    def __init__(self, path: str, taxonomy: dendropy.Tree, backbone_tips: Iterable[str]):
+    def __init__(self, path: str, taxonomy: dendropy.Tree, backbone_tips: Iterable[str]) -> None:
         """See the class docstring for the arguments."""
         self.path = path
         self.backbone_tips = frozenset(backbone_tips)
@@ -86,11 +87,11 @@ class PlacementReport:
             if node is not None:
                 self._expected[leaf.taxon.label] = node.label
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Return the report."""
         return self
 
-    def __exit__(self, *exc_info):
+    def __exit__(self, *exc_info: object) -> None:
         """Close the CSV file."""
         self.close()
 
