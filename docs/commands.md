@@ -62,7 +62,7 @@ tact_add_taxa [OPTIONS]
 
 **Required:**
 
-* `--taxonomy FILENAME`: Taxonomy tree (from `tact_build_taxonomic_tree`)
+* `--taxonomy FILE`: Taxonomy, either as a CSV file in the [`tact_build_taxonomic_tree`](#tact_build_taxonomic_tree) format or as the Newick tree that command builds from it.
 * `--backbone FILENAME`: Backbone phylogeny
 * `--output TEXT`: Base name for output files
 
@@ -72,6 +72,7 @@ tact_add_taxa [OPTIONS]
 * `--min-ccp FLOAT` (0-1, default: 0.8): Minimum [crown capture probability](troubleshooting.md#what-is-crown-capture-probability)
 * `--yule`: Use Yule (pure-birth) model (extinction = 0)
 * `--ultrametricity-precision FLOAT` (default: 1e-6): [Ultrametricity check precision](troubleshooting.md#tree-is-not-ultrametric)
+* `--fill-empty`: For a taxonomy CSV, fill empty rank cells with placeholder taxa, as with [`tact_build_taxonomic_tree --fill-empty`](#tact_build_taxonomic_tree). Not allowed with a taxonomy tree.
 * `-v, --verbose`: Show more log messages as TACT runs: `-v` for details of each step, `-vv` for debugging messages
 
 **Output files:**
@@ -96,6 +97,11 @@ Each added species is expected to go into the lowest taxon containing it that ha
 **Example:**
 ```bash
 tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
+```
+
+Or, skipping `tact_build_taxonomic_tree`:
+```bash
+tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.csv --output Carangaria.tacted
 ```
 
 ## `tact_check_results`

@@ -42,12 +42,12 @@ def run_cli():
 
 @pytest.fixture
 def add_taxa(run_cli):
-    """Run `tact_add_taxa` in-process and return its tree and rate files as bytes, keyed by extension."""
+    """Run `tact_add_taxa` in-process and return its tree, rate and placement files as bytes, keyed by extension."""
 
     def run(backbone, taxonomy, output, *args, seed=None):
         run_cli(cli_add_taxa.main, ["--backbone", backbone, "--taxonomy", taxonomy, "--output", output, *args], seed)
         outputs = {}
-        for ext in ("newick.tre", "nexus.tre", "rates.csv"):
+        for ext in ("newick.tre", "nexus.tre", "rates.csv", "placements.csv"):
             with open(f"{output}.{ext}", "rb") as fh:
                 outputs[ext] = fh.read()
         return outputs

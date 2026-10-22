@@ -203,6 +203,16 @@ def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
     return Taxonomy(rank_names, root, renamed, filled)
 
 
+def echo_changes(taxonomy: Taxonomy) -> None:
+    """Tell the user which empty cells were filled and which names were renamed while reading `taxonomy`."""
+    if taxonomy.filled:
+        click.echo(f"Filled {taxonomy.filled} empty cells with placeholder taxa.")
+    if taxonomy.renamed:
+        click.echo("Note: several rank names were adjusted to ensure uniqueness. These are:")
+        for (name, _), new in sorted(taxonomy.renamed.items()):
+            click.echo(f"{name} => {new}")
+
+
 def build_taxonomic_tree(filename: str, fill_empty: bool = False) -> dendropy.Tree:
     """Build a taxonomic tree from a CSV file. See `read_taxonomy` for the format and checks."""
     newick = read_taxonomy(filename, fill_empty).to_newick()
@@ -248,10 +258,5 @@ def main(taxonomy: str, output: str, schema: str, fill_empty: bool) -> None:
             fh.write(newick + "\n")
     else:
         dendropy.Tree.get(data=newick, schema="newick").write(path=output, schema=schema)
-    if parsed.filled:
-        click.echo(f"Filled {parsed.filled} empty cells with placeholder taxa.")
-    if parsed.renamed:
-        click.echo("Note: several rank names were adjusted to ensure uniqueness. These are:")
-        for (name, _), new in sorted(parsed.renamed.items()):
-            click.echo(f"{name} => {new}")
+    echo_changes(parsed)
     click.echo(f"Output written to: {click.format_filename(output)}")
