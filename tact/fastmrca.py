@@ -1,5 +1,6 @@
 """Singleton object that helps speed up MRCA lookups."""
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from .tree_util import get_tip_labels
@@ -40,7 +41,7 @@ def initialize(phy: "dendropy.Tree") -> None:
     _index_labels(phy.taxon_namespace)
 
 
-def bitmask(labels: list[str]) -> int:
+def bitmask(labels: Iterable[str]) -> int:
     """Get a bitmask for the specified taxa labels.
 
     Intended to be equivalent to DendroPy's `TaxonNamespace.taxa_bitmask(labels=labels)`.
@@ -49,7 +50,7 @@ def bitmask(labels: list[str]) -> int:
     * Case sensitivity of the namespace is respected
 
     Args:
-        labels: List of taxon labels.
+        labels: Iterable of taxon labels.
 
     Returns:
         Bitmask representing the taxa.
@@ -74,14 +75,14 @@ def bitmask(labels: list[str]) -> int:
     return mask
 
 
-def get(labels: list[str]) -> "dendropy.Node | None":
+def get(labels: Iterable[str]) -> "dendropy.Node | None":
     """Get the MRCA node for the specified taxa.
 
     Returns the most recent common ancestor node if all descendants of that
     node are included in the label set, otherwise returns None.
 
     Args:
-        labels: List of taxon labels to find MRCA for.
+        labels: Iterable of taxon labels to find MRCA for.
 
     Returns:
         MRCA node if it forms a monophyletic group, None otherwise.
@@ -93,7 +94,7 @@ def get(labels: list[str]) -> "dendropy.Node | None":
     if tree is None:
         raise RuntimeError("fastmrca not initialized")
     labels_set = set(labels)
-    mrca = tree.mrca(leafset_bitmask=bitmask(labels))
+    mrca = tree.mrca(leafset_bitmask=bitmask(labels_set))
     if mrca and labels_set.issuperset(get_tip_labels(mrca)):
         return mrca
     return None

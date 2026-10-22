@@ -11,13 +11,13 @@ import urllib.request
 EXAMPLES_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-def download_file(url, dest):
+def download_file(url: str, dest: str) -> None:
     """Download a file from URL to destination."""
     print(f"Downloading {os.path.basename(dest)}...")
     urllib.request.urlretrieve(url, dest)
 
 
-def main():
+def main() -> None:
     """Sets up the dataset."""
     with tempfile.TemporaryDirectory() as temp_dir:
         # Download phylogeny

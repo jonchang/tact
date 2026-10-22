@@ -2,6 +2,7 @@
 
 import collections
 import csv
+from collections.abc import Sequence
 
 import click
 import dendropy
@@ -10,7 +11,7 @@ from .console import progressbar
 from .validation import validate_tree_node_depths
 
 
-def fix_file(filename):
+def fix_file(filename: str) -> list[str]:
     """Slurps a file, and does various checks and fixes.
 
     These checks will sort the file and ensures column names are unique.
@@ -18,7 +19,7 @@ def fix_file(filename):
     with open(filename, encoding="utf-8") as rfile:
         lines = rfile.readlines()
 
-    heads = collections.defaultdict(int)
+    heads: collections.defaultdict[str, int] = collections.defaultdict(int)
     for item in lines[0].split(","):
         heads[item] += 1
     bad_heads = []
@@ -33,15 +34,16 @@ def fix_file(filename):
     return [lines[0], *sorted(lines[1:])]
 
 
-def ensure(st, ctx=""):
+def ensure(st: str, ctx: Sequence[str] = ()) -> None:
     """Ensures that a cell is not empty."""
     if len(st) == 0:
+        text = ""
         if len(ctx) > 0:
             text = f" Offending line:\n{','.join(ctx)}"
         raise click.UsageError("All cells in the CSV must be nonempty." + text)
 
 
-def mangle_rank(row, names):
+def mangle_rank(row: list[str], names: list[str]) -> list[str]:
     """Mangles a name with the rank associated with that name.
 
     This ensures that when constructing the taxonomic tree, each node has a unique name.
@@ -59,7 +61,7 @@ def mangle_rank(row, names):
     return new
 
 
-def build_taxonomic_tree(filename):
+def build_taxonomic_tree(filename: str) -> dendropy.Tree:
     """Builds a taxonomic tree given a filename referring to a CSV.
 
     The last column is assumed to be a species name. All ranks must nest completely within the next highest rank.
@@ -138,7 +140,7 @@ def build_taxonomic_tree(filename):
     default="newick",
     type=click.Choice(["newick", "nexus", "nexml"]),
 )
-def main(taxonomy, output, schema):
+def main(taxonomy: str, output: str, schema: str) -> None:
     r"""Generates a taxonomic tree from TAXONOMY.
 
     TAXONOMY is a comma-separated values file with several requirements.
@@ -158,9 +160,9 @@ def main(taxonomy, output, schema):
     This script makes **many** assumptions about its input for speed. Check
     the example taxonomy in the examples/ folder for guidance.
     """
-    taxonomy = build_taxonomic_tree(taxonomy)
-    msg = validate_tree_node_depths(None, None, taxonomy)
+    tree = build_taxonomic_tree(taxonomy)
+    msg = validate_tree_node_depths(None, None, tree)
     if msg:
         click.echo(msg)
-    taxonomy.write_to_path(output, schema=schema)
+    tree.write_to_path(output, schema=schema)
     click.echo(f"Output written to: {click.format_filename(output)}")

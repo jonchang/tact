@@ -9,6 +9,7 @@ import logging
 import operator
 import random
 import sys
+from collections.abc import Iterable
 from time import time
 
 import click
@@ -27,19 +28,22 @@ from .tree_util import (
     is_binary,
     is_fully_locked,
     lock_clade,
+    node_age,
 )
 from .validation import BackboneCommand, validate_outgroups, validate_taxonomy_tree
 
 logger = logging.getLogger(__name__)
 
-global invalid_map
-invalid_map = {}
+# Maps taxonomy node labels to the nearest valid ancestor in the taxonomy
+invalid_map: dict[str, dendropy.Node] = {}
 
-global mrca_rates
-mrca_rates = {}
+# Maps taxon names to (birth, death, crown capture probability, source of the rates)
+mrca_rates: dict[str, tuple[float, float, float, str]] = {}
 
 
-def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
+def search_ancestors_for_valid_backbone_node(
+    taxonomy_node: dendropy.Node, backbone_tips: set[str], ccp: float
+) -> tuple[dendropy.Node, dendropy.Node]:
     global invalid_map
     seen = []
     for anc in taxonomy_node.ancestor_iter():
@@ -77,7 +81,14 @@ def search_ancestors_for_valid_backbone_node(taxonomy_node, backbone_tips, ccp):
     return (taxonomy_target, backbone_target)
 
 
-def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, min_ccp=0.8, num_new_times=None):
+def get_new_branching_times(
+    backbone_node: dendropy.Node,
+    taxonomy_node: dendropy.Node,
+    told: float | None = None,
+    tyoung: float = 0,
+    min_ccp: float = 0.8,
+    num_new_times: int | None = None,
+) -> list[float]:
     """Get `n_total` new branching times for a `node`."""
     global mrca_rates
     taxon = taxonomy_node.label
@@ -119,7 +130,13 @@ def get_new_branching_times(backbone_node, taxonomy_node, told=None, tyoung=0, m
     return times
 
 
-def fill_new_taxa(namespace, node, new_taxa, times, stem=False):
+def fill_new_taxa(
+    namespace: dendropy.TaxonNamespace,
+    node: dendropy.Node,
+    new_taxa: Iterable[str],
+    times: list[float],
+    stem: bool = False,
+) -> dendropy.Node:
     for new_species, new_age in zip(new_taxa, times, strict=True):
         new_node = dendropy.Node()
         new_node.annotations.add_new("creation_method", "fill_new_taxa")
@@ -136,7 +153,7 @@ def fill_new_taxa(namespace, node, new_taxa, times, stem=False):
     return node
 
 
-def create_clade(namespace, species, ages):
+def create_clade(namespace: dendropy.TaxonNamespace, species: Iterable[str], ages: list[float]) -> dendropy.Tree:
     tree = dendropy.Tree(taxon_namespace=namespace)
     species = list(species)
     ages.sort(reverse=True)
@@ -177,14 +194,22 @@ def create_clade(namespace, species, ages):
     return tree
 
 
-def fmt_species_list(spp):
+def fmt_species_list(spp: Iterable[str]) -> str:
     spp = list(spp)
     if len(spp) > 2:
         return f"{spp[0]}, {spp[1]} and {len(spp) - 2} others"
     return " and ".join(spp)
 
 
-def process_node(backbone_tree, backbone_bitmask, taxon_node, min_ccp, default_birth, default_death, yule=False):
+def process_node(
+    backbone_tree: dendropy.Tree,
+    backbone_bitmask: int,
+    taxon_node: dendropy.Node,
+    min_ccp: float,
+    default_birth: float,
+    default_death: float,
+    yule: bool = False,
+) -> None:
     # TODO: Fix all the returns and refactor this into something sane
     global mrca_rates
     taxon = taxon_node.label
@@ -239,7 +264,13 @@ def process_node(backbone_tree, backbone_bitmask, taxon_node, min_ccp, default_b
     mrca_rates[taxon] = (birth, death, ccp, "computed")
 
 
-def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
+def node_label(node: dendropy.Node | None) -> str | None:
+    return node.label if node else None
+
+
+def run_precalcs(
+    taxonomy_tree: dendropy.Tree, backbone_tree: dendropy.Tree, min_ccp: float = 0.8, yule: bool = False
+) -> dict[str, tuple[float, float, float, str]]:
     global mrca_rates
     tree_tips = get_tip_labels(backbone_tree)
     backbone_bitmask = fastmrca.bitmask(tree_tips)
@@ -256,11 +287,12 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
         root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips), yule
     )
 
+    nodes: Iterable[dendropy.Node] = taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True)
     with progressbar(
-        taxonomy_tree.preorder_internal_node_iter(exclude_seed_node=True),
+        nodes,
         label="Rates",
         length=nnodes,
-        item_show_func=lambda x: x.label if x else None,
+        item_show_func=node_label,
     ) as progress:
         for node in progress:
             # updates global mrca_rates as a side effect
@@ -301,7 +333,16 @@ def run_precalcs(taxonomy_tree, backbone_tree, min_ccp=0.8, yule=False):
     help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
 )
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
-def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultrametricity_precision):
+def main(
+    taxonomy: dendropy.Tree,
+    backbone: dendropy.Tree,
+    outgroups: list[str] | None,
+    output: str,
+    min_ccp: float,
+    verbose: int,
+    yule: bool,
+    ultrametricity_precision: float,
+) -> None:
     """Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny."""
     setup_logging(output, verbose)
 
@@ -312,7 +353,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
 
     logger.info(f"Backbone needs to add {len(tree_tips.symmetric_difference(all_possible_tips))} tips")
 
-    full_clades = set()
+    full_clades: set[str] = set()
 
     fastmrca.initialize(tree)
 
@@ -328,7 +369,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
 
     bar = progressbar(label="TACT", length=len(all_possible_tips) - initial_length, item_show_func=lambda x: x)
 
-    def bar_update():
+    def bar_update() -> None:
         diff = len(tree_tips) - initial_length - bar.pos
         bar.update(diff, taxon if taxon else "")
 
@@ -397,7 +438,7 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
                     taxon_node,
                     min_ccp=min_ccp,
                     told=node.parent_node.age,
-                    tyoung=node.age,
+                    tyoung=node_age(node),
                     num_new_times=1,
                 )
                 # Drop the oldest time and add on our new time on the stem lineage
@@ -445,6 +486,8 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
         # Taxon spray
         logger.info(f"    {taxon}: adding {len(species.difference(extant_species))} new species")
         node = fastmrca.get(extant_species)
+        if node is None:
+            raise ValueError(f"{taxon} is no longer monophyletic after adding clades")
         times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
         node = fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff

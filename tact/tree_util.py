@@ -2,7 +2,7 @@
 
 import math
 import random
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import dendropy
 import portion
@@ -76,13 +76,14 @@ def get_tip_labels(tree_or_node: dendropy.Tree | dendropy.Node) -> set[str]:
     Returns:
         Set of taxon labels for all tips.
     """
-    try:
+    if isinstance(tree_or_node, dendropy.Tree):
         return {x.taxon.label for x in tree_or_node.leaf_node_iter()}
-    except AttributeError:
-        return {x.taxon.label for x in tree_or_node.leaf_iter()}
+    return {x.taxon.label for x in tree_or_node.leaf_iter()}
 
 
-def edge_iter(node: dendropy.Node, filter_fn: Callable[[dendropy.Edge], bool] | None = None) -> dendropy.Edge:
+def edge_iter(
+    node: dendropy.Node, filter_fn: Callable[[dendropy.Edge], bool] | None = None
+) -> Iterator[dendropy.Edge]:
     """Iterate over edges in a subtree.
 
     Args:
@@ -173,7 +174,7 @@ def is_ultrametric(
     return (math.isclose(t_min[1], t_max[1], rel_tol=tolerance), (t_min, t_max))
 
 
-def get_short_branches(node: dendropy.Node) -> dendropy.Edge:
+def get_short_branches(node: dendropy.Node) -> Iterator[dendropy.Edge]:
     """Get edges with very short branch lengths.
 
     Args:
@@ -280,7 +281,7 @@ def graft_node(
         Exception: If no eligible edge is found or negative branch lengths result.
     """
 
-    def filter_fn(x):
+    def filter_fn(x: dendropy.Edge) -> bool:
         return x.head_node.age <= graft.age and x.head_node.parent_node.age >= graft.age and x.label != "locked"
 
     all_edges = list(edge_iter(graft_recipient))
@@ -384,6 +385,25 @@ def is_fully_locked(node: dendropy.Node) -> bool:
         True if all edges are locked, False otherwise.
     """
     return all(x.label == "locked" for x in edge_iter(node))
+
+
+def node_age(node: dendropy.Node) -> float:
+    """Get the age of a node.
+
+    DendroPy initializes `Node.age` to None, so this narrows it to a float for type checkers.
+
+    Args:
+        node: DendroPy node with its age set.
+
+    Returns:
+        The age of the node.
+
+    Raises:
+        ValueError: If the node's age has not been set.
+    """
+    if node.age is None:
+        raise ValueError(f"{node} has no age; have node ages been calculated?")
+    return node.age
 
 
 def get_min_age(node: dendropy.Node) -> float:

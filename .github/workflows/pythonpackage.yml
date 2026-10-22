@@ -20,17 +20,12 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
-      - name: Install dependencies
-        run: |
-          pipx install 'poetry>=2'
-      - name: Install package with dev dependencies
-        run: poetry install -v --all-extras
-      - name: Run mypy type checking
-        run: poetry run mypy tact
+          python-version: '3.13' 
+      - run: pipx install 'poetry>=2' ty
+      - run: poetry install -v --all-extras
+      - run: poetry run ty check tact/ --output-format github
   build:
     needs: [lint, typecheck]
     runs-on: ubuntu-latest
