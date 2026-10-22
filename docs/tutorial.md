@@ -70,7 +70,23 @@ TACT creates several files with the prefix `Carangaria.tacted` (the argument we 
 
 - **`Carangaria.tacted.newick.tre`** and **`Carangaria.tacted.nexus.tre`**: Your complete phylogenies in Newick and NEXUS formats. These are your main results—complete, binary trees ready for downstream analysis.
 - **`Carangaria.tacted.rates.csv`**: Estimated diversification rates (birth and death rates) for each taxonomic group. This shows what rates TACT used when placing species.
+- **`Carangaria.tacted.placements.csv`**: Where each added species was placed. See [below](#species-placed-in-a-higher-taxon).
 - **`Carangaria.tacted.log.txt`**: Log of what TACT did and why. Useful for troubleshooting if something goes wrong. Add `-v` to also see these messages as TACT runs, or `-vv` to include debugging messages.
+
+### Species placed in a higher taxon
+
+When TACT finishes, it prints a summary like this:
+
+```
+Added 642 species; 241 (38%) were placed in a higher taxon because the lowest taxon with species in the backbone is not monophyletic there.
+Most affected:
+  Soleidae: 44 species placed in Pleuronectoidei (1 rank up; broken up by Cynoglossus attenuatus, Cynoglossus bilineatus and 17 others)
+  Arnoglossus: 30 species placed in Bothidae (1 rank up; broken up by Asterorhombus cocosensis, Bothus lunatus and 18 others)
+  ...
+Placement of each added species: Carangaria.tacted.placements.csv
+```
+
+TACT adds each missing species within the clade of its genus (or, for a genus with no sampled species, the next rank up). Here, the 44 missing species of Soleidae could not be added within Soleidae, because in the backbone Soleidae's clade also contains *Cynoglossus*. They were added anywhere within Pleuronectoidei instead. `Carangaria.tacted.placements.csv` lists every added species, where it was expected and where it went; see [`tact_add_taxa`](commands.md#tact_add_taxa) for the columns. If many species of a taxon you care about were placed higher, consider fixing the taxonomy (for example, by splitting a non-monophyletic genus, or creating a new *sensu lato* clade) before relying on the results.
 
 ## Checking your results
 

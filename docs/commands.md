@@ -71,7 +71,20 @@ tact_add_taxa [OPTIONS]
 
 * `{output}.newick.tre`, `{output}.nexus.tre`: Complete binary ultrametric phylogenies (primary output)
 * `{output}.rates.csv`: Estimated diversification rates (columns: `taxon`, `birth`, `death`, `ccp`, `source`)
+* `{output}.placements.csv`: Where each added species was placed
 * `{output}.log.txt`: Log of what TACT did and why (includes debugging messages with `-vv`)
+
+**Placement report:**
+
+Each added species is expected to go into the lowest taxon containing it that has species in the backbone. This is typically its genus, or for a genus with no sampled species, the next rank up. If that taxon is not monophyletic in the backbone, TACT instead adds the species to the first enclosing taxon that is, anywhere within that taxon's clade. At the end of a run, TACT reports how many species this happened to and the taxa responsible, and writes one row per added species to `{output}.placements.csv`:
+
+* `species`: The added species
+* `expected_taxon`: The lowest taxon containing it with species in the backbone
+* `placed_taxon`: The taxon whose clade it was added to
+* `ranks_up`: How many ranks above `expected_taxon` that is
+* `new_clade`: For species in a taxon with no sampled species, the taxon generated as a new clade for them
+* `skipped_taxa`: Taxa between `expected_taxon` and `placed_taxon` that were not monophyletic, separated by `;`
+* `n_intruders`, `intruders`: Number of backbone tips outside `expected_taxon` that fall inside its clade, and the first five of them
 
 **Example:**
 ```bash

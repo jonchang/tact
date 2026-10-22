@@ -18,6 +18,7 @@ import dendropy
 from . import fastmrca
 from .console import progressbar, setup_logging
 from .lib import crown_capture_probability, get_new_times
+from .report import PlacementReport, fmt_species_list
 from .tree_util import (
     get_ages,
     get_birth_death_rates,
@@ -194,13 +195,6 @@ def create_clade(namespace: dendropy.TaxonNamespace, species: Iterable[str], age
     return tree
 
 
-def fmt_species_list(spp: Iterable[str]) -> str:
-    spp = list(spp)
-    if len(spp) > 2:
-        return f"{spp[0]}, {spp[1]} and {len(spp) - 2} others"
-    return " and ".join(spp)
-
-
 def process_node(
     backbone_tree: dendropy.Tree,
     backbone_bitmask: int,
@@ -356,6 +350,7 @@ def main(
     full_clades: set[str] = set()
 
     fastmrca.initialize(tree)
+    report = PlacementReport(output + ".placements.csv", taxonomy, tree_tips)
 
     with open(output + ".rates.csv", "w", encoding="utf-8") as wfile:
         writer = csv.writer(wfile)
@@ -396,7 +391,9 @@ def main(
         # Check for monophyly for this node
         node = fastmrca.get(extant_species)
         if not node:
-            logger.info(f"    {taxon}: is not monophyletic")
+            mrca = tree.mrca(leafset_bitmask=fastmrca.bitmask(extant_species))
+            intruders = report.taxon_not_monophyletic(taxon, get_tip_labels(mrca), species)
+            logger.info(f"    {taxon}: is not monophyletic (from {fmt_species_list(intruders)})")
             continue
 
         if extant_species == species:
@@ -465,6 +462,7 @@ def main(
             new_tree = create_clade(tn, full_node_species, times)
             # Update our current MRCA node (because we might have attached to stem)
             node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp, taxon_namespace=tn)
+            report.placed(full_node_species, taxon, new_clade=clade)
             # Update our view of what's in the tree
             tree_tips.update(full_node_species)
             extant_species = tree_tips.intersection(species)
@@ -489,7 +487,9 @@ def main(
         if node is None:
             raise ValueError(f"{taxon} is no longer monophyletic after adding clades")
         times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
-        node = fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
+        new_species = species.difference(tree_tips)
+        node = fill_new_taxa(tn, node, new_species, times, ccp < min_ccp)
+        report.placed(new_species, taxon)
         # Update stuff
         tree_tips.update(species)
         # Since only monophyletic nodes get to here, lock this clade
@@ -505,6 +505,10 @@ def main(
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")
+    report.close()
+    summary = report.summary()
+    click.echo(summary)
+    logger.info(summary, extra={"console": False})
 
 
 if __name__ == "__main__":

@@ -53,7 +53,8 @@ def test_log_levels(run_cli, stem2, tmp_path, verbose, console_info, console_deb
     # the log file always has INFO messages
     assert INFO_MESSAGE in log
     assert (DEBUG_MESSAGE in log) == file_debug
-    assert result.stdout == ""
+    # only the placement summary goes to stdout
+    assert INFO_MESSAGE not in result.stdout
 
 
 def test_add_config_logs_to_console(run_cli, tmp_path):
@@ -88,7 +89,7 @@ def test_progress_without_terminal(run_cli, stem2, tmp_path):
     assert any(line.startswith("TACT: ") and line.endswith("(100%)") for line in lines)
     assert "[" not in result.stderr
     assert "TACT: " in read_log(output)
-    assert result.stdout == ""
+    assert "TACT" not in result.stdout
 
 
 def test_progress_bar_on_terminal(run_cli, stem2, tmp_path, terminal):
@@ -98,7 +99,7 @@ def test_progress_bar_on_terminal(run_cli, stem2, tmp_path, terminal):
     assert "TACT: " not in result.stderr
     # progress messages still go to the log file
     assert "TACT: " in read_log(output)
-    assert result.stdout == ""
+    assert "TACT" not in result.stdout
 
 
 def test_no_progress_bar_when_logging_to_terminal(run_cli, stem2, tmp_path, terminal):

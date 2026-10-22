@@ -26,8 +26,8 @@ def setup_logging(output: str, verbose: int) -> None:
     """Send TACT's log messages to `{output}.log.txt` and to standard error.
 
     The log file gets INFO messages, or DEBUG messages with `-vv`. Standard error gets warnings,
-    INFO messages with `-v`, or DEBUG messages with `-vv`. Calling this again replaces the handlers
-    from the previous call.
+    INFO messages with `-v`, or DEBUG messages with `-vv`. Messages logged with `extra={"console": False}`
+    only go to the log file. Calling this again replaces the handlers from the previous call.
 
     Args:
         output: Base name of the output files.
@@ -40,6 +40,7 @@ def setup_logging(output: str, verbose: int) -> None:
     file_handler.setLevel(min(_console_level, logging.INFO))
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(_console_level)
+    console_handler.addFilter(lambda record: getattr(record, "console", True))
     for handler in (file_handler, console_handler):
         logger.addHandler(handler)
         _handlers.append(handler)

@@ -36,6 +36,8 @@ There are two things to check:
 
 If you have a single "rogue" species that breaks up an otherwise monophyletic clade, TACT will mark all edges of that clade as valid placement points for unsampled taxa. This can cause a mostly nice-looking group to turn into a complete mess.
 
+To find these taxa, look at the summary `tact_add_taxa` prints when it finishes, or at `{output}.placements.csv`: the `intruders` column names the backbone tips that break up each affected taxon (see [the placement report](commands.md#tact_add_taxa)).
+
 Two solutions are possible here:
 
 1. Drop the rogue taxon (using e.g., `ape::drop.tip` in R) and let TACT place it somewhere more appropriate, or
