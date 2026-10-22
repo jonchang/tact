@@ -1,133 +1,212 @@
 """Command-line interface module to construct taxonomic phylogenies."""
 
-import collections
 import csv
-from collections.abc import Sequence
+import re
+from dataclasses import dataclass, field
 
 import click
 import dendropy
 
-from .console import progressbar
-from .validation import validate_tree_node_depths
+# Single root above the highest rank, so that the tree has one root even if the first column has several names
+ROOT = "__TAXONOMIC_ROOT__"
+
+# Problems listed in an error message; the rest are counted
+MAX_PROBLEMS = 20
+
+# Characters that cannot appear in an unquoted Newick label
+_NEEDS_QUOTES = re.compile(r"[()\[\]':;,_\"\t\r\n]")
 
 
-def fix_file(filename: str) -> list[str]:
-    """Slurps a file, and does various checks and fixes.
+class TaxonomyError(click.ClickException):
+    """A taxonomy CSV that cannot be turned into a tree, with every problem found in it."""
 
-    These checks will sort the file and ensures column names are unique.
+    def __init__(self, problems: list[str]) -> None:
+        """Summarize `problems`, a list of messages that start with the line number they refer to."""
+        self.problems = problems
+        lines = [f"Found {len(problems)} problem{'s' if len(problems) != 1 else ''} in the taxonomy:"]
+        lines.extend(f"* {problem}" for problem in problems[:MAX_PROBLEMS])
+        if len(problems) > MAX_PROBLEMS:
+            lines.append(f"* ... and {len(problems) - MAX_PROBLEMS} more")
+        super().__init__("\n".join(lines))
+
+
+@dataclass
+class Clade:
+    """A taxon and the taxa directly below it, keyed by name. Species have no `Clade`."""
+
+    children: dict[str, "Clade | None"] = field(default_factory=dict)
+
+
+@dataclass
+class Taxonomy:
+    """A taxonomy read from a CSV file.
+
+    Attributes:
+        ranks: Names of the rank columns, from most to least inclusive, without the species column.
+        root: Taxa of the highest rank.
+        renamed: Names used at more than one rank, mapped from `(name, rank)` to the name given at that rank.
+        filled: Number of empty cells filled with placeholder taxa.
     """
-    with open(filename, encoding="utf-8") as rfile:
-        lines = rfile.readlines()
 
-    heads: collections.defaultdict[str, int] = collections.defaultdict(int)
-    for item in lines[0].split(","):
-        heads[item] += 1
-    bad_heads = []
-    for key, value in heads.items():
-        if value > 1:
-            bad_heads.append(key)
+    ranks: list[str]
+    root: Clade
+    renamed: dict[tuple[str, str], str]
+    filled: int
 
-    if len(bad_heads) > 0:
-        dupe_strs = "\n*  ".join(bad_heads)
-        raise click.UsageError(f"CSV headers must have unique names. Duplicated column names:\n*  {dupe_strs}")
+    def to_newick(self) -> str:
+        """Write the taxonomy as a Newick tree with labelled internal nodes, children in alphabetical order."""
 
-    return [lines[0], *sorted(lines[1:])]
+        def walk(name: str, clade: Clade | None) -> str:
+            if clade is None:
+                return quote(name)
+            children = ",".join(walk(child, clade.children[child]) for child in sorted(clade.children))
+            return f"({children}){quote(name)}"
 
-
-def ensure(st: str, ctx: Sequence[str] = ()) -> None:
-    """Ensures that a cell is not empty."""
-    if len(st) == 0:
-        text = ""
-        if len(ctx) > 0:
-            text = f" Offending line:\n{','.join(ctx)}"
-        raise click.UsageError("All cells in the CSV must be nonempty." + text)
+        return f"({walk(ROOT, self.root)});"
 
 
-def mangle_rank(row: list[str], names: list[str]) -> list[str]:
-    """Mangles a name with the rank associated with that name.
+def quote(label: str) -> str:
+    """Format `label` for Newick the way DendroPy reads it back: spaces as underscores, quoted if needed."""
+    if _NEEDS_QUOTES.search(label):
+        return "'" + label.replace("'", "''") + "'"
+    return label.replace(" ", "_")
 
-    This ensures that when constructing the taxonomic tree, each node has a unique name.
+
+def _fill_empty(ranks: list[str], species: str, rank_names: list[str]) -> int:
+    """Name each empty rank after the nearest named taxon below it and the rank, e.g. `Gobius_family`."""
+    names = [*ranks, species]
+    filled = 0
+    for i, name in enumerate(ranks):
+        if not name:
+            below = next(n for n in names[i + 1 :] if n)
+            ranks[i] = f"{below}_{rank_names[i]}"
+            filled += 1
+    return filled
+
+
+def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
+    """Read a taxonomy from a CSV file with one row per species and one column per rank.
+
+    The columns go from the most to the least inclusive rank, and the last column is the species name.
+    Rows can be in any order. Every problem in the file is collected before raising.
+
+    * A name used at more than one rank (such as a genus and its nominal subgenus) is renamed at the lower
+      ranks by appending the rank, as `name__rank__`. Species names are never renamed.
+    * The same name at one rank under two different parents is an error.
+    * An empty cell is an error unless `fill_empty` is set, in which case it becomes a placeholder taxon
+      named after the nearest named taxon below it.
+    * A species listed twice is an error unless both rows are the same.
+
+    Args:
+        path: CSV file to read.
+        fill_empty: Fill empty rank cells with placeholder taxa instead of reporting them.
+
+    Returns:
+        The taxonomy.
+
+    Raises:
+        TaxonomyError: If the file has any of the problems above, or rows with the wrong number of cells.
     """
-    seen = set()
-    new = []
-    for idx, item in enumerate(row):
-        if item in seen:
-            if idx >= len(names):
-                dupe_str = ",".join(row)
-                raise click.UsageError(f"Invalid name (possibly duplicated): {names}\nSeen at: {dupe_str}")
-            item = item + "__" + names[idx] + "__"
-        seen.add(item)
-        new.append(item)
-    return new
+    problems: list[str] = []
+    # utf-8-sig drops the byte order mark that spreadsheet programs often add
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        rows = list(csv.reader(fh))
+    if not rows:
+        raise TaxonomyError(["line 1: the file is empty"])
 
+    header = [cell.strip() for cell in rows[0]]
+    if len(header) < 2:
+        problems.append("line 1: there must be at least one rank column and a species column")
+    duplicated = sorted({name for name in header if header.count(name) > 1})
+    if duplicated:
+        problems.append(f"line 1: duplicated column names: {', '.join(duplicated)}")
+    if problems:
+        raise TaxonomyError(problems)
+    rank_names = header[:-1]
+    n_ranks = len(rank_names)
 
-def build_taxonomic_tree(filename: str) -> dendropy.Tree:
-    """Builds a taxonomic tree given a filename referring to a CSV.
-
-    The last column is assumed to be a species name. All ranks must nest completely within the next highest rank.
-    """
-    lines = fix_file(filename)
-    reader = csv.reader(lines)
-
-    rank_names = next(reader)
-    rank_names.pop()  # assume last column is species name
-    rank_names = ["__ROOT__", *rank_names]
-
-    tree = dendropy.Tree()
-    node = tree.seed_node
-    tn = tree.taxon_namespace
-    tn.is_mutable = True
-
-    # Mangle and uniquify the first row
-    mangled_ranks = set()
-    row = ["__TAXONOMIC_ROOT__", *next(reader)]
-    mangled_row = mangle_rank(row, rank_names)
-    for orig, new in zip(row, mangled_row, strict=True):
-        if orig != new:
-            mangled_ranks.add((orig, new))
-    row = mangled_row
-
-    # Initialize the tree structure
-    for col in row:
-        ensure(col, ctx=row)
-        node = node.new_child(taxon=tn.new_taxon(col))
-
-    to_add = []
-    stack = row
-    known_nodes = {}
-    # the header and first row were read above
-    with progressbar(enumerate(reader), label="Generating taxonomy", length=len(lines) - 2) as rf:
-        for _, row in rf:
-            # Uniquify row names
-            row = ["__TAXONOMIC_ROOT__", *row]
-            mangled_row = mangle_rank(row, rank_names)
-            for orig, new in zip(row, mangled_row, strict=True):
-                if orig != new:
-                    mangled_ranks.add((orig, new))
-            row = mangled_row
-
-            prev = None
-            for prev, cur in zip(reversed(stack), reversed(row), strict=True):
-                ensure(cur, ctx=row)
-                if prev == cur:
-                    break
-                to_add.append(cur)
-            if prev in known_nodes:
-                node = known_nodes[prev]
+    # Check each row and fill or report empty cells
+    records: list[tuple[int, list[str], str]] = []
+    filled = 0
+    for lineno, row in enumerate(rows[1:], start=2):
+        cells = [cell.strip() for cell in row]
+        if not any(cells):
+            continue
+        if len(cells) != len(header):
+            problems.append(f"line {lineno}: expected {len(header)} cells, found {len(cells)}")
+            continue
+        *ranks, species = cells
+        if not species:
+            problems.append(f"line {lineno}: no species name")
+            continue
+        if not all(ranks):
+            if fill_empty:
+                filled += _fill_empty(ranks, species, rank_names)
             else:
-                node = tree.find_node_with_taxon_label(prev)
-                known_nodes[prev] = node
-            while to_add:
-                nt = to_add.pop()
-                if nt:
-                    node = node.new_child(taxon=tn.new_taxon(nt))
-            stack = row
-    tn.is_mutable = False
-    if len(mangled_ranks) > 0:
-        click.echo("Note: several rank names were adjusted to ensure uniqueness. These are:")
-        for orig, new in mangled_ranks:
-            click.echo(f"{orig} => {new}")
-    return tree
+                empty = ", ".join(rank_names[i] for i, name in enumerate(ranks) if not name)
+                problems.append(f"line {lineno}: empty {empty} for {species} (use --fill-empty to fill it in)")
+                continue
+        records.append((lineno, ranks, species))
+
+    # Rename names used at more than one rank everywhere except their highest rank, or everywhere if a species
+    # has that name, so that which occurrence is renamed does not depend on the order of the rows
+    levels: dict[str, set[int]] = {}
+    for _, ranks, species in records:
+        for i, name in enumerate(ranks):
+            levels.setdefault(name, set()).add(i)
+        levels.setdefault(species, set()).add(n_ranks)
+    renamed: dict[tuple[str, str], str] = {}
+    for name, found_at in levels.items():
+        if len(found_at) > 1:
+            keep = n_ranks if n_ranks in found_at else min(found_at)
+            for i in found_at - {keep}:
+                renamed[name, rank_names[i]] = f"{name}__{rank_names[i]}__"
+
+    # Insert each row from the highest rank down
+    root = Clade()
+    # parent and first line of each name at each rank
+    parents: list[dict[str, tuple[str, int]]] = [{} for _ in range(n_ranks)]
+    reported: set[tuple[int, str, str]] = set()
+    species_rows: dict[str, tuple[tuple[str, ...], int]] = {}
+    for lineno, ranks, species in records:
+        ranks = [renamed.get((name, rank_names[i]), name) for i, name in enumerate(ranks)]
+        clade = root
+        parent = ROOT
+        conflict = False
+        for i, name in enumerate(ranks):
+            first_parent, first_line = parents[i].setdefault(name, (parent, lineno))
+            if first_parent != parent:
+                if (i, name, parent) not in reported:
+                    reported.add((i, name, parent))
+                    problems.append(
+                        f"line {lineno}: {rank_names[i]} {name} is in {parent}, "
+                        f"but in {first_parent} on line {first_line}"
+                    )
+                conflict = True
+                break
+            child = clade.children.setdefault(name, Clade())
+            assert child is not None
+            clade = child
+            parent = name
+        if conflict:
+            continue
+        seen = species_rows.get(species)
+        if seen is not None:
+            if seen[0] != tuple(ranks):
+                problems.append(f"line {lineno}: {species} is also listed on line {seen[1]}, under different ranks")
+            continue
+        species_rows[species] = (tuple(ranks), lineno)
+        clade.children[species] = None
+
+    if problems:
+        raise TaxonomyError(problems)
+    return Taxonomy(rank_names, root, renamed, filled)
+
+
+def build_taxonomic_tree(filename: str, fill_empty: bool = False) -> dendropy.Tree:
+    """Build a taxonomic tree from a CSV file. See `read_taxonomy` for the format and checks."""
+    newick = read_taxonomy(filename, fill_empty).to_newick()
+    return dendropy.Tree.get(data=newick, schema="newick")
 
 
 @click.command()
@@ -140,29 +219,39 @@ def build_taxonomic_tree(filename: str) -> dendropy.Tree:
     default="newick",
     type=click.Choice(["newick", "nexus", "nexml"]),
 )
-def main(taxonomy: str, output: str, schema: str) -> None:
+@click.option(
+    "--fill-empty",
+    is_flag=True,
+    help="fill empty rank cells with a placeholder taxon named after the taxon below it, e.g. Gobius_family",
+)
+def main(taxonomy: str, output: str, schema: str, fill_empty: bool) -> None:
     r"""Generates a taxonomic tree from TAXONOMY.
 
-    TAXONOMY is a comma-separated values file with several requirements.
+    TAXONOMY is a comma-separated values file:
 
     \b
-    * Each row represents a single species.
-    * Each column represents a taxonomic rank.
-    * The columns must be arranged from most inclusive to least inclusive,
-      with the last column as the species name.
+    * Each row represents a single species, in any order.
+    * Each column represents a taxonomic rank, from most inclusive to least
+      inclusive, with the last column as the species name.
       - e.g. Family,Genus,Species
-    * Each rank must be named
-    * Each rank must be unique
-      - OK: Cichlidae,Cichla,Cichla temensis
-      - NO: Cichlidae,Cichlidae,Cichla temensis
-      - NO: Cichlidae,,Cichla temensis
+    * The first row names the ranks; each name must be unique.
+    * Every cell must be filled in, unless --fill-empty is given.
+    * A name can only appear under one parent at each rank.
+      - NO: Gobiidae,Gobius,Gobius niger and Oxudercidae,Gobius,Gobius roulei
 
-    This script makes **many** assumptions about its input for speed. Check
-    the example taxonomy in the examples/ folder for guidance.
+    TACT lists every problem it finds in the file before stopping.
     """
-    tree = build_taxonomic_tree(taxonomy)
-    msg = validate_tree_node_depths(None, None, tree)
-    if msg:
-        click.echo(msg)
-    tree.write_to_path(output, schema=schema)
+    parsed = read_taxonomy(taxonomy, fill_empty)
+    newick = parsed.to_newick()
+    if schema == "newick":
+        with open(output, "w", encoding="utf-8") as fh:
+            fh.write(newick + "\n")
+    else:
+        dendropy.Tree.get(data=newick, schema="newick").write(path=output, schema=schema)
+    if parsed.filled:
+        click.echo(f"Filled {parsed.filled} empty cells with placeholder taxa.")
+    if parsed.renamed:
+        click.echo("Note: several rank names were adjusted to ensure uniqueness. These are:")
+        for (name, _), new in sorted(parsed.renamed.items()):
+            click.echo(f"{name} => {new}")
     click.echo(f"Output written to: {click.format_filename(output)}")
