@@ -2,15 +2,17 @@
 """Benchmarking script for TACT performance across different Python implementations.
 
 This script measures the execution time of TACT commands using uv to manage Python versions:
-- uv (pypy) - PyPy 3.11
-- uv (python3.14) - Python 3.14 without JIT
-- uv (python3.14-jit) - Python 3.14 with experimental JIT (PYTHON_JIT=1)
+- uv (python3.15) - Python 3.15 without JIT
+- uv (python3.15-jit) - Python 3.15 with experimental JIT (PYTHON_JIT=1)
 
-uv automatically downloads and manages Python versions, ensuring Python 3.14 has JIT enabled.
-The JIT version sets PYTHON_JIT=1 environment variable and verifies JIT is enabled.
+uv downloads and manages its own Python builds, which include the experimental JIT; other builds, such as
+Homebrew's, may not. The JIT version sets the PYTHON_JIT=1 environment variable and verifies JIT is enabled.
+
+By default it benchmarks the TACT checkout that contains this script. Pass `--tact` to benchmark another
+version instead, such as a release from PyPI (`--tact tact==0.8.0`).
 
 Usage:
-    python benchmark.py [--dataset carangaria|percomorphaceae] [--runs N] [--warmup N]
+    python benchmark.py [--dataset carangaria|percomorphaceae] [--runs N] [--warmup N] [--tact SPEC]
 """
 
 import argparse
@@ -34,6 +36,7 @@ class BenchmarkRunner:
         runs: int = 5,
         warmup: int = 1,
         examples_dir: Path | None = None,
+        tact: str | None = None,
     ):
         """Initialize the benchmark runner.
 
@@ -42,32 +45,28 @@ class BenchmarkRunner:
             runs: Number of benchmark runs to perform
             warmup: Number of warmup runs before benchmarking
             examples_dir: Path to examples directory (defaults to ./examples)
+            tact: Requirement or path to install TACT from (defaults to this checkout)
         """
         self.dataset = dataset.lower()
         self.runs = runs
         self.warmup = warmup
         self.examples_dir = examples_dir or Path(__file__).parent / "examples"
         self.temp_dir = None
+        tact = tact or str(Path(__file__).resolve().parent)
 
         # Python implementations to test (using uv to manage Python versions)
         # uv will download and manage these Python versions automatically
         self.implementations = {
-            "uv (pypy)": {
-                "python_version": "pypy3.11",
-                "install_cmd": ["uv", "python", "install", "pypy3.11"],
-                "run_cmd": ["uv", "run", "--python", "pypy3.11", "--with", "tact"],
-                "env": None,  # No special environment variables
-            },
-            "uv (python3.14)": {
-                "python_version": "3.14",
-                "install_cmd": ["uv", "python", "install", "3.14"],
-                "run_cmd": ["uv", "run", "--python", "3.14", "--with", "tact"],
+            "uv (python3.15)": {
+                "python_version": "3.15",
+                "install_cmd": ["uv", "python", "install", "3.15"],
+                "run_cmd": ["uv", "run", "--no-project", "--managed-python", "--python", "3.15", "--with", tact],
                 "env": None,  # No JIT enabled
             },
-            "uv (python3.14-jit)": {
-                "python_version": "3.14",
-                "install_cmd": ["uv", "python", "install", "3.14"],
-                "run_cmd": ["uv", "run", "--python", "3.14", "--with", "tact"],
+            "uv (python3.15-jit)": {
+                "python_version": "3.15",
+                "install_cmd": ["uv", "python", "install", "3.15"],
+                "run_cmd": ["uv", "run", "--no-project", "--managed-python", "--python", "3.15", "--with", tact],
                 "env": {"PYTHON_JIT": "1"},  # Enable JIT
             },
         }
@@ -247,15 +246,15 @@ class BenchmarkRunner:
             print(f"✗ Failed: {e.stderr}")
             return False
 
-        # For Python 3.14 with JIT, verify JIT is enabled
-        if name == "uv (python3.14-jit)":
-            print("Verifying Python 3.14 JIT is enabled...", end=" ", flush=True)
+        # For Python 3.15 with JIT, verify JIT is enabled
+        if name == "uv (python3.15-jit)":
+            print("Verifying Python 3.15 JIT is enabled...", end=" ", flush=True)
             try:
                 code = "import sys;j=getattr(sys,'_jit',None);print('True' if j and j.is_enabled() else 'False')"
                 process_env = os.environ.copy()
                 process_env["PYTHON_JIT"] = "1"
                 result = subprocess.run(
-                    ["uv", "run", "--python", "3.14", "python", "-c", code],
+                    ["uv", "run", "--no-project", "--managed-python", "--python", "3.15", "python", "-c", code],
                     capture_output=True,
                     text=True,
                     check=True,
@@ -364,10 +363,10 @@ class BenchmarkRunner:
 
         # Build taxonomy once (we'll reuse it for all implementations)
         print("\nBuilding taxonomy tree...")
-        # Use python3.14 (without JIT) for building taxonomy (should be fast and available)
+        # Use python3.15 (without JIT) for building taxonomy (should be fast and available)
         try:
-            build_cmd = self.implementations["uv (python3.14)"]["run_cmd"]
-            build_env = self.implementations["uv (python3.14)"]["env"]
+            build_cmd = self.implementations["uv (python3.15)"]["run_cmd"]
+            build_env = self.implementations["uv (python3.15)"]["env"]
             build_time = self.build_taxonomy(csv_file, taxonomy_file, build_cmd, build_env)
             print(f"Taxonomy built in {build_time:.2f}s")
         except subprocess.CalledProcessError as e:
@@ -411,19 +410,17 @@ class BenchmarkRunner:
         Returns:
             Formatted markdown table string
         """
-        # Find baseline (pypy) for relative calculations
+        # Find baseline (Python 3.15 without JIT) for relative calculations
         baseline = None
-        if "uv (pypy)" in results and "mean" in results["uv (pypy)"]:
-            baseline = results["uv (pypy)"]["mean"]
-        elif "uv (python3.14)" in results and "mean" in results["uv (python3.14)"]:
-            baseline = results["uv (python3.14)"]["mean"]
+        if "uv (python3.15)" in results and "mean" in results["uv (python3.15)"]:
+            baseline = results["uv (python3.15)"]["mean"]
 
         lines = []
         lines.append("| python | Mean [s] | Min [s] | Max [s] | Relative |")
         lines.append("|:---|---:|---:|---:|---:|")
 
         # Order implementations for consistent output
-        order = ["uv (pypy)", "uv (python3.14)", "uv (python3.14-jit)"]
+        order = ["uv (python3.15)", "uv (python3.15-jit)"]
         for name in order:
             if name not in results:
                 continue
@@ -490,6 +487,10 @@ def main():
         help="Path to examples directory (default: ./examples)",
     )
     parser.add_argument(
+        "--tact",
+        help="requirement or path to install TACT from, e.g. tact==0.8.0 (default: this checkout)",
+    )
+    parser.add_argument(
         "--json",
         action="store_true",
         help="Output results as JSON instead of markdown table",
@@ -502,6 +503,7 @@ def main():
         runs=args.runs,
         warmup=args.warmup,
         examples_dir=args.examples_dir,
+        tact=args.tact,
     ) as runner:
         results = runner.run()
 
