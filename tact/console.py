@@ -2,6 +2,8 @@
 
 import logging
 import sys
+from collections.abc import Callable, Iterable, Iterator
+from typing import Generic, Self, TextIO, TypeVar
 
 import click
 
@@ -13,6 +15,8 @@ logging.logMultiprocessing = False
 
 # Parent of the per-module loggers, so one set of handlers covers all of TACT
 logger = logging.getLogger("tact")
+
+T = TypeVar("T")
 
 _handlers: list[logging.Handler] = []
 _console_level = logging.WARNING
@@ -53,14 +57,14 @@ def reset_logging() -> None:
     _console_level = logging.WARNING
 
 
-def _isatty(stream) -> bool:
+def _isatty(stream: TextIO) -> bool:
     try:
         return bool(stream.isatty())
     except (AttributeError, ValueError):
         return False
 
 
-class Progress:
+class Progress(Generic[T]):
     """Progress through a fixed number of steps.
 
     Draws a progress bar on standard error when it is a terminal and log messages are not shown there.
@@ -70,7 +74,13 @@ class Progress:
     Use `progressbar` to create one.
     """
 
-    def __init__(self, iterable, label, length, item_show_func):
+    def __init__(
+        self,
+        iterable: Iterable[T] | None,
+        label: str,
+        length: int,
+        item_show_func: Callable[[T | None], str | None] | None,
+    ) -> None:
         """See `progressbar` for the arguments."""
         self.iterable = iterable
         self.label = label
@@ -90,21 +100,23 @@ class Progress:
             )
             self._bar.render_progress()
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Return this object; the bar, if any, is already drawn."""
         return self
 
-    def __exit__(self, *exc_info):
+    def __exit__(self, *exc_info: object) -> None:
         """Finish the bar."""
         self.finish()
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         """Yield each item of the iterable, advancing one step after each."""
+        if self.iterable is None:
+            raise TypeError("Progress was created without an iterable")
         for item in self.iterable:
             yield item
             self.update(1, item)
 
-    def update(self, n_steps: int, current_item=None) -> None:
+    def update(self, n_steps: int, current_item: T | None = None) -> None:
         """Advance by `n_steps`, showing `current_item` next to the bar."""
         self.pos += n_steps
         if self._bar is not None:
@@ -129,7 +141,13 @@ class Progress:
         self._finished = True
 
 
-def progressbar(iterable=None, *, label: str, length: int, item_show_func=None) -> Progress:
+def progressbar(
+    iterable: Iterable[T] | None = None,
+    *,
+    label: str,
+    length: int,
+    item_show_func: Callable[[T | None], str | None] | None = None,
+) -> Progress[T]:
     """Track progress over `iterable`, or over `length` steps advanced with `Progress.update`.
 
     Args:

@@ -96,13 +96,13 @@ def two_step_optim(
     try:
         result = minimize(func, x0=x0, bounds=bounds, args=args, method="L-BFGS-B")
         if result["success"]:
-            return result["x"].tolist()  # type: ignore[no-any-return]
+            return [float(x) for x in result["x"]]
     except FloatingPointError:
         pass
 
     result = dual_annealing(func, x0=x0, bounds=bounds, args=args)
     if result["success"]:
-        return result["x"].tolist()  # type: ignore[no-any-return]
+        return [float(x) for x in result["x"]]
 
     raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 
@@ -151,7 +151,7 @@ def optim_yule(ages: list[float], sampling: float, min_bound: float = 1e-9) -> t
     bounds = (min_bound, 100)
     result = minimize_scalar(wrapped_lik_constant_yule, bounds=bounds, args=(sampling, ages), method="Bounded")
     if result["success"]:
-        return (result["x"], 0.0)
+        return (float(result["x"]), 0.0)
 
     raise Exception(f"Optimization failed: {result['message']} (code {result['status']})")
 

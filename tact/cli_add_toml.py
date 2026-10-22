@@ -12,7 +12,7 @@ from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from functools import reduce
-from typing import Any
+from typing import IO, Any
 
 import click
 import dendropy
@@ -28,6 +28,7 @@ from .tree_util import (
     graft_node,
     is_binary,
     lock_clade,
+    node_age,
     unlock_clade,
     update_tree_view,
 )
@@ -43,7 +44,7 @@ class TactConstraint:
     mrca: list[str] = field(default_factory=list)
     stem: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.mrca = [x.replace("_", " ") for x in self.mrca]
 
 
@@ -65,13 +66,13 @@ class TactItem:
         config["exclude"] = [TactConstraint(**x) for x in config.get("exclude") or []]
         return cls(**config)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"TactItem('{self.name}', missing={self.missing}, "
             + f"include={len(self.include)}, exclude={len(self.exclude)})"
         )
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.include:
             logger.error(f"Need at least one include for {self.name}!")
             sys.exit(1)
@@ -83,7 +84,7 @@ class TactItem:
                 sys.exit(1)
 
 
-def ensure_mrca(tree, tips, node=None):
+def ensure_mrca(tree: dendropy.Tree, tips: list[str], node: dendropy.Node | None = None) -> dendropy.Node:
     """Perform initial checks to ensure we can do MRCA calculations."""
     try:
         node = node if node else tree.seed_node
@@ -103,7 +104,7 @@ def ensure_mrca(tree, tips, node=None):
         sys.exit(1)
 
 
-def do_tact(tree, item):
+def do_tact(tree: dendropy.Tree, item: TactItem) -> dendropy.Tree:
     # First, get the MRCA of _all_ `include` leafs. This is the basis of our rate computation,
     # and how we actually implement polyphyletic groups.
     included_tips = reduce(operator.iadd, [x.mrca for x in item.include], [])
@@ -171,7 +172,7 @@ def do_tact(tree, item):
     return tree
 
 
-def do_replicate(backbone, to_tact, label):
+def do_replicate(backbone: dendropy.Tree, to_tact: list[TactItem], label: int) -> dendropy.Tree:
     """Perform a replicate of a TACT analysis."""
     logger.info(f"<<< Replicate {label} >>>")
     tree = copy.deepcopy(backbone)
@@ -202,17 +203,27 @@ def do_replicate(backbone, to_tact, label):
     type=click.IntRange(1, os.cpu_count() or 1, clamp=True),
     default=os.cpu_count() or 1,
 )
-def main(config, backbone, output, verbose, ultrametricity_precision, replicates, cores):
+def main(
+    config: IO[str],
+    backbone: dendropy.Tree,
+    output: str,
+    verbose: int,
+    ultrametricity_precision: float,
+    replicates: int,
+    cores: int,
+) -> None:
     """Add tips onto a BACKBONE phylogeny using a CONFIG file."""
     setup_logging(output, verbose)
 
     logger.info("Reading configuration")
-    config = toml.load(config)
+    settings = toml.load(config)
 
-    to_tact = [TactItem.from_config(x) for x in config["tact"]]
+    to_tact = [TactItem.from_config(x) for x in settings["tact"]]
 
     # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
-    to_tact.sort(key=lambda ii: ensure_mrca(backbone, reduce(operator.iadd, [x.mrca for x in ii.include], [])).age)
+    to_tact.sort(
+        key=lambda ii: node_age(ensure_mrca(backbone, reduce(operator.iadd, [x.mrca for x in ii.include], [])))
+    )
 
     # Compute global birth/death rates. Not currently used (but could be?)
     backbone_tips = len(backbone.leaf_nodes())

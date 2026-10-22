@@ -71,6 +71,7 @@ exclude = [
 [tool.ruff.lint]
 fixable = ["ALL"]
 select = [
+    "ANN", # type annotations
     "NPY", # numpy warnings
     "E",   # pycodestyle errors
     "W",   # pycodestyle warnings
@@ -89,7 +90,8 @@ select = [
 
 [tool.ruff.lint.per-file-ignores]
 # Ignore all directories named `tests` and CLI modules.
-"tests/**" = ["D", "DOC"]
+"tests/**" = ["ANN", "D", "DOC"]
+"benchmark.py" = ["ANN", "D", "DOC"]
 "tact/cli_*" = ["D", "DOC"]
 "__init__.py" = ["D", "DOC"]
 

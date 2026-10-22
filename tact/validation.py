@@ -1,6 +1,8 @@
 """Various validation functions for `click` classes and parameters."""
 
 import collections
+from collections.abc import Sequence
+from typing import IO, Any
 
 import click
 import dendropy
@@ -9,24 +11,27 @@ from dendropy.utility.error import ImmutableTaxonNamespaceError
 from .tree_util import compute_node_depths, is_binary, is_ultrametric, update_tree_view
 
 
-def validate_outgroups(ctx, param, value):
+def validate_outgroups(
+    ctx: click.Context | None, param: click.Parameter | None, value: str | Sequence[str] | None
+) -> list[str] | None:
     """Validates an `outgroups` parameter, by splitting on commas and transforming underscores to spaces."""
     if value is None:
-        return
-    try:
+        return None
+    if isinstance(value, str):
         value = value.split(",")
-    except AttributeError:
-        # Tuples and lists shouldn't have the .split method
-        pass
     return [x.replace("_", " ") for x in value]
 
 
-def validate_newick(ctx, param, value, **kwargs):
+def validate_newick(
+    ctx: click.Context | None, param: click.Parameter | None, value: IO[str], **kwargs: object
+) -> dendropy.Tree:
     """Validates a Newick tree, using appropriate defaults."""
     return dendropy.Tree.get_from_stream(value, schema="newick", rooting="default-rooted", **kwargs)
 
 
-def validate_tree_node_depths(ctx, param, value):
+def validate_tree_node_depths(
+    ctx: click.Context | None, param: click.Parameter | None, value: dendropy.Tree
+) -> dendropy.Tree:
     """Validates a DendroPy tree, ensuring that the node depth is equal for all tips."""
     node_depths = compute_node_depths(value)
     stats: collections.defaultdict[int, int] = collections.defaultdict(int)
@@ -40,10 +45,10 @@ def validate_tree_node_depths(ctx, param, value):
     return value
 
 
-def validate_taxonomy_tree(ctx, param, value):
+def validate_taxonomy_tree(ctx: click.Context | None, param: click.Parameter | None, value: IO[str]) -> dendropy.Tree:
     """Validates a taxonomy tree."""
-    value = validate_newick(ctx, param, value)
-    return validate_tree_node_depths(ctx, param, value)
+    tree = validate_newick(ctx, param, value)
+    return validate_tree_node_depths(ctx, param, tree)
 
 
 class BackboneCommand(click.Command):
@@ -61,7 +66,7 @@ class BackboneCommand(click.Command):
     ultrametricity of the `backbone` is also checked.
     """
 
-    def validate_backbone_variables(self, ctx, params):
+    def validate_backbone_variables(self, ctx: click.Context, params: dict[str, Any]) -> dict[str, Any]:
         """Validates variables related to the backbone and taxonomy files."""
         if "taxonomy" in params:
             tn = params["taxonomy"].taxon_namespace
@@ -70,7 +75,7 @@ class BackboneCommand(click.Command):
                 tn.new_taxa(params["outgroups"])
             tn.is_mutable = False
             try:
-                backbone = validate_newick(ctx, params, params["backbone"], taxon_namespace=tn)
+                backbone = validate_newick(ctx, None, params["backbone"], taxon_namespace=tn)
             except ImmutableTaxonNamespaceError as e:
                 msg = f"""
                 DendroPy error: {e}
@@ -80,9 +85,9 @@ class BackboneCommand(click.Command):
                 """
                 raise click.BadParameter(msg) from None
         else:
-            backbone = validate_newick(ctx, params, params["backbone"])
+            backbone = validate_newick(ctx, None, params["backbone"])
 
-        if not is_binary(backbone):
+        if not is_binary(backbone.seed_node):
             raise click.BadParameter("Backbone tree is not binary!")
         update_tree_view(backbone)
 
@@ -100,8 +105,10 @@ class BackboneCommand(click.Command):
         params["backbone"] = backbone
         return params
 
-    def make_context(self, *args, **kwargs):
+    def make_context(
+        self, info_name: str | None, args: list[str], parent: click.Context | None = None, **extra: object
+    ) -> click.Context:
         """Set up the proper Click context for a command handler."""
-        ctx = super().make_context(*args, **kwargs)
+        ctx = super().make_context(info_name, args, parent, **extra)
         ctx.params = self.validate_backbone_variables(ctx, ctx.params)
         return ctx
