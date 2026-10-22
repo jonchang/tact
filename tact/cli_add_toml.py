@@ -18,6 +18,7 @@ import click
 import dendropy
 import toml
 
+from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar, setup_logging
 from .lib import get_new_times
 from .tree_util import (
