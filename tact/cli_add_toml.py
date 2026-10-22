@@ -10,8 +10,9 @@ import re
 import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import InitVar, dataclass, field
+from dataclasses import dataclass, field
 from functools import reduce
+from typing import Any
 
 import click
 import dendropy
@@ -52,9 +53,17 @@ class TactItem:
 
     name: str
     missing: int
-    include: InitVar[TactConstraint] = None
-    exclude: InitVar[TactConstraint] = None
+    include: list[TactConstraint] = field(default_factory=list)
+    exclude: list[TactConstraint] = field(default_factory=list)
     preserve_generic_monophyly: bool = False
+
+    @classmethod
+    def from_config(cls, config: dict[str, Any]) -> TactItem:
+        """Build a TactItem from a `[[tact]]` table in the TOML configuration."""
+        config = dict(config)
+        config["include"] = [TactConstraint(**x) for x in config.get("include") or []]
+        config["exclude"] = [TactConstraint(**x) for x in config.get("exclude") or []]
+        return cls(**config)
 
     def __repr__(self):
         return (
@@ -62,27 +71,16 @@ class TactItem:
             + f"include={len(self.include)}, exclude={len(self.exclude)})"
         )
 
-    def __post_init__(self, include, exclude):
-        self.include = []
-        if include is None:
-            logging.error("Need at least one include for {self.name}!")
+    def __post_init__(self):
+        if not self.include:
+            logger.error(f"Need at least one include for {self.name}!")
             sys.exit(1)
-        else:
-            for x in include:
-                new_include = TactConstraint(**x)
 
-                # Check restriction where singletons with include must have stem = True
-                if len(new_include.mrca) == 1 and new_include.stem is False:
-                    logger.error(
-                        f"Include specifications for singleton invalid without `stem = true`:\n{new_include}"
-                    )
-                    sys.exit(1)
-                self.include.append(new_include)
-
-        if exclude is None:
-            self.exclude = []
-        else:
-            self.exclude = [TactConstraint(**x) for x in exclude]
+        # Check restriction where singletons with include must have stem = True
+        for constraint in self.include:
+            if len(constraint.mrca) == 1 and constraint.stem is False:
+                logger.error(f"Include specifications for singleton invalid without `stem = true`:\n{constraint}")
+                sys.exit(1)
 
 
 def ensure_mrca(tree, tips, node=None):
@@ -211,7 +209,7 @@ def main(config, backbone, output, verbose, ultrametricity_precision, replicates
     logger.info("Reading configuration")
     config = toml.load(config)
 
-    to_tact = [TactItem(**x) for x in config["tact"]]
+    to_tact = [TactItem.from_config(x) for x in config["tact"]]
 
     # Ensure the proper ordering of TACT items based on divergence time of implied MRCA nodes
     to_tact.sort(key=lambda ii: ensure_mrca(backbone, reduce(operator.iadd, [x.mrca for x in ii.include], [])).age)

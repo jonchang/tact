@@ -2,7 +2,7 @@
 
 import math
 import random
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 import dendropy
 import portion
@@ -76,13 +76,14 @@ def get_tip_labels(tree_or_node: dendropy.Tree | dendropy.Node) -> set[str]:
     Returns:
         Set of taxon labels for all tips.
     """
-    try:
+    if isinstance(tree_or_node, dendropy.Tree):
         return {x.taxon.label for x in tree_or_node.leaf_node_iter()}
-    except AttributeError:
-        return {x.taxon.label for x in tree_or_node.leaf_iter()}
+    return {x.taxon.label for x in tree_or_node.leaf_iter()}
 
 
-def edge_iter(node: dendropy.Node, filter_fn: Callable[[dendropy.Edge], bool] | None = None) -> dendropy.Edge:
+def edge_iter(
+    node: dendropy.Node, filter_fn: Callable[[dendropy.Edge], bool] | None = None
+) -> Iterator[dendropy.Edge]:
     """Iterate over edges in a subtree.
 
     Args:
@@ -173,7 +174,7 @@ def is_ultrametric(
     return (math.isclose(t_min[1], t_max[1], rel_tol=tolerance), (t_min, t_max))
 
 
-def get_short_branches(node: dendropy.Node) -> dendropy.Edge:
+def get_short_branches(node: dendropy.Node) -> Iterator[dendropy.Edge]:
     """Get edges with very short branch lengths.
 
     Args:

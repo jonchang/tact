@@ -445,6 +445,8 @@ def main(taxonomy, backbone, outgroups, output, min_ccp, verbose, yule, ultramet
         # Taxon spray
         logger.info(f"    {taxon}: adding {len(species.difference(extant_species))} new species")
         node = fastmrca.get(extant_species)
+        if node is None:
+            raise ValueError(f"{taxon} is no longer monophyletic after adding clades")
         times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
         node = fill_new_taxa(tn, node, species.difference(tree_tips), times, ccp < min_ccp)
         # Update stuff

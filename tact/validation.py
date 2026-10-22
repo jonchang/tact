@@ -4,6 +4,7 @@ import collections
 
 import click
 import dendropy
+from dendropy.utility.error import ImmutableTaxonNamespaceError
 
 from .tree_util import compute_node_depths, is_binary, is_ultrametric, update_tree_view
 
@@ -70,7 +71,7 @@ class BackboneCommand(click.Command):
             tn.is_mutable = False
             try:
                 backbone = validate_newick(ctx, params, params["backbone"], taxon_namespace=tn)
-            except dendropy.utility.error.ImmutableTaxonNamespaceError as e:
+            except ImmutableTaxonNamespaceError as e:
                 msg = f"""
                 DendroPy error: {e}
 
