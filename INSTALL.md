@@ -2,16 +2,26 @@
 
 TACT is a Python-based tool that relies on several key scientific packages, including [click](https://click.palletsprojects.com), [DendroPy](https://jeetsukumaran.github.io/DendroPy/), and [NumPy](https://numpy.org), which are automatically installed when you install TACT.
 
-For faster performance, especially with large datasets, using the [PyPy 3 implementation of Python](https://www.pypy.org/) is recommended (when available), as it can significantly speed up analyses.
-
 !!! tip "Which installation method should I use?"
-    - **Docker** (recommended): Easiest to install and fastest for large datasets. Works on Windows, Mac, and Linux.
-    - **pipx**: Good alternative if you can't use Docker. Also supports PyPy for better performance.
+    - **pipx** (recommended): Fastest, and works on Windows, Mac, and Linux with Python 3.12 or newer.
+    - **Docker**: Use this if you can't install Python, or want a fixed environment. It is [a little slower](troubleshooting.md#how-long-will-tact-take) than pipx.
     - **Other methods**: Not recommended or supported.
 
-## Docker (recommended)
+## pipx (recommended)
 
-If you can use Docker, this is the **recommended installation method**. It's both convenient to install and [fast for large datasets](troubleshooting.md#why-is-tact-so-slow) thanks to PyPy.
+[pipx](https://pipx.pypa.io) is a tool that installs Python applications in isolated environments.
+
+First, [install `pipx`](https://pipx.pypa.io/stable/installation/).
+
+Then run:
+
+```sh
+pipx install tact
+```
+
+## Docker
+
+If you can't install Python, you can run TACT from its Docker image instead.
 
 Install [Docker Desktop](https://www.docker.com/products/docker-desktop) and run the following to download the TACT image:
 
@@ -35,36 +45,6 @@ Here's a [screencast](https://asciinema.org/a/347571) of how to use the Docker c
 <script id="asciicast-347571" src="https://asciinema.org/a/347571.js" async></script>
 
 The above Docker image defaults to the latest tagged release. In the rare case you need to use a different version, a full list of tags is available on [Docker Hub](https://hub.docker.com/r/jonchang/tact/tags).
-
-## pipx
-
-[pipx](https://pipx.pypa.io) is a tool that installs Python applications in isolated environments. This is a good alternative if you can't use Docker.
-
-### Basic installation
-
-First, [install `pipx`](https://pipx.pypa.io/stable/installation/), then run:
-
-```sh
-pipx install tact
-```
-
-This installs TACT with the standard Python interpreter (CPython). This works fine for small to medium datasets.
-
-### Faster installation with PyPy
-
-If you have PyPy3 installed, you can optionally install a faster version of TACT:
-
-```sh
-pipx install --python pypy3 tact
-```
-
-!!! warning "PyPy installation issues"
-    - This will take much longer to install than the standard version
-    - Installation may fail if the proper dependencies (mainly openblas) aren't set up
-    - On macOS, you'll need to run: `brew install openblas gcc pypy3 pipx`
-    - You may also need to set environment variables:
-        - `PKG_CONFIG_PATH`: should point to where `openblas.pc` lives (e.g., `/opt/homebrew/opt/openblas/lib/pkgconfig`)
-        - `MACOSX_DEPLOYMENT_TARGET`: should be your macOS version (e.g., `11.0`)
 
 ## Verifying your installation
 

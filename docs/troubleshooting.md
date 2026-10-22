@@ -43,27 +43,24 @@ Two solutions are possible here:
 1. Drop the rogue taxon (using e.g., `ape::drop.tip` in R) and let TACT place it somewhere more appropriate, or
 2. Expand the definition of your clade in the taxonomy file to include the rogue taxon.
 
-## Why is TACT so slow?
+## How long will TACT take?
 
-Using [Carangaria](https://fishtreeoflife.org/taxonomy/series/Carangaria/) (~1000 spp), I measure TACT's speed with [hyperfine](https://github.com/sharkdp/hyperfine):
+These timings come from an Apple M1 laptop (8 cores, 16 GB) with [hyperfine](https://github.com/sharkdp/hyperfine), using CPython 3.15. Carangaria is the [tutorial](tutorial.md) dataset (1,057 species, 642 added); Percomorphaceae is the largest example (17,301 species, 10,438 added) from `examples/setup_percomorphaceae.py`.
 
-| Install Command | Mean [s] | Min [s] | Max [s] | Relative |
-|:---|---:|---:|---:|---:|
-| `docker pull jonchang/tact` | 7.880 ± 0.503 | 7.196 | 8.628 | 1.24 ± 0.14 |
-| `brew install jonchang/biology/tact` | 6.405 ± 0.335 | 5.904 | 7.133 | 1.01 ± 0.11 |
-| `pipx install --python pypy3 tact` | 6.351 ± 0.600 | 5.717 | 7.086 | 1.00 |
+`tact_add_taxa` (mean wall time in seconds ± standard deviation; Carangaria over 5 runs, Percomorphaceae over 3):
 
-Using [Percomorphaceae](https://fishtreeoflife.org/taxonomy/subdivision/Percomorphaceae/) (~17000 spp), I measure TACT's speed with `time(1)`:
+| Python | Carangaria | Percomorphaceae |
+|:---|---:|---:|
+| CPython 3.15 | 1.88 ± 0.14 | 53.4 ± 3.8 |
+| CPython 3.15 with the experimental JIT (`PYTHON_JIT=1`) | 2.00 ± 0.22 | 51.0 ± 0.3 |
+| CPython 3.15, in the Docker image | 2.63 ± 0.64 | 60.6 ± 1.9 |
 
-* Docker (pypy): ~460s
-* pipx (pypy): ~460s
-* Homebrew (cpython): ~2500s (5.4x worse)
+CPython's JIT makes no consistent difference, so use the standard Python interpreter. On a Mac, Docker runs TACT in a Linux virtual machine, which makes large datasets take about 15% longer, and starting the container adds about a second, more on a busy machine.
 
-TACT runs quite quickly for small datasets. However, for large datasets, it can be quite slow, largely due to factors inherent in Python's object model. TACT could be rewritten in a compiled language, or use different data structures, but this would involve a lot of fiddly work that I don't really want to do. Using PyPy is a reasonable compromise for most people's hardware.
+To repeat these measurements, run `benchmark.py` from a checkout of TACT.
 
-On smaller datasets, the overhead of instantiating a Docker container exceeds any speedup to be gained via PyPy. For larger datasets, the speedup to be gained via PyPy vastly outweighs the easier install of the Homebrew method.
-
-On M1 Macbooks, TACT experiences a significant performance penalty (~30-50x) when running under emulation using Docker. Using the `pipx` install method with Python 3.11 is recommended.
+!!! note "Earlier versions and PyPy"
+    Earlier versions of TACT were much slower on large datasets, and these instructions recommended [PyPy](https://www.pypy.org/) to make up for it. TACT 0.8.0 took 479 seconds on Percomorphaceae with CPython 3.14, and 337 seconds with its Docker image, which used PyPy 3.11. Modern versions of TACT are much faster, so we now recommend a standard Python install for simplicity.
 
 ## What is crown capture probability?
 
