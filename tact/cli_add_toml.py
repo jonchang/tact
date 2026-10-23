@@ -20,7 +20,7 @@ import toml
 
 from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar, setup_logging
-from .lib import get_new_times
+from .lib import get_new_times, replicate_seed, seed_rngs
 from .tree_util import (
     get_ages,
     get_birth_death_rates,
@@ -94,7 +94,7 @@ def ensure_mrca(tree: dendropy.Tree, tips: list[str], node: dendropy.Node | None
         diff = set(tips) - set(get_tip_labels(tree))
         if diff:
             logger.error("Could not find MRCA, these tips were not present in tree:")
-            logger.error(list(diff))
+            logger.error(sorted(diff))
         else:
             logger.error("Could not find MRCA for these tips:")
             logger.error(tips)
@@ -134,7 +134,7 @@ def do_tact(tree: dendropy.Tree, item: TactItem) -> dendropy.Tree:
         # node belong wholly to that genus.
         if item.preserve_generic_monophyly:
             genera_map = defaultdict(set)
-            for tip in get_tip_labels(inner_mrca_node):
+            for tip in sorted(get_tip_labels(inner_mrca_node)):
                 genus, _ = re.split("[_ ]+", tip, maxsplit=1)
                 genera_map[genus].add(tip)
 
@@ -173,9 +173,17 @@ def do_tact(tree: dendropy.Tree, item: TactItem) -> dendropy.Tree:
     return tree
 
 
-def do_replicate(backbone: dendropy.Tree, to_tact: list[TactItem], label: int) -> dendropy.Tree:
-    """Perform a replicate of a TACT analysis."""
+def do_replicate(
+    backbone: dendropy.Tree, to_tact: list[TactItem], label: int, seed: int | None = None
+) -> dendropy.Tree:
+    """Perform a replicate of a TACT analysis.
+
+    If `seed` is given, seed the random number generators with it first, so that the replicate does not depend on
+    which worker process runs it or what that process ran before.
+    """
     logger.info(f"<<< Replicate {label} >>>")
+    if seed is not None:
+        seed_rngs(seed)
     tree = copy.deepcopy(backbone)
     for item in to_tact:
         tree = do_tact(tree, item)
@@ -199,6 +207,11 @@ def do_replicate(backbone: dendropy.Tree, to_tact: list[TactItem], label: int) -
 )
 @click.option("--replicates", help="how many tacted trees to create", default=10, type=click.IntRange(1))
 @click.option(
+    "--seed",
+    type=click.IntRange(0, 2**32 - 1),
+    help="random number generator seed",
+)
+@click.option(
     "--cores",
     help="how many parallel cores to use",
     type=click.IntRange(1, os.cpu_count() or 1, clamp=True),
@@ -211,10 +224,13 @@ def main(
     verbose: int,
     ultrametricity_precision: float,
     replicates: int,
+    seed: int | None,
     cores: int,
 ) -> None:
     """Add tips onto a BACKBONE phylogeny using a CONFIG file."""
     setup_logging(output, verbose)
+    if seed is not None:
+        seed_rngs(seed)
 
     logger.info("Reading configuration")
     settings = toml.load(config)
@@ -232,14 +248,16 @@ def main(
     root_birth, root_death = get_birth_death_rates(backbone.seed_node, root_sf)
     logger.info(f"Root b={root_birth}, d={root_death}, sf={root_sf}")
 
-    results = []
     with ProcessPoolExecutor(max_workers=cores) as executor:
         acc = []
         for idx in range(replicates):
-            acc.append(executor.submit(do_replicate, backbone, to_tact, idx))
+            rep_seed = None if seed is None else replicate_seed(seed, idx)
+            acc.append(executor.submit(do_replicate, backbone, to_tact, idx, rep_seed))
         with progressbar(as_completed(acc), label="TACT", length=replicates) as rf:
             for future in rf:
-                results.append(future.result())
+                future.result()
+    # in submission order, so that the output does not depend on which replicate finishes first
+    results = [future.result() for future in acc]
 
     ntip = len(results[0].leaf_nodes())
     for result_tree in results:

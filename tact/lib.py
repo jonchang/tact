@@ -14,6 +14,29 @@ from scipy.optimize import dual_annealing, minimize, minimize_scalar
 np.seterr(all="raise")
 
 
+def seed_rngs(seed: int) -> None:
+    """Seed all random number generators.
+
+    Args:
+        seed: Seed for Python's `random` module and NumPy's global state.
+    """
+    random.seed(seed)
+    np.random.seed(seed)  # noqa: NPY002
+
+
+def replicate_seed(seed: int, replicate: int) -> int:
+    """Derive the seed of one replicate from the seed of a run.
+
+    Args:
+        seed: Seed of the run.
+        replicate: Index of the replicate.
+
+    Returns:
+        A seed for `seed_rngs` that differs between replicates and does not depend on the process that runs them.
+    """
+    return int(np.random.SeedSequence([seed, replicate]).generate_state(1)[0])
+
+
 def get_bd(r: float, a: float) -> tuple[float, float]:
     """Convert turnover and relative extinction to birth and death rates.
 

@@ -20,7 +20,7 @@ from . import (
     fastmrca,
 )
 from .console import progressbar, setup_logging
-from .lib import crown_capture_probability, get_new_times
+from .lib import crown_capture_probability, get_new_times, seed_rngs
 from .report import PlacementReport, fmt_species_list
 from .tree_util import (
     get_ages,
@@ -159,7 +159,7 @@ def fill_new_taxa(
 
 def create_clade(namespace: dendropy.TaxonNamespace, species: Iterable[str], ages: list[float]) -> dendropy.Tree:
     tree = dendropy.Tree(taxon_namespace=namespace)
-    species = list(species)
+    species = sorted(species)
     ages.sort(reverse=True)
     # need to generate the "stem node"
     tree.seed_node.age = ages.pop(0)
@@ -328,6 +328,11 @@ def run_precalcs(
 )
 @click.option("--yule", help="assume a Yule pure-birth model (force extinction to be 0)", default=False, is_flag=True)
 @click.option(
+    "--seed",
+    type=click.IntRange(0, 2**32 - 1),
+    help="random number generator seed",
+)
+@click.option(
     "--ultrametricity-precision",
     default=1e-6,
     type=click.FloatRange(0, 1, clamp=True),
@@ -350,6 +355,7 @@ def main(
     min_ccp: float,
     verbose: int,
     yule: bool,
+    seed: int | None,
     ultrametricity_precision: float,
     fill_empty: bool,
 ) -> None:
@@ -358,6 +364,8 @@ def main(
     The taxonomy can be the CSV file that tact_build_taxonomic_tree reads, or the tree it builds.
     """
     setup_logging(output, verbose)
+    if seed is not None:
+        seed_rngs(seed)
 
     tree = backbone
     tn = tree.taxon_namespace
@@ -427,7 +435,7 @@ def main(
             logger.info(f"    {taxon}: all species already present in tree")
             continue
 
-        clade_ranks = [(clade, taxonomy.find_node_with_label(clade).level()) for clade in clades_to_generate]
+        clade_ranks = [(clade, taxonomy.find_node_with_label(clade).level()) for clade in sorted(clades_to_generate)]
 
         # Now add clades of unsampled species. Go from the lowest rank to
         # the highest (deepest level to lowest level). Shuffling before
@@ -506,7 +514,7 @@ def main(
         if node is None:
             raise ValueError(f"{taxon} is no longer monophyletic after adding clades")
         times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
-        new_species = species.difference(tree_tips)
+        new_species = sorted(species.difference(tree_tips))
         node = fill_new_taxa(tn, node, new_species, times, ccp < min_ccp)
         report.placed(new_species, taxon)
         # Update stuff
