@@ -21,6 +21,7 @@ from . import (
 )
 from .console import progressbar, setup_logging
 from .lib import crown_capture_probability, get_new_times, seed_rngs
+from .names import written_name
 from .report import PlacementReport, fmt_species_list
 from .tree_util import (
     get_ages,
@@ -34,7 +35,7 @@ from .tree_util import (
     lock_clade,
     node_age,
 )
-from .validation import BackboneCommand, validate_outgroups, validate_taxonomy_tree
+from .validation import BackboneCommand, validate_outgroups, validate_output, validate_taxonomy_tree
 
 logger = logging.getLogger(__name__)
 
@@ -225,35 +226,35 @@ def process_node(
     extant_bitmask = all_bitmask & backbone_bitmask
     if extant_bitmask is None or extant_bitmask == 0:
         logger.debug(f"MRCA: {taxon} not present in backbone")
-        mrca_rates[taxon] = (birth, death, 0.0, f"from {parent} (unsampled)")
+        mrca_rates[taxon] = (birth, death, 0.0, f"from {written_name(parent)} (unsampled)")
         return
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     if not species.issuperset(get_tip_labels(mrca)):
         logger.debug(
             f"MRCA: {taxon} not monophyletic in backbone (from {fmt_species_list(get_tip_labels(mrca) - species)})"
         )
-        mrca_rates[taxon] = (birth, death, 0.0, f"from {parent} (not monophyletic)")
+        mrca_rates[taxon] = (birth, death, 0.0, f"from {written_name(parent)} (not monophyletic)")
         return
     extant = len(mrca.leaf_nodes())
     total = len(taxon_node.leaf_nodes())
     if extant > total:
         logger.warning(f"MRCA: {taxon} has {extant} extant species but should have {total} total species")
-        mrca_rates[taxon] = (birth, death, 0, f"from {parent} (extant exceeds total)")
+        mrca_rates[taxon] = (birth, death, 0, f"from {written_name(parent)} (extant exceeds total)")
         return
     ccp = crown_capture_probability(total, extant)
     if total == 1:
         logger.debug(f"MRCA: {taxon} is a singleton")
-        mrca_rates[taxon] = (birth, death, ccp, f"from {parent} (singleton)")
+        mrca_rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (singleton)")
         return
     if total == 2:
         logger.debug(f"MRCA: {taxon} is a cherry")
-        mrca_rates[taxon] = (birth, death, ccp, f"from {parent} (cherry)")
+        mrca_rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (cherry)")
         return
     if ccp < min_ccp:
         logger.debug(
             f"MRCA: {taxon} has crown capture probability {ccp:.2f} < {min_ccp:.2f} ({extant}/{total} species)"
         )
-        mrca_rates[taxon] = (birth, death, ccp, f"from {parent} (crown capture probability)")
+        mrca_rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (crown capture probability)")
         return
     sf = extant / total
     birth, death = get_birth_death_rates(mrca, sf, yule)
@@ -319,7 +320,14 @@ def run_precalcs(
     type=click.UNPROCESSED,
     callback=validate_outgroups,
 )
-@click.option("--output", required=True, help="output base name to write out")
+@click.option(
+    "--output",
+    required=True,
+    help="output base name to write out",
+    callback=validate_output,
+    # eager so that a missing directory is reported before the taxonomy is read
+    is_eager=True,
+)
 @click.option(
     "--min-ccp",
     default=0.8,
@@ -344,7 +352,7 @@ def run_precalcs(
     # eager so that it is set before --taxonomy is read
     is_eager=True,
     help="for a taxonomy CSV, fill empty rank cells with a placeholder taxon named after the taxon below it, "
-    "e.g. Gobius_family",
+    "e.g. Gobius family",
 )
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(
@@ -383,7 +391,7 @@ def main(
         writer = csv.writer(wfile)
         writer.writerow(("taxon", "birth", "death", "ccp", "source"))
         for key, value in run_precalcs(taxonomy, tree, min_ccp, yule=yule).items():
-            row = [key]
+            row = [written_name(key)]
             row.extend(value)
             writer.writerow(row)
 

@@ -6,6 +6,8 @@ from typing import Self
 
 import dendropy
 
+from .names import written_name
+
 FIELDS = (
     "species",
     "expected_taxon",
@@ -142,14 +144,14 @@ class PlacementReport:
             intruders = self.not_monophyletic.get(expected, []) if skipped else []
             self._writer.writerow(
                 [
-                    name,
-                    expected,
-                    taxon,
+                    written_name(name),
+                    written_name(expected),
+                    written_name(taxon),
                     ranks_up,
-                    new_clade or "",
-                    ";".join(skipped),
+                    written_name(new_clade or ""),
+                    ";".join(written_name(x) for x in skipped),
                     len(intruders),
-                    ";".join(intruders[:MAX_INTRUDERS]),
+                    ";".join(written_name(x) for x in intruders[:MAX_INTRUDERS]),
                 ]
             )
             self.added += 1

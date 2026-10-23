@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 import click
 import dendropy
 
+from .names import clean_name, name_key
+
 # Single root above the highest rank, so that the tree has one root even if the first column has several names
 ROOT = "__TAXONOMIC_ROOT__"
 
@@ -46,12 +48,15 @@ class Taxonomy:
         root: Taxa of the highest rank.
         renamed: Names used at more than one rank, mapped from `(name, rank)` to the name given at that rank.
         filled: Number of empty cells filled with placeholder taxa.
+        respelled: Rank names spelled more than one way, each spelling with the first line it is on, mapped from
+            the spelling used.
     """
 
     ranks: list[str]
     root: Clade
     renamed: dict[tuple[str, str], str]
     filled: int
+    respelled: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
 
     def to_newick(self) -> str:
         """Write the taxonomy as a Newick tree with labelled internal nodes, children in alphabetical order."""
@@ -73,13 +78,13 @@ def quote(label: str) -> str:
 
 
 def _fill_empty(ranks: list[str], species: str, rank_names: list[str]) -> int:
-    """Name each empty rank after the nearest named taxon below it and the rank, e.g. `Gobius_family`."""
+    """Name each empty rank after the nearest named taxon below it and the rank, e.g. `Gobius family`."""
     names = [*ranks, species]
     filled = 0
     for i, name in enumerate(ranks):
         if not name:
             below = next(n for n in names[i + 1 :] if n)
-            ranks[i] = f"{below}_{rank_names[i]}"
+            ranks[i] = clean_name(f"{below} {rank_names[i]}")
             filled += 1
     return filled
 
@@ -90,8 +95,10 @@ def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
     The columns go from the most to the least inclusive rank, and the last column is the species name.
     Rows can be in any order. Every problem in the file is collected before raising.
 
+    * Names that differ only in spaces, underscores or case are the same name, spelled as on its first line
+      with single spaces. A species spelled more than one way is an error.
     * A name used at more than one rank (such as a genus and its nominal subgenus) is renamed at the lower
-      ranks by appending the rank, as `name__rank__`. Species names are never renamed.
+      ranks by appending the rank, as `name rank`. Species names are never renamed.
     * The same name at one rank under two different parents is an error.
     * An empty cell is an error unless `fill_empty` is set, in which case it becomes a placeholder taxon
       named after the nearest named taxon below it.
@@ -125,9 +132,10 @@ def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
     rank_names = header[:-1]
     n_ranks = len(rank_names)
 
-    # Check each row and fill or report empty cells
-    records: list[tuple[int, list[str], str]] = []
-    filled = 0
+    # Check each row, and note the first line of each spelling of each name
+    raw_records: list[tuple[int, list[str], str]] = []
+    spellings: dict[str, dict[str, int]] = {}
+    species_keys: set[str] = set()
     for lineno, row in enumerate(rows[1:], start=2):
         cells = [cell.strip() for cell in row]
         if not any(cells):
@@ -139,13 +147,42 @@ def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
         if not species:
             problems.append(f"line {lineno}: no species name")
             continue
+        if not all(ranks) and not fill_empty:
+            empty = ", ".join(rank_names[i] for i, name in enumerate(ranks) if not name)
+            problems.append(
+                f"line {lineno}: empty {empty} for {clean_name(species)} (use --fill-empty to fill it in)"
+            )
+            continue
+        for name in cells:
+            if name:
+                spellings.setdefault(name_key(name), {}).setdefault(name, lineno)
+        species_keys.add(name_key(species))
+        raw_records.append((lineno, ranks, species))
+
+    # Spell each name as on its first line, and report species spelled more than one way
+    respelled: dict[str, list[tuple[str, int]]] = {}
+    spelling: dict[str, str] = {}
+    for key, found in spellings.items():
+        first = next(iter(found))
+        spelling[key] = clean_name(first)
+        if len(found) > 1 and key not in species_keys:
+            respelled[spelling[key]] = list(found.items())
+    records: list[tuple[int, list[str], str]] = []
+    filled = 0
+    for lineno, raw_ranks, raw_species in raw_records:
+        found = spellings[name_key(raw_species)]
+        first = next(iter(found))
+        if raw_species != first:
+            if found[raw_species] == lineno:
+                problems.append(
+                    f"line {lineno}: {raw_species} is spelled {first} on line {found[first]}; "
+                    "spell each species the same way on every line"
+                )
+            continue
+        ranks = [spelling[name_key(name)] if name else "" for name in raw_ranks]
+        species = spelling[name_key(raw_species)]
         if not all(ranks):
-            if fill_empty:
-                filled += _fill_empty(ranks, species, rank_names)
-            else:
-                empty = ", ".join(rank_names[i] for i, name in enumerate(ranks) if not name)
-                problems.append(f"line {lineno}: empty {empty} for {species} (use --fill-empty to fill it in)")
-                continue
+            filled += _fill_empty(ranks, species, rank_names)
         records.append((lineno, ranks, species))
 
     # Rename names used at more than one rank everywhere except their highest rank, or everywhere if a species
@@ -160,7 +197,7 @@ def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
         if len(found_at) > 1:
             keep = n_ranks if n_ranks in found_at else min(found_at)
             for i in found_at - {keep}:
-                renamed[name, rank_names[i]] = f"{name}__{rank_names[i]}__"
+                renamed[name, rank_names[i]] = clean_name(f"{name} {rank_names[i]}")
 
     # Insert each row from the highest rank down
     root = Clade()
@@ -200,11 +237,16 @@ def read_taxonomy(path: str, fill_empty: bool = False) -> Taxonomy:
 
     if problems:
         raise TaxonomyError(problems)
-    return Taxonomy(rank_names, root, renamed, filled)
+    return Taxonomy(rank_names, root, renamed, filled, respelled)
 
 
 def echo_changes(taxonomy: Taxonomy) -> None:
-    """Tell the user which empty cells were filled and which names were renamed while reading `taxonomy`."""
+    """Tell the user which names were respelled or renamed, and how many empty cells were filled."""
+    if taxonomy.respelled:
+        click.echo("Note: these names are spelled more than one way, and each is read as the same taxon:")
+        for name, found in sorted(taxonomy.respelled.items()):
+            spelled = ", ".join(f"{spelling} (line {lineno})" for spelling, lineno in found)
+            click.echo(f"{name}: {spelled}")
     if taxonomy.filled:
         click.echo(f"Filled {taxonomy.filled} empty cells with placeholder taxa.")
     if taxonomy.renamed:
@@ -232,7 +274,7 @@ def build_taxonomic_tree(filename: str, fill_empty: bool = False) -> dendropy.Tr
 @click.option(
     "--fill-empty",
     is_flag=True,
-    help="fill empty rank cells with a placeholder taxon named after the taxon below it, e.g. Gobius_family",
+    help="fill empty rank cells with a placeholder taxon named after the taxon below it, e.g. Gobius family",
 )
 def main(taxonomy: str, output: str, schema: str, fill_empty: bool) -> None:
     r"""Generates a taxonomic tree from TAXONOMY.
@@ -248,6 +290,8 @@ def main(taxonomy: str, output: str, schema: str, fill_empty: bool) -> None:
     * Every cell must be filled in, unless --fill-empty is given.
     * A name can only appear under one parent at each rank.
       - NO: Gobiidae,Gobius,Gobius niger and Oxudercidae,Gobius,Gobius roulei
+    * Underscores are read as spaces, and names that differ only in spaces,
+      underscores or case are the same name.
 
     TACT lists every problem it finds in the file before stopping.
     """

@@ -90,17 +90,33 @@ Suppose you have a family Caninae with two genera, _Canis_ and _Vulpes_, but you
 
 TACT will generate a single new divergence time constrained so that it will attach somewhere on the stem of the sampled clade. This could lead to very short internal branches, or unusual placements of new clades.
 
+## Tips are not in the taxonomy
+
+Every tip in the backbone must be a species in the taxonomy. Spaces, underscores and case do not matter, so `Gobius_niger` in the backbone matches `Gobius niger` in the taxonomy. TACT lists the backbone tips it could not find. Either add these species to the taxonomy, or, if they are outgroups that should not be part of it, name them with `--outgroups`, separated by commas.
+
+## Names spelled more than one way
+
+TACT treats names that differ only in spaces, underscores or case as the same name. Within one file, two such spellings are an error if they are tips of a tree (such as `Gobius_niger` and `'Gobius niger'`), internal taxa of a taxonomy tree, or species in a taxonomy CSV, because TACT cannot tell which one is meant. Spell each the same way throughout. Rank names in a taxonomy CSV are instead read as one taxon, with a note listing the spellings.
+
+## This is a Nexus file
+
+The backbone must be a Newick tree. To convert a single tree in R, run `ape::write.tree(ape::read.nexus("tree.nex"), "tree.tre")`.
+
+## Branches have no length
+
+The backbone needs branch lengths in units of time. A tree without any branch lengths is usually a topology rather than a dated tree.
+
 ## Tree is not ultrametric
 
-TACT requires ultrametric trees because it uses time-based calculations to place unsampled species.
+TACT requires ultrametric trees because it uses time-based calculations to place unsampled species. The error names the tips closest to and farthest from the root, with their distances, and how many tips are closer to the root than the farthest one. If only a few tips are closer, they may be extinct or wrongly dated; if almost every tip is, the tree probably has rounding errors throughout.
 
 TACT tests for ultrametricity before running. If your tree falls outside a certain precision threshold (by default, 1e-6, or roughly six digits after the decimal point), TACT will refuse to run. This is mostly intended as a safety check to ensure that you haven't accidentally passed a [phylogram](https://en.wikipedia.org/wiki/Phylogram) (a tree with branch lengths in units of change, not time) or a phylogeny with extinct tips to TACT.
 
 If your tree is mostly ultrametric but has minor rounding errors, TACT will automatically adjust the ages slightly to make everything line up. This won't really affect your results. For more details on checking and fixing ultrametric trees, see this [blog post](https://jonathanchang.org/blog/three-ways-to-check-and-fix-ultrametric-phylogenies/).
 
-## Backbone tree is not binary
+## Tree is not binary
 
-TACT requires binary trees as input.
+TACT requires binary trees as input. The error lists each node that does not have exactly two branches below it, with the number of branches and a tip from each, so that you can find it in the tree. A node with one branch below it usually comes from extra parentheses in the Newick file.
 
 This error sometimes occurs when you have a basal trifurcation (three branches at the root) in your phylogeny, which often represents an unrooted tree. You'll need to root your tree before using it with TACT. TACT will generally assume that a basal trifurcation represents a rooted tree, but this doesn't always work correctly, so it's better to root your tree explicitly using an outgroup or other method before running TACT.
 
