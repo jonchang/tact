@@ -85,6 +85,26 @@ jobs:
         with:
           name: ${{ steps.build.outputs.version }}
           path: dist
+  lowest-deps:
+    # Test against the oldest versions on the oldest supported Python
+    needs: [lint, typecheck]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - run: pipx install 'poetry>=2' uv
+      - name: Install test tools from the lock file
+        run: poetry install -v --all-extras
+      - name: Reinstall TACT with the lowest versions of its dependencies
+        run: |
+          python=$(poetry env info --executable)
+          uv pip install --python "$python" --resolution lowest-direct --reinstall .
+          uv pip check --python "$python"
+          uv pip list --python "$python"
+      - name: Test with pytest
+        run: poetry run pytest --script-launch-mode=subprocess
   publish-to-pypi:
     name: Publish distribution to PyPI
     if: startsWith(github.event.ref, 'refs/tags')
