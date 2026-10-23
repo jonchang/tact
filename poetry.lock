@@ -1768,4 +1768,4 @@ dev = ["hypothesis", "mkdocs", "mkdocs-git-revision-date-localized-plugin", "mkd
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "8f159195a3a488e723ba84df6459b283d7347cca64bad89bf90ba042245f881b"
+content-hash = "af5864a1651bf40897c5aa35598eaefb3b963246a8812f46a44291bd67902184"
