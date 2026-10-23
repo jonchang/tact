@@ -15,7 +15,10 @@ from time import time
 import click
 import dendropy
 
-from . import fastmrca
+from . import (
+    _blas_threads,  # noqa: F401  # before anything imports NumPy
+    fastmrca,
+)
 from .console import progressbar, setup_logging
 from .lib import crown_capture_probability, get_new_times
 from .report import PlacementReport, fmt_species_list

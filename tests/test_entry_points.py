@@ -1,6 +1,8 @@
 """Smoke tests that run tact's console scripts in separate processes."""
 
 import os
+import subprocess
+import sys
 
 import pytest
 from dendropy import Tree, TreeList
@@ -8,6 +10,33 @@ from dendropy import Tree, TreeList
 pytestmark = pytest.mark.script_launch_mode("subprocess")
 
 SCRIPTS = ["tact_add_taxa", "tact_add_config", "tact_build_taxonomic_tree", "tact_check_results"]
+CLI_NUMPY_MODULES = ["tact.cli_add_taxa", "tact.cli_add_toml", "tact.cli_check_trees"]
+BLAS_THREAD_VARS = ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
+
+# Imports a module and prints the BLAS thread variables as they were when NumPy started loading
+BLAS_THREADS_AT_NUMPY_IMPORT = """
+import importlib, os, sys
+
+class Spy:
+    def find_spec(self, name, path=None, target=None):
+        if name == "numpy":
+            sys.meta_path.remove(self)
+            print(",".join(os.environ.get(var, "") for var in sys.argv[2:]))
+
+sys.meta_path.insert(0, Spy())
+importlib.import_module(sys.argv[1])
+"""
+
+
+def blas_threads_at_numpy_import(module, env):
+    result = subprocess.run(
+        [sys.executable, "-c", BLAS_THREADS_AT_NUMPY_IMPORT, module, *BLAS_THREAD_VARS],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout.strip().split(",")
 
 
 @pytest.mark.parametrize("script", SCRIPTS)
@@ -80,3 +109,15 @@ def test_add_config(script_runner, tmp_path):
     trees = TreeList.get(path=f"{output}.newick.tre", schema="newick")
     assert len(trees) == 2
     assert all(len(tree.leaf_nodes()) == 6 for tree in trees)
+
+
+@pytest.mark.parametrize("module", CLI_NUMPY_MODULES)
+def test_blas_threads_limited_before_numpy_loads(module):
+    env = {key: value for key, value in os.environ.items() if key not in BLAS_THREAD_VARS}
+    assert blas_threads_at_numpy_import(module, env) == ["1", "1", "1"]
+
+
+@pytest.mark.parametrize("module", CLI_NUMPY_MODULES)
+def test_blas_threads_keep_user_setting(module):
+    env = {**os.environ, "OPENBLAS_NUM_THREADS": "4", "OMP_NUM_THREADS": "2", "MKL_NUM_THREADS": "3"}
+    assert blas_threads_at_numpy_import(module, env) == ["4", "2", "3"]

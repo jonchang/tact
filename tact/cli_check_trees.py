@@ -10,6 +10,7 @@ from typing import TextIO
 import click
 import dendropy
 
+from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar
 from .tree_util import get_birth_death_rates, get_monophyletic_node, get_tip_labels, get_tree
 
