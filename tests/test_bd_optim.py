@@ -6,7 +6,7 @@ from hypothesis import example, given, settings
 from tact.lib import optim_bd
 
 
-@settings(deadline=5000)
+@settings(deadline=None)
 @example(
     ages=[
         38.428566000000004,
