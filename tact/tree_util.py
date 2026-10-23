@@ -363,18 +363,6 @@ def unlock_clade(node: dendropy.Node, stem: bool = False) -> None:
         node.edge.label = ""
 
 
-def count_locked(node: dendropy.Node) -> int:
-    """Count the number of locked edges in a subtree.
-
-    Args:
-        node: Node representing the root of the subtree.
-
-    Returns:
-        Number of edges marked as locked.
-    """
-    return sum([x.label == "locked" for x in edge_iter(node)])
-
-
 def is_fully_locked(node: dendropy.Node) -> bool:
     """Check if all edges in a subtree are locked.
 

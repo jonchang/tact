@@ -98,20 +98,3 @@ def get(labels: Iterable[str]) -> "dendropy.Node | None":
     if mrca and labels_set.issuperset(get_tip_labels(mrca)):
         return mrca
     return None
-
-
-def fastmrca_getter(tn: "dendropy.TaxonNamespace", x: list[str]) -> int:
-    """Helper function to compute bitmask for parallel processing.
-
-    Args:
-        tn: Taxon namespace object.
-        x: List of taxon labels.
-
-    Returns:
-        Bitmask representing the taxa.
-    """
-    taxa = tn.get_taxa(labels=x)
-    mask = 0
-    for taxon in taxa:
-        mask |= int(tn.taxon_bitmask(taxon))
-    return mask

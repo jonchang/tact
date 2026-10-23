@@ -8,7 +8,6 @@ import csv
 import logging
 import operator
 import random
-import sys
 from collections.abc import Iterable
 from time import time
 
@@ -39,51 +38,8 @@ from .validation import BackboneCommand, validate_outgroups, validate_output, va
 
 logger = logging.getLogger(__name__)
 
-# Maps taxonomy node labels to the nearest valid ancestor in the taxonomy
-invalid_map: dict[str, dendropy.Node] = {}
-
 # Maps taxon names to (birth, death, crown capture probability, source of the rates)
 mrca_rates: dict[str, tuple[float, float, float, str]] = {}
-
-
-def search_ancestors_for_valid_backbone_node(
-    taxonomy_node: dendropy.Node, backbone_tips: set[str], ccp: float
-) -> tuple[dendropy.Node, dendropy.Node]:
-    global invalid_map
-    seen = []
-    for anc in taxonomy_node.ancestor_iter():
-        if anc.label in invalid_map:
-            logger.debug(
-                f"Cache HIT on invalid_map for {taxonomy_node.label} ({anc.label} => {invalid_map[anc.label].label})"
-            )
-            anc = invalid_map[anc.label]
-        full_tax = get_tip_labels(anc)
-        extant_tax = full_tax.intersection(backbone_tips)
-        backbone_node = fastmrca.get(extant_tax)
-        seen.append(anc.label)
-        computed_ccp = crown_capture_probability(len(full_tax), len(extant_tax))
-        if backbone_node is None:
-            logger.info(f"    {taxonomy_node.label}: ancestor {anc.label} not monophyletic!")
-        elif computed_ccp < ccp:
-            logger.info(
-                f"    {taxonomy_node.label}: using stem as ancestor {anc.label} ccp {computed_ccp:.2f} < {ccp}"
-            )
-            taxonomy_target = anc
-            backbone_target = backbone_node.parent_node
-            break
-        else:
-            taxonomy_target = anc
-            backbone_target = backbone_node
-            logger.info(f"    {taxonomy_node.label}: will instead assign these taxa to {taxonomy_target.label}")
-            break
-    else:
-        anc_chain = " => ".join(seen)
-        logger.error(f"Couldn't find valid taxonomy node in ancestor chain for {taxonomy_node.label} ({anc_chain})")
-        sys.exit(1)
-    seen.pop()  # ignore last node
-    for x in seen:
-        invalid_map[x] = taxonomy_target
-    return (taxonomy_target, backbone_target)
 
 
 def get_new_branching_times(
