@@ -114,7 +114,7 @@ class BenchmarkRunner:
         Args:
             csv_file: Path to CSV file
             taxonomy_file: Path to output taxonomy file
-            run_cmd: Command to run (e.g., ['uv', 'run', '--python', '3.11', '--with', 'tact'])
+            run_cmd: Command to run (e.g., ['uv', 'run', '--python', '3.12', '--with', 'tact'])
             env: Optional environment variables to set
 
         Returns:
@@ -156,7 +156,7 @@ class BenchmarkRunner:
             backbone: Path to backbone tree
             taxonomy: Path to taxonomy tree
             output_base: Base name for output files
-            run_cmd: Command to run (e.g., ['uv', 'run', '--python', '3.11', '--with', 'tact'])
+            run_cmd: Command to run (e.g., ['uv', 'run', '--python', '3.12', '--with', 'tact'])
             env: Optional environment variables to set
 
         Returns:
@@ -283,7 +283,7 @@ class BenchmarkRunner:
 
         Args:
             name: Name of the implementation
-            run_cmd: Command to run (e.g., ['uv', 'run', '--python', '3.11', '--with', 'tact'])
+            run_cmd: Command to run (e.g., ['uv', 'run', '--python', '3.12', '--with', 'tact'])
             backbone: Path to backbone tree
             taxonomy: Path to taxonomy tree
             output_base: Base name for output files
