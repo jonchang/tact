@@ -3,7 +3,7 @@
 import logging
 import sys
 from collections.abc import Callable, Iterable, Iterator
-from typing import Generic, Self, TextIO, TypeVar
+from typing import Self, TextIO, TypeVar
 
 import click
 
@@ -65,7 +65,7 @@ def _isatty(stream: TextIO) -> bool:
         return False
 
 
-class Progress(Generic[T]):
+class Progress[T]:
     """Progress through a fixed number of steps.
 
     Draws a progress bar on standard error when it is a terminal and log messages are not shown there.
@@ -142,7 +142,7 @@ class Progress(Generic[T]):
         self._finished = True
 
 
-def progressbar(
+def progressbar[T](
     iterable: Iterable[T] | None = None,
     *,
     label: str,
