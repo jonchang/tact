@@ -82,8 +82,8 @@ def test_fill_empty(tmp_path):
     tree = dendropy.Tree.get(data=taxonomy.to_newick(), schema="newick")
     found = clades(tree)
     # placeholders are named after the nearest named taxon below them
-    assert found["G2_family"] == {"G2 b", "G2 c"}
-    assert found["G3_order"] == found["G3_family"] == {"G3 d"}
+    assert found["G2 family"] == {"G2 b", "G2 c"}
+    assert found["G3 order"] == found["G3 family"] == {"G3 d"}
     assert found["O1"] == {"G1 a", "G2 b", "G2 c"}
 
 
@@ -93,15 +93,15 @@ def test_name_at_two_ranks(tmp_path):
         rows = ["Cichlidae,Cichla,Cichla,Cichla temensis", "Cichlidae,Cichla,Other,Cichla other"]
         text = "family,genus,subgenus,species\n" + "\n".join(rows[i] for i in order) + "\n"
         taxonomy = read_taxonomy(write_csv(tmp_path, text))
-        assert taxonomy.renamed == {("Cichla", "subgenus"): "Cichla__subgenus__"}
+        assert taxonomy.renamed == {("Cichla", "subgenus"): "Cichla subgenus"}
         found = clades(dendropy.Tree.get(data=taxonomy.to_newick(), schema="newick"))
-        assert found["Cichla__subgenus__"] == {"Cichla temensis"}
+        assert found["Cichla subgenus"] == {"Cichla temensis"}
         assert found["Cichla"] == {"Cichla temensis", "Cichla other"}
 
 
 def test_species_names_are_not_renamed(tmp_path):
     taxonomy = read_taxonomy(write_csv(tmp_path, "family,genus,species\nF1,Foo,Foo\n"))
-    assert taxonomy.renamed == {("Foo", "genus"): "Foo__genus__"}
+    assert taxonomy.renamed == {("Foo", "genus"): "Foo genus"}
     tree = dendropy.Tree.get(data=taxonomy.to_newick(), schema="newick")
     assert [leaf.taxon.label for leaf in tree.leaf_node_iter()] == ["Foo"]
 
@@ -130,7 +130,7 @@ def test_byte_order_mark_and_whitespace(tmp_path):
 
 @pytest.mark.parametrize(
     "label",
-    ["Gobius niger", "Gobius_niger", "Gobius (Gobius) niger", "Gobius niger 'A'", "Gobius sp. A:B", 'say "hi"'],
+    ["Gobius niger", "Quietula y-cauda", "Gobius (Gobius) niger", "Gobius niger 'A'", "Gobius sp. A:B", 'say "hi"'],
 )
 def test_labels_survive_newick(tmp_path, label):
     text = f'family,genus,species\nF1,G1,"{label.replace(chr(34), chr(34) * 2)}"\n'

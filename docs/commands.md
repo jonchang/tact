@@ -21,14 +21,19 @@ tact_build_taxonomic_tree [OPTIONS] TAXONOMY
 
 **CSV format:** The first row names the ranks. Each following row is one species. Columns are taxonomic ranks from most to least inclusive, and the last column is the species name.
 
+**Names:** TACT reads underscores as spaces and treats names case-insensitively, so `Gobius_niger` and `gobius niger` are considered the same species. TACT always writes names with underscores in the files it creates (the trees and the CSV reports), so that they match the tip labels that R and other programs read from the trees.
+
 Some common problems with the taxonomy CSV format:
 
 * **Wrong number of cells:** every row must have as many cells as the header.
 * **A name under two parents:** a name can appear at a rank under only one parent. For example, the genus *Gobius* cannot be in both Gobiidae and Oxudercidae. Rename one of them, for example to `Gobius (Oxudercidae)`.
-* **Empty cells:** every rank must be filled in. With `--fill-empty`, an empty cell becomes a placeholder taxon named after the nearest named taxon below it and the rank, such as `Gobius_family`. Each placeholder holds only that taxon, so unrelated groups are never merged.
+* **Empty cells:** every rank must be filled in. With `--fill-empty`, an empty cell becomes a placeholder taxon named after the nearest named taxon below it and the rank, such as `Gobius family`. Each placeholder holds only that taxon, so unrelated groups are never merged.
 * **Conflicting duplicates:** a species listed twice must have the same ranks both times. Identical rows are ignored.
+* **A species spelled two ways:** a species must be spelled the same way on every line, for example not as `Gobius niger` on one line and `Gobius_niger` or `gobius niger` on another.
 
-A name used at more than one rank, such as a genus and its nominal subgenus, is renamed at the lower rank by appending the rank name (`Cichla__subgenus__`), and TACT prints a note listing the renamed taxa. Species names are never renamed.
+A rank name spelled more than one way, such as `Gobiidae` and `gobiidae`, is read as one taxon spelled as on its first line, and TACT prints a note listing the spellings.
+
+A name used at more than one rank, such as a genus and its nominal subgenus, is renamed at the lower rank by appending the rank name (`Cichla subgenus`), and TACT prints a note listing the renamed taxa. Species names are never renamed.
 
 ??? example "Examples of taxonomy CSV rows"
 

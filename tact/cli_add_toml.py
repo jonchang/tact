@@ -21,6 +21,7 @@ import toml
 from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar, setup_logging
 from .lib import get_new_times, replicate_seed, seed_rngs
+from .names import clean_name
 from .tree_util import (
     get_ages,
     get_birth_death_rates,
@@ -33,7 +34,7 @@ from .tree_util import (
     unlock_clade,
     update_tree_view,
 )
-from .validation import BackboneCommand
+from .validation import BackboneCommand, validate_output
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class TactConstraint:
     stem: bool = False
 
     def __post_init__(self) -> None:
-        self.mrca = [x.replace("_", " ") for x in self.mrca]
+        self.mrca = [clean_name(x) for x in self.mrca]
 
 
 @dataclass(repr=False)
@@ -74,6 +75,7 @@ class TactItem:
         )
 
     def __post_init__(self) -> None:
+        self.name = clean_name(self.name)
         if not self.include:
             logger.error(f"Need at least one include for {self.name}!")
             sys.exit(1)
@@ -197,7 +199,12 @@ def do_replicate(
 @click.command(cls=BackboneCommand)
 @click.option("--config", help="configuration file", type=click.File("r"), required=True)
 @click.option("--backbone", help="the backbone tree", type=click.File("r"), required=True)
-@click.option("--output", required=True, help="output base name to write out")
+@click.option(
+    "--output",
+    required=True,
+    help="output base name to write out",
+    callback=validate_output,
+)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 @click.option(
     "--ultrametricity-precision",

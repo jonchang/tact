@@ -31,22 +31,23 @@ def placements(run_cli, tmp_path):
 
 def test_rows(placements):
     _, output = placements
+    # the CSV spells names with underscores, as in the tree files
     rows = read_rows(f"{output}.placements.csv")
-    assert rows.keys() == {"G1 c", "G2 e", "G4 h", "G4 i"}
-    assert rows["G1 c"] == {
-        "species": "G1 c",
+    assert rows.keys() == {"G1_c", "G2_e", "G4_h", "G4_i"}
+    assert rows["G1_c"] == {
+        "species": "G1_c",
         "expected_taxon": "G1",
         "placed_taxon": "F1",
         "ranks_up": "1",
         "new_clade": "",
         "skipped_taxa": "G1",
         "n_intruders": "1",
-        "intruders": "G2 d",
+        "intruders": "G2_d",
     }
-    assert rows["G2 e"]["expected_taxon"] == rows["G2 e"]["placed_taxon"] == "G2"
-    assert rows["G2 e"]["skipped_taxa"] == ""
+    assert rows["G2_e"]["expected_taxon"] == rows["G2_e"]["placed_taxon"] == "G2"
+    assert rows["G2_e"]["skipped_taxa"] == ""
     # an unsampled genus is expected in the lowest taxon with sampled species
-    for species in ("G4 h", "G4 i"):
+    for species in ("G4_h", "G4_i"):
         assert rows[species]["expected_taxon"] == rows[species]["placed_taxon"] == "F2"
         assert rows[species]["new_clade"] == "G4"
         assert rows[species]["ranks_up"] == "0"
@@ -78,7 +79,7 @@ def test_unlabelled_ranks_are_not_counted(tmp_path):
     with make_report(tmp_path, "((((A_a,A_b)A,(B_c)B))F)O;", {"A a", "B c"}) as report:
         report.taxon_not_monophyletic("A", ["A a", "B c"], ["A a", "A b"])
         report.placed(["A b"], "F")
-    row = read_rows(tmp_path / "placements.csv")["A b"]
+    row = read_rows(tmp_path / "placements.csv")["A_b"]
     assert row["ranks_up"] == "1"
     assert row["skipped_taxa"] == "A"
 
