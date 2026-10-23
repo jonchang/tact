@@ -12,7 +12,7 @@ maintainers = [
 ]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.11,<4"
+requires-python = ">=3.12,<4"
 dynamic = ["classifiers"]
 dependencies = [
     "scipy>=1.13",
