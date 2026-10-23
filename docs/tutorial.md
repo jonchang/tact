@@ -47,6 +47,9 @@ Output written to: Carangaria.taxonomy.tre
 
 This creates `Carangaria.taxonomy.tre`, a [Newick format](https://en.wikipedia.org/wiki/Newick_format) phylogenetic tree with many polytomies representing taxonomic relationships. Each taxonomic rank (genus, family, etc.) is represented as a named node in the tree.
 
+??? tip "Can I skip this step?"
+    Yes. `tact_add_taxa` also accepts the CSV file directly (`--taxonomy Carangaria.csv`) and builds the same tree in memory, so it gives the same results. Building the tree first is still useful if you want to look at it, or to check the results with `tact_check_results` later, which needs the tree.
+
 ## Adding unsampled species
 
 Now we'll run TACT to add the missing species from the taxonomy tree onto the backbone phylogeny. This is the main TACT command:

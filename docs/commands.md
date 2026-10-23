@@ -17,32 +17,39 @@ tact_build_taxonomic_tree [OPTIONS] TAXONOMY
 **Options:**
 
 * `--schema [newick|nexus|nexml]`: Output format (default: `newick`)
+* `--fill-empty`: Fill empty rank cells with placeholder taxa instead of stopping (see below)
 
-**CSV format:** Each row = one species; columns = taxonomic ranks (most to least inclusive, last column = species name). Each rank must be named and unique within a row.
+**CSV format:** The first row names the ranks. Each following row is one species. Columns are taxonomic ranks from most to least inclusive, and the last column is the species name.
 
-??? example "Examples of taxonomy CSV files"
+Some common problems with the taxonomy CSV format:
+
+* **Wrong number of cells:** every row must have as many cells as the header.
+* **A name under two parents:** a name can appear at a rank under only one parent. For example, the genus *Gobius* cannot be in both Gobiidae and Oxudercidae. Rename one of them, for example to `Gobius (Oxudercidae)`.
+* **Empty cells:** every rank must be filled in. With `--fill-empty`, an empty cell becomes a placeholder taxon named after the nearest named taxon below it and the rank, such as `Gobius_family`. Each placeholder holds only that taxon, so unrelated groups are never merged.
+* **Conflicting duplicates:** a species listed twice must have the same ranks both times. Identical rows are ignored.
+
+A name used at more than one rank, such as a genus and its nominal subgenus, is renamed at the lower rank by appending the rank name (`Cichla__subgenus__`), and TACT prints a note listing the renamed taxa. Species names are never renamed.
+
+??? example "Examples of taxonomy CSV rows"
 
     **Valid examples:**
-    
+
     * `Cichlidae,Cichla,Cichla temensis`
     * `Actinopterygii,Teleostei,Carangiformes,Carangidae,Alectis,Alectis alexandrina`
     * `Felidae,Panthera,Panthera leo`
-    
+    * `Cichlidae,Cichla,Cichla,Cichla temensis`: genus and subgenus share a name, so the subgenus is renamed
+
     **Invalid examples:**
-    
-    * `Cichlidae,Cichlidae,Cichla temensis` - duplicate rank (Cichlidae appears twice)
-    * `Cichlidae,,Cichla temensis` - empty rank (genus is missing)
-    * `Cichla,Cichlidae,Cichla temensis` - wrong order (genus before family - ranks must be from most inclusive to least inclusive)
-    * `Cichlidae,Cichla,Cichla temensis,ExtraColumn` - too many columns (species should be last)
+
+    * `Cichlidae,,Cichla temensis`: empty rank (genus is missing), unless you use `--fill-empty`
+    * `Cichla,Cichlidae,Cichla temensis`: wrong order (genus before family; ranks must go from most to least inclusive)
+    * `Cichlidae,Cichla,Cichla temensis,ExtraColumn`: too many columns (species should be last)
 
 **Example**
 
 ```bash
 tact_build_taxonomic_tree Carangaria.csv --output Carangaria.taxonomy.tre
 ```
-
-!!! warning "Input format"
-    This script makes many assumptions about input for speed. See the [example file](https://raw.githubusercontent.com/jonchang/tact/HEAD/examples/Carangaria.csv) for guidance.
 
 ## `tact_add_taxa`
 
@@ -55,7 +62,7 @@ tact_add_taxa [OPTIONS]
 
 **Required:**
 
-* `--taxonomy FILENAME`: Taxonomy tree (from `tact_build_taxonomic_tree`)
+* `--taxonomy FILE`: Taxonomy, either as a CSV file in the [`tact_build_taxonomic_tree`](#tact_build_taxonomic_tree) format or as the Newick tree that command builds from it.
 * `--backbone FILENAME`: Backbone phylogeny
 * `--output TEXT`: Base name for output files
 
@@ -65,6 +72,7 @@ tact_add_taxa [OPTIONS]
 * `--min-ccp FLOAT` (0-1, default: 0.8): Minimum [crown capture probability](troubleshooting.md#what-is-crown-capture-probability)
 * `--yule`: Use Yule (pure-birth) model (extinction = 0)
 * `--ultrametricity-precision FLOAT` (default: 1e-6): [Ultrametricity check precision](troubleshooting.md#tree-is-not-ultrametric)
+* `--fill-empty`: For a taxonomy CSV, fill empty rank cells with placeholder taxa, as with [`tact_build_taxonomic_tree --fill-empty`](#tact_build_taxonomic_tree). Not allowed with a taxonomy tree.
 * `-v, --verbose`: Show more log messages as TACT runs: `-v` for details of each step, `-vv` for debugging messages
 
 **Output files:**
@@ -89,6 +97,11 @@ Each added species is expected to go into the lowest taxon containing it that ha
 **Example:**
 ```bash
 tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted
+```
+
+Or, skipping `tact_build_taxonomic_tree`:
+```bash
+tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.csv --output Carangaria.tacted
 ```
 
 ## `tact_check_results`

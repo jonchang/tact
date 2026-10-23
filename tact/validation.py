@@ -8,6 +8,7 @@ import click
 import dendropy
 from dendropy.utility.error import ImmutableTaxonNamespaceError
 
+from .cli_taxonomy import echo_changes, read_taxonomy
 from .tree_util import compute_node_depths, is_binary, is_ultrametric, update_tree_view
 
 
@@ -45,9 +46,32 @@ def validate_tree_node_depths(
     return value
 
 
-def validate_taxonomy_tree(ctx: click.Context | None, param: click.Parameter | None, value: IO[str]) -> dendropy.Tree:
-    """Validates a taxonomy tree."""
-    tree = validate_newick(ctx, param, value)
+def validate_taxonomy_tree(ctx: click.Context | None, param: click.Parameter | None, value: str) -> dendropy.Tree:
+    """Validates a taxonomy, given either as a Newick tree or as a CSV file that is built into a tree in memory.
+
+    The format is sniffed from the first character of the file rather than taken from its extension, because
+    taxonomy trees go by many extensions (.tre, .tree, .nwk, .txt) and a CSV need not end in .csv. A Newick
+    tree starts with `(`, or `[` for a comment such as `[&R]`, which a CSV header row does not. Anything else
+    is read as a CSV, so that a file that is neither gets the list of problems from `read_taxonomy` rather than
+    a DendroPy parse error.
+
+    If the command has a `fill_empty` parameter, it must be eager so that it is set before this callback runs.
+    """
+    fill_empty = bool(ctx and ctx.params.get("fill_empty"))
+    # utf-8-sig drops the byte order mark that spreadsheet programs often add
+    with open(value, encoding="utf-8-sig") as fh:
+        text = fh.read()
+    start = text.lstrip()
+    if start[:6].upper() == "#NEXUS":
+        raise click.BadParameter("this is a Nexus file; give a Newick tree or a CSV file instead")
+    if start[:1] in ("(", "["):
+        if fill_empty:
+            raise click.BadParameter("--fill-empty only applies to a taxonomy CSV, not a tree")
+        tree = dendropy.Tree.get(data=text, schema="newick", rooting="default-rooted")
+    else:
+        taxonomy = read_taxonomy(value, fill_empty)
+        echo_changes(taxonomy)
+        tree = dendropy.Tree.get(data=taxonomy.to_newick(), schema="newick", rooting="default-rooted")
     return validate_tree_node_depths(ctx, param, tree)
 
 

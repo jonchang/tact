@@ -301,7 +301,11 @@ def run_precalcs(
 @click.command(cls=BackboneCommand)
 @click.version_option(package_name="tact")
 @click.option(
-    "--taxonomy", help="a taxonomy tree", type=click.File("r"), required=True, callback=validate_taxonomy_tree
+    "--taxonomy",
+    help="a taxonomy CSV, or a taxonomy tree built from one by tact_build_taxonomic_tree",
+    type=click.Path(exists=True, dir_okay=False, readable=True),
+    required=True,
+    callback=validate_taxonomy_tree,
 )
 @click.option(
     "--backbone", help="the backbone tree to attach the taxonomy tree to", type=click.File("r"), required=True
@@ -326,6 +330,14 @@ def run_precalcs(
     type=click.FloatRange(0, 1, clamp=True),
     help="precision for ultrametricity checks; by default, checks roughly digits of similarity",
 )
+@click.option(
+    "--fill-empty",
+    is_flag=True,
+    # eager so that it is set before --taxonomy is read
+    is_eager=True,
+    help="for a taxonomy CSV, fill empty rank cells with a placeholder taxon named after the taxon below it, "
+    "e.g. Gobius_family",
+)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(
     taxonomy: dendropy.Tree,
@@ -336,8 +348,12 @@ def main(
     verbose: int,
     yule: bool,
     ultrametricity_precision: float,
+    fill_empty: bool,
 ) -> None:
-    """Add tips onto a BACKBONE phylogeny using a TAXONOMY phylogeny."""
+    """Add tips onto a BACKBONE phylogeny using a TAXONOMY.
+
+    The taxonomy can be the CSV file that tact_build_taxonomic_tree reads, or the tree it builds.
+    """
     setup_logging(output, verbose)
 
     tree = backbone
