@@ -18,5 +18,6 @@ def test_ra_inverts_bd(r, a):
     st.floats(min_value=0, allow_infinity=False, allow_nan=False),
 )
 def test_bd_inverts_ra(b, d):
-    assume(b > d)
+    # When b and d are nearly equal, b - d and d / b lose most of their precision to cancellation.
+    assume(d <= b * (1 - 1e-6))
     assert (b, d) == pytest.approx(get_bd(*get_ra(b, d)))
