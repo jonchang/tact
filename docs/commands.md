@@ -71,6 +71,7 @@ tact_add_taxa [OPTIONS]
 * `--outgroups TEXT`: Comma-separated list of outgroup taxa to ignore
 * `--min-ccp FLOAT` (0-1, default: 0.8): Minimum [crown capture probability](troubleshooting.md#what-is-crown-capture-probability)
 * `--yule`: Use Yule (pure-birth) model (extinction = 0)
+* `--seed INTEGER`: Seed for the random number generators. Two runs with the same seed, inputs, options and TACT version write identical trees and CSV files. Without it, each run gives a different tree.
 * `--ultrametricity-precision FLOAT` (default: 1e-6): [Ultrametricity check precision](troubleshooting.md#tree-is-not-ultrametric)
 * `--fill-empty`: For a taxonomy CSV, fill empty rank cells with placeholder taxa, as with [`tact_build_taxonomic_tree --fill-empty`](#tact_build_taxonomic_tree). Not allowed with a taxonomy tree.
 * `-v, --verbose`: Show more log messages as TACT runs: `-v` for details of each step, `-vv` for debugging messages

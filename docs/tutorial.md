@@ -67,6 +67,8 @@ You'll see two progress bars:
 
 If the output is not a terminal (for example, in the log of a cluster job), or if you add `--verbose`, TACT prints a line every 10% of the way instead of drawing bars.
 
+TACT places species at random, so each run gives a different tree. To get the same tree again, for example to share an analysis that others can reproduce, add `--seed` with any whole number, such as `--seed 42`, and keep it with the inputs and the TACT version you used.
+
 ### Understanding the output files
 
 TACT creates several files with the prefix `Carangaria.tacted` (the argument we passed to `--output`):
