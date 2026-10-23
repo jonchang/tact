@@ -256,6 +256,7 @@ def graft_node(
     adjusted to maintain ultrametricity.
 
     The eligible edge (above which the graft is placed) must satisfy:
+
     1. Not be the crown node
     2. Head node younger than graft node
     3. Tail node older than graft node
@@ -265,6 +266,7 @@ def graft_node(
     without a subsequent call to `update_tree_view`. Prior to grafting, the bitmasks of
     the tree must be up-to-date, and every node in the grafted subtree must already have
     its age set.
+
     * leafset bitmasks are computed for the grafted subtree
     * new taxa are added to the bitmask of every edge between the graft and the root
 
