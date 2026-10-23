@@ -8,6 +8,7 @@ import operator
 import os
 import re
 import sys
+import tomllib
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -16,7 +17,6 @@ from typing import IO, Any
 
 import click
 import dendropy
-import toml
 
 from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar, setup_logging
@@ -197,7 +197,7 @@ def do_replicate(
 
 
 @click.command(cls=BackboneCommand)
-@click.option("--config", help="configuration file", type=click.File("r"), required=True)
+@click.option("--config", help="configuration file", type=click.File("rb"), required=True)
 @click.option("--backbone", help="the backbone tree", type=click.File("r"), required=True)
 @click.option(
     "--output",
@@ -225,7 +225,7 @@ def do_replicate(
     default=os.cpu_count() or 1,
 )
 def main(
-    config: IO[str],
+    config: IO[bytes],
     backbone: dendropy.Tree,
     output: str,
     verbose: int,
@@ -240,7 +240,7 @@ def main(
         seed_rngs(seed)
 
     logger.info("Reading configuration")
-    settings = toml.load(config)
+    settings = tomllib.load(config)
 
     to_tact = [TactItem.from_config(x) for x in settings["tact"]]
 
