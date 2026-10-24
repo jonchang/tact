@@ -1,5 +1,21 @@
 # Change History
 
+## tact 1.0.0
+
+* TACT is much faster on large datasets. Taxon lookups now use a cached bitmask index ([#437](https://github.com/jonchang/tact/pull/437)), the tree is updated incrementally ([#439](https://github.com/jonchang/tact/pull/439)), and BLAS operations on Linux have been optimized ([#449](https://github.com/jonchang/tact/pull/449)). On the Percomorphaceae example (~17,000 species), `tact_add_taxa` now takes about 53 seconds, down from about 480 seconds ([#447](https://github.com/jonchang/tact/pull/447)).
+* `tact_add_taxa` now accepts a taxonomy CSV directly via `--taxonomy` ([#448](https://github.com/jonchang/tact/pull/448)).
+* `tact_build_taxonomic_tree` has been rewritten ([#448](https://github.com/jonchang/tact/pull/448)):
+    * The new `--fill-empty` option fills empty rank cells with placeholder taxa instead of stopping. It is also available in `tact_add_taxa` when given a taxonomy CSV.
+    * A name used at more than one rank (e.g., a genus and its nominal subgenus) is renamed at the lower rank instead of producing an invalid tree.
+* `tact_add_taxa` now accepts a `--seed` option for reproducible runs ([#451](https://github.com/jonchang/tact/pull/451)), and `--replicates` and `--cores` options for producing many output trees in parallel ([#457](https://github.com/jonchang/tact/pull/457)).
+* `tact_add_taxa` writes a new `{output}.placements.csv` report describing where each added species was placed ([#443](https://github.com/jonchang/tact/pull/443)).
+* Taxon and species names are now matched consistently, treating underscores as spaces and ignoring case ([#452](https://github.com/jonchang/tact/pull/452)).
+* Logging and error reporting has been updated and cleaned up ([#442](https://github.com/jonchang/tact/pull/442), [#452](https://github.com/jonchang/tact/pull/452)).
+* The Docker image is now built on CPython instead of PyPy ([#441](https://github.com/jonchang/tact/pull/441)).
+* The minimum required version of Python is now 3.12 and minimum dependency ranges for packages have been relaxed ([#441](https://github.com/jonchang/tact/pull/441), [#453](https://github.com/jonchang/tact/pull/453)).
+* The documentation has been revamped, including new explanatory figures and an updated troubleshooting guide ([#447](https://github.com/jonchang/tact/pull/447), [#455](https://github.com/jonchang/tact/pull/455)).
+* Various internal improvements and dependency updates.
+
 ## tact 0.8.0
 
 * Docker images are now built for ARM using native runners ([#380](https://github.com/jonchang/tact/pull/380)).
