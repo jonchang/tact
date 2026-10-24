@@ -28,6 +28,10 @@ Because the true placement of unsampled species is unknown, this last step is cr
 
 This approach is particularly powerful because it allows you to use tools designed for complete phylogenies, even when your original data are incomplete.
 
+![The same tree of 20 species in three clades, shown four ways. The complete tree; the sampled tree with unsampled lineages dashed and the fraction of each clade sampled; each clade collapsed to a single tip with its species richness; and one tree from TACT with the unsampled species placed at random within their clades.](img/incomplete-sampling.svg)
+
+We can compare stochastic polytomy resolution with the other methods described [below](#alternatives-to-stochastic-polytomy-resolution), using one tree (a) from the figure above. The [sampling fraction method](#the-sampling-fraction-method) uses only the sampled lineages, with the fraction of each clade that was sampled (b). The [taxonomic method](#the-taxonomic-method) collapses each clade to a single tip with its number of species (c). TACT instead places the unsampled species at random within their clades (d). Figure redrawn from [Chang et al. (2020)](https://doi.org/10.1093/sysbio/syz081), Fig. 1.
+
 ## Why use TACT?
 
 When diversification rates vary across a phylogeny, incomplete sampling makes it much harder to detect these shifts in diversification rates. The standard "[sampling fraction](#the-sampling-fraction-method)" method, while unbiased, has **reduced statistical power** when sampling is sparse. This means you might miss important rate shifts that actually exist in your data.

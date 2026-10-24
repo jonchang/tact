@@ -133,7 +133,7 @@ tact_check_results [OPTIONS] SIMULATED
 
 **Output CSV columns:** `node`, `taxonomy_tips`, `backbone_tips`, `simulated_tips`, `backbone_monophyletic`, `simulated_monophyletic`, `backbone_birth`, `simulated_birth`, `backbone_death`, `simulated_death`, `warnings`
 
-Check the `warnings` column for issues. Empty = passed all checks.
+Check the `warnings` column for issues. Empty = passed all checks. Otherwise, see [Troubleshooting](troubleshooting.md#warnings-from-tact_check_results) for what the warnings mean.
 
 **Example:**
 ```bash

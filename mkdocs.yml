@@ -61,6 +61,9 @@ nav:
     - Contributing: contributing.md
     - License: license.md
 
+exclude_docs: |
+  figures/
+
 markdown_extensions:
   - admonition
   - pymdownx.details

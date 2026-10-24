@@ -109,13 +109,7 @@ This command validates your results by checking for consistency between:
 
 ### Interpreting the results
 
-Open `checkresults.csv` in a spreadsheet program (Excel, Google Sheets, etc.) and look at the **`warnings`** column. This column will be empty for taxonomic groups that passed all checks. If you see warnings, they might indicate:
-
-- Monophyly issues (groups that should be together but aren't)
-- Mismatches between expected and observed species counts
-- Other potential problems
-
-For more details on interpreting results and troubleshooting issues, see the [Troubleshooting Guide](troubleshooting.md).
+Open `checkresults.csv` in a spreadsheet program (Excel, Google Sheets, etc.) and look at the **`warnings`** column. This column will be empty for taxonomic groups that passed all checks. See the [Troubleshooting Guide](troubleshooting.md#warnings-from-tact_check_results) for what a warning means and what to do about it.
 
 ## What's next?
 

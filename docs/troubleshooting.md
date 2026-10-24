@@ -32,9 +32,13 @@ There are two things to check:
 
 !!! example
 
-    If you have a clade M with species A, B, and C, and their most recent common ancestor is node X, the clade is monophyletic only if node X has exactly three descendants: A, B, and C (and no others).
+    If you have a clade M with species A, B, and C, and their most recent common ancestor is node X, the clade M is monophyletic only if node X has exactly three descendants: A, B, and C (and no others).
 
 If you have a single "rogue" species that breaks up an otherwise monophyletic clade, TACT will mark all edges of that clade as valid placement points for unsampled taxa. This can cause a mostly nice-looking group to turn into a complete mess.
+
+For example, in the [tutorial](tutorial.md) dataset, the smallest clade that contains every sampled species of Soleidae also contains _Cynoglossus_, from the family Cynoglossidae. Soleidae is therefore not monophyletic in the backbone, so TACT searches for the next eligible ranked node, which is Pleuronectoidei. This means that a group like genus _Brachirus_ in Soleidae, which has no sampled species, can be placed anywhere in the suborder Pleuronectoidei, not only among other soles.
+
+![The smallest clade containing all sampled Soleidae also contains Cynoglossus, so the unsampled Soleidae genus Brachirus can be placed on any edge in Pleuronectoidei, including next to Samaridae.](img/intruder-taxon.svg)
 
 To find these taxa, look at the summary `tact_add_taxa` prints when it finishes, or at `{output}.placements.csv`: the `intruders` column names the backbone tips that break up each affected taxon (see [the placement report](commands.md#tact_add_taxa)).
 
@@ -66,19 +70,27 @@ To repeat these measurements, run `benchmark.py` from a checkout of TACT.
 
 **Crown capture probability** is the probability that when you sample `k` species from a clade containing `n` total species, your sample includes the crown node (the most recent common ancestor of all living species in that clade). This is calculated under a Yule (pure-birth) model of diversification. See [Sanderson (1996)](https://doi.org/10.1093/sysbio/45.2.168) for the full mathematical description.
 
+![A genus of 10 species. In (a), the 3 sampled species fall on both sides of the true crown, so the sampled crown is the true crown. In (b), they all fall on one side, so the sampled crown is younger, and the unsampled species on the other side join the tree on the stem of the sampled crown.](img/crown-capture.svg)
+
+In the figure above, the crown is captured when the sampled species include at least one from each of the two clades that descend from it (a). Otherwise, the crown of the sampled tree is younger than the true crown, and some of the unsampled species actually branch off its stem (b). TACT cannot tell which of these happened, so it uses the probability of (a) to decide how much to trust the sampled crown.
+
 This probability is used in two key places in TACT as a cutoff, and can be tweaked using the `--min-ccp` parameter to `tact_add_taxa`.
 
 First, TACT will refuse to estimate diversification rates for taxa where the crown capture probability falls below the cutoff. For example, if the known diversity of a genus is 10 species, but the backbone tree only has 3 species, the probability that you've successfully sampled the crown node is approximately 61%. TACT will instead use the next oldest taxonomy node, such as a family or tribe (if defined), to estimate the diversification rate for this group.
 
 Second, TACT will permit stem placement of unsampled taxa if the crown capture probability of the sampled taxon falls below the cutoff. For example, if the known diversity of a genus is 10 species, but the backbone tree only has 3 species, TACT will consider the stem of the group a valid graft point for the remaining 7 species.
 
-The default cutoff of 0.8 was chosen since it balanced between being relatively loose with respect to stem placements, while still giving reasonable results. You can disable this feature altogether by setting it either to 0, meaning the crown is always assumed to be sampled, or to 0.999 (repeating), meaning the crown is always assumed to not be sampled. The latter will tend to produce odd results and is not recommended.
+The default cutoff of 0.8 was chosen since it balanced between being relatively loose with respect to stem placements, while still giving reasonable results. You can disable this feature altogether by setting it either to 0, meaning the crown is always assumed to be sampled, or to 1, meaning the crown is assumed to be sampled only for taxa with every species in the backbone. The latter will tend to produce odd results and is not recommended.
 
 ## Taxon has a minimum age constraint A but oldest generated time was B < A
 
-This message appears when TACT is generating an entire monophyletic clade from scratch (e.g. you have a genus that is completely unsampled), but the only valid place to graft this new clade based on the stem age of the clade is incompatible with valid attachment points in the phylogeny.
+This message appears when TACT is generating an entire monophyletic clade from scratch (e.g., you have a genus that is completely unsampled), but the only valid place to graft this new clade based on the stem age of the clade is incompatible with valid attachment points in the phylogeny.
 
-Suppose you have a family with three genera: _Canis_ (n=5), _Lycalopex_ (n=6), and _Vulpes_ (n=11). If _Canis_ is completely unsampled, and _Lycalopex_ and _Vulpes_ are well-sampled and reciprocally monophyletic, the only valid placement for the stem of _Canis_ would be on the stem of _Lycalopex_, the stem of _Vulpes_, or (potentially) the stem of the entire canine subfamily. All the more recent (tipwards) graft points are part of these monophyletic grops and are therefore not considered when attaching this new clade.
+Suppose you have a family with three genera: _Canis_ (n=5), _Lycalopex_ (n=6), and _Vulpes_ (n=11). If _Canis_ is completely unsampled, and _Lycalopex_ and _Vulpes_ are well-sampled and reciprocally monophyletic, the only valid placement for the stem of _Canis_ would be on the stem of _Lycalopex_, the stem of _Vulpes_, or (potentially) the stem of the entire canine subfamily. All the more recent (tipwards) graft points are part of these monophyletic groups and are therefore not considered ("locked") when attaching this new clade.
+
+The minimum age A is the age of the youngest "unlocked" edge. If the attachment time B drawn for _Canis_ is younger than A, the only edges alive at that time are locked inside _Lycalopex_ and _Vulpes_, so there is nowhere to attach it.
+
+![A tree with two locked genera, Lycalopex and Vulpes, whose stems are the only unlocked edges. The attachment time B for the new genus Canis is younger than A, the crown age of Lycalopex, so it is redrawn to be older than A and Canis is grafted onto the stem of Lycalopex.](img/min-age-constraint.svg)
 
 TACT will generate a single new divergence time with a minimum age constraint to replace the original stem age. This could lead to very short internal branches, or unusual placements of new clades.
 
@@ -88,7 +100,23 @@ This message appears when TACT is generating an entire monophyletic clade from s
 
 Suppose you have a family Caninae with two genera, _Canis_ and _Vulpes_, but you've only sampled species from _Canis_. TACT will generate the entire _Vulpes_ clade from scratch, and attempt to attach it somewhere within Caninae, but all the edges subtending the crown node of that group are already part of _Canis_, and TACT will refuse to break the monophyly of that group.
 
+![A tree in which Canis is the only sampled genus of Caninae and is locked. The new genus Vulpes is grafted onto the stem of Canis, between the age of its parent node and its crown age, and the graft point becomes the new crown of Caninae.](img/fully-locked-stem.svg)
+
 TACT will generate a single new divergence time constrained so that it will attach somewhere on the stem of the sampled clade. This could lead to very short internal branches, or unusual placements of new clades.
+
+## N short branches detected
+
+This message can appear in the log after TACT adds species to a clade. It counts the branches in that clade that are 0.001 time units long or shorter, which is 1,000 years if your tree is in millions of years. The count covers the whole clade, so branches counted for a genus can be counted again for its family.
+
+This is not an error, and there isn't necessarily anything wrong. A young clade with many species has to fit many speciation events into a short time, so some of its branches will be very short, in the real tree as well as in TACT's. If a downstream program has trouble with very short branches, look at which clades they are in before changing anything.
+
+## Warnings from `tact_check_results`
+
+[`tact_check_results`](commands.md#tact_check_results) compares each taxon in the taxonomy between the backbone and the tree from `tact_add_taxa`, and writes one row per taxon. The `warnings` column is empty for a taxon that passed.
+
+A taxon that is not monophyletic in the backbone (`backbone_monophyletic` is `False`) is not a warning by itself. TACT places the species of such taxa in a higher taxon instead, as described [above](#why-is-tact-breaking-up-my-monophyletic-clades), and reports them when it finishes.
+
+**BACKBONE and SIMULATED trees differ in monophyly for this taxa:** the taxon is monophyletic in the backbone, but not in the tree from `tact_add_taxa`. TACT never places species inside the clade of a monophyletic taxon unless they belong to it, so this should not happen. First, check that you gave `tact_check_results` the same backbone and taxonomy that you gave `tact_add_taxa`. If you did, please [report it](https://github.com/jonchang/tact/issues) with your input files and the `--seed` you used.
 
 ## Tips are not in the taxonomy
 
