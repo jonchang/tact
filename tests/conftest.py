@@ -20,8 +20,8 @@ def run_cli():
 
     Invoke it as `run_cli(command, args, seed=None, exit_code=0)`.
 
-    The commands keep state at module level, so each call seeds the random number generators when given a
-    `seed` and performs necessary cleanups such as emptying shared caches and removing log handlers.
+    Each call seeds the random number generators when given a `seed`, and removes the log handlers that the
+    command set up, which would otherwise keep writing to the closed stderr of a finished run.
     """
 
     def run(command, args, seed=None, exit_code=0):
@@ -29,7 +29,6 @@ def run_cli():
             random.seed(seed)
             # SciPy's annealing fallback draws from NumPy's global state
             np.random.seed(seed)  # noqa: NPY002
-        cli_add_taxa.mrca_rates.clear()
         try:
             result = CliRunner().invoke(command, [str(arg) for arg in args], catch_exceptions=False)
         finally:

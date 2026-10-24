@@ -14,11 +14,9 @@ from time import time
 import click
 import dendropy
 
-from . import (
-    _blas_threads,  # noqa: F401  # before anything imports NumPy
-    fastmrca,
-)
+from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar, setup_logging
+from .fastmrca import FastMRCA
 from .lib import crown_capture_probability, get_new_times, seed_rngs
 from .names import written_name
 from .report import PlacementReport, fmt_species_list
@@ -39,10 +37,11 @@ from .validation import BackboneCommand, validate_outgroups, validate_output, va
 logger = logging.getLogger(__name__)
 
 # Maps taxon names to (birth, death, crown capture probability, source of the rates)
-mrca_rates: dict[str, tuple[float, float, float, str]] = {}
+Rates = dict[str, tuple[float, float, float, str]]
 
 
 def get_new_branching_times(
+    rates: Rates,
     backbone_node: dendropy.Node,
     taxonomy_node: dendropy.Node,
     told: float | None = None,
@@ -50,10 +49,9 @@ def get_new_branching_times(
     min_ccp: float = 0.8,
     num_new_times: int | None = None,
 ) -> list[float]:
-    """Get `n_total` new branching times for a `node`."""
-    global mrca_rates
+    """Get `n_total` new branching times for a `node`, using the rates estimated for its taxon."""
     taxon = taxonomy_node.label
-    birth, death, ccp, _ = mrca_rates[taxon]
+    birth, death, ccp, _ = rates[taxon]
     if ccp < min_ccp:
         if backbone_node.parent_node:
             new_told = backbone_node.parent_node.age
@@ -156,6 +154,8 @@ def create_clade(namespace: dendropy.TaxonNamespace, species: Iterable[str], age
 
 
 def process_node(
+    rates: Rates,
+    lookup: FastMRCA,
     backbone_tree: dendropy.Tree,
     backbone_bitmask: int,
     taxon_node: dendropy.Node,
@@ -165,11 +165,10 @@ def process_node(
     yule: bool = False,
 ) -> None:
     # TODO: Fix all the returns and refactor this into something sane
-    global mrca_rates
     taxon = taxon_node.label
     parent = taxon_node.parent_node.label
     try:
-        birth, death, ccp, _ = mrca_rates[parent]
+        birth, death, ccp, _ = rates[parent]
     except KeyError:
         birth = default_birth
         death = default_death
@@ -178,44 +177,44 @@ def process_node(
     if not taxon:
         logger.debug(f"MRCA: skipping unlabeled rank with {len(species)} species")
         return
-    all_bitmask = fastmrca.bitmask(species)
+    all_bitmask = lookup.bitmask(species)
     extant_bitmask = all_bitmask & backbone_bitmask
     if extant_bitmask is None or extant_bitmask == 0:
         logger.debug(f"MRCA: {taxon} not present in backbone")
-        mrca_rates[taxon] = (birth, death, 0.0, f"from {written_name(parent)} (unsampled)")
+        rates[taxon] = (birth, death, 0.0, f"from {written_name(parent)} (unsampled)")
         return
     mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     if not species.issuperset(get_tip_labels(mrca)):
         logger.debug(
             f"MRCA: {taxon} not monophyletic in backbone (from {fmt_species_list(get_tip_labels(mrca) - species)})"
         )
-        mrca_rates[taxon] = (birth, death, 0.0, f"from {written_name(parent)} (not monophyletic)")
+        rates[taxon] = (birth, death, 0.0, f"from {written_name(parent)} (not monophyletic)")
         return
     extant = len(mrca.leaf_nodes())
     total = len(taxon_node.leaf_nodes())
     if extant > total:
         logger.warning(f"MRCA: {taxon} has {extant} extant species but should have {total} total species")
-        mrca_rates[taxon] = (birth, death, 0, f"from {written_name(parent)} (extant exceeds total)")
+        rates[taxon] = (birth, death, 0, f"from {written_name(parent)} (extant exceeds total)")
         return
     ccp = crown_capture_probability(total, extant)
     if total == 1:
         logger.debug(f"MRCA: {taxon} is a singleton")
-        mrca_rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (singleton)")
+        rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (singleton)")
         return
     if total == 2:
         logger.debug(f"MRCA: {taxon} is a cherry")
-        mrca_rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (cherry)")
+        rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (cherry)")
         return
     if ccp < min_ccp:
         logger.debug(
             f"MRCA: {taxon} has crown capture probability {ccp:.2f} < {min_ccp:.2f} ({extant}/{total} species)"
         )
-        mrca_rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (crown capture probability)")
+        rates[taxon] = (birth, death, ccp, f"from {written_name(parent)} (crown capture probability)")
         return
     sf = extant / total
     birth, death = get_birth_death_rates(mrca, sf, yule)
     logger.debug(f"MRCA: {taxon} b={birth:.2f}, d={death:.2f}, sf={sf:.2f} ({extant}/{total}), ccp={ccp:.2f}")
-    mrca_rates[taxon] = (birth, death, ccp, "computed")
+    rates[taxon] = (birth, death, ccp, "computed")
 
 
 def node_label(node: dendropy.Node | None) -> str | None:
@@ -224,10 +223,12 @@ def node_label(node: dendropy.Node | None) -> str | None:
 
 def run_precalcs(
     taxonomy_tree: dendropy.Tree, backbone_tree: dendropy.Tree, min_ccp: float = 0.8, yule: bool = False
-) -> dict[str, tuple[float, float, float, str]]:
-    global mrca_rates
+) -> Rates:
+    """Estimate birth and death rates for every taxon, before any species are added."""
+    rates: Rates = {}
+    lookup = FastMRCA(backbone_tree)
     tree_tips = get_tip_labels(backbone_tree)
-    backbone_bitmask = fastmrca.bitmask(tree_tips)
+    backbone_bitmask = lookup.bitmask(tree_tips)
     all_possible_tips = get_tip_labels(taxonomy_tree)
     nnodes = len(taxonomy_tree.internal_nodes(exclude_seed_node=True))
 
@@ -235,7 +236,7 @@ def run_precalcs(
 
     # Compute the rate of the root taxonomic node to use as a default value...
     logger.debug("Computing root birth and death rates.")
-    extant_bitmask = backbone_bitmask & fastmrca.bitmask(all_possible_tips)
+    extant_bitmask = backbone_bitmask & lookup.bitmask(all_possible_tips)
     root_mrca = backbone_tree.mrca(leafset_bitmask=extant_bitmask)
     root_birth, root_death = get_birth_death_rates(
         root_mrca, len(root_mrca.leaf_nodes()) / len(all_possible_tips), yule
@@ -249,13 +250,181 @@ def run_precalcs(
         item_show_func=node_label,
     ) as progress:
         for node in progress:
-            # updates global mrca_rates as a side effect
-            process_node(backbone_tree, backbone_bitmask, node, min_ccp, root_birth, root_death, yule)
+            # adds the rates for `node` to `rates`
+            process_node(rates, lookup, backbone_tree, backbone_bitmask, node, min_ccp, root_birth, root_death, yule)
 
     diff = time() - start_time
     if diff > 1:
         logger.debug(f"FastMRCA calculation time: {diff:.1f} seconds")
-    return mrca_rates
+    return rates
+
+
+def add_missing_taxa(
+    tree: dendropy.Tree,
+    taxonomy: dendropy.Tree,
+    rates: Rates,
+    min_ccp: float,
+    report: PlacementReport,
+) -> None:
+    """Add every species in `taxonomy` that is missing from `tree`.
+
+    Note: this function mutates the tree in place, so pass a deepcopy to save the original.
+
+    Args:
+        tree: Backbone tree, which must share its taxon namespace with `taxonomy`.
+        taxonomy: Taxonomy tree with every species.
+        rates: Rates for each taxon (e.g., from `run_precalcs`).
+        min_ccp: Minimum crown capture probability for placing species within a clade's crown.
+        report: Records for each placement.
+    """
+    tn = tree.taxon_namespace
+    tree_tips = get_tip_labels(tree)
+    all_possible_tips = get_tip_labels(taxonomy)
+    lookup = FastMRCA(tree)
+    full_clades: set[str] = set()
+    initial_length = len(tree_tips)
+
+    bar = progressbar(label="TACT", length=len(all_possible_tips) - initial_length, item_show_func=lambda x: x)
+
+    def bar_update() -> None:
+        diff = len(tree_tips) - initial_length - bar.pos
+        bar.update(diff, taxon if taxon else "")
+
+    for taxon_node in taxonomy.postorder_internal_node_iter(exclude_seed_node=True):
+        taxon = taxon_node.label
+        if not taxon:
+            continue
+        species = get_tip_labels(taxon_node)
+        extant_species = tree_tips.intersection(species)
+        logger.info(f"**  {taxon} ({len(extant_species)}/{len(species)})  **")
+        ccp = rates[taxon][2]
+
+        clades_to_generate = full_clades.intersection(
+            [x.label for x in taxon_node.postorder_internal_node_iter(exclude_seed_node=True)]
+        )
+
+        if not extant_species:
+            # No species sampled, so create a clade from whole cloth
+            logger.debug(f"    {taxon}: no species sampled, will create later")
+            full_clades.add(taxon)
+            bar_update()
+            continue
+
+        # Check for monophyly for this node
+        node = lookup.get(extant_species)
+        if not node:
+            mrca = tree.mrca(leafset_bitmask=lookup.bitmask(extant_species))
+            intruders = report.taxon_not_monophyletic(taxon, get_tip_labels(mrca), species)
+            logger.info(f"    {taxon}: is not monophyletic (from {fmt_species_list(intruders)})")
+            continue
+
+        if extant_species == species:
+            # Everything sampled and monophyletic, so skip this
+            lock_clade(node)
+            logger.debug(f"    {taxon}: all species accounted for")
+            continue
+
+        if tree_tips.issuperset(species):
+            # XXX: Does this check ever get triggered?
+            lock_clade(node)
+            logger.info(f"    {taxon}: all species already present in tree")
+            continue
+
+        clade_ranks = [(clade, taxonomy.find_node_with_label(clade).level()) for clade in sorted(clades_to_generate)]
+
+        # Now add clades of unsampled species. Go from the lowest rank to
+        # the highest (deepest level to lowest level). Shuffling before
+        # sorting will randomize the order since Python uses stable sorting
+        random.shuffle(clade_ranks)
+        for clade, _ in sorted(clade_ranks, key=operator.itemgetter(1), reverse=True):
+            full_node = taxonomy.find_node_with_label(clade)
+            full_node_species = get_tip_labels(full_node)
+            if tree_tips.issuperset(full_node_species):
+                logger.info(f"    {taxon}: skipping clade {clade} as all species already present in tree")
+                full_clades.remove(clade)
+                continue
+            logger.info(f"    {taxon}: adding clade {clade} (n={len(full_node.leaf_nodes())})")
+            # Generate all times needed to attach to the main clade
+            times = get_new_branching_times(
+                rates, node, taxon_node, tyoung=0, min_ccp=min_ccp, num_new_times=len(full_node_species)
+            )
+
+            if is_fully_locked(node):
+                logger.info(f"    {taxon}: is fully locked, so attaching to stem")
+                # Must attach to stem for this clade, so generate a time on the stem lineage
+                times2 = get_new_branching_times(
+                    rates,
+                    node,
+                    taxon_node,
+                    min_ccp=min_ccp,
+                    told=node.parent_node.age,
+                    tyoung=node_age(node),
+                    num_new_times=1,
+                )
+                # Drop the oldest time and add on our new time on the stem lineage
+                times.sort()
+                times.pop()
+                times.append(times2.pop())
+            else:
+                # Even if the main clade isn't fully locked, it might have a constraint on a valid attachment point
+                min_age = get_min_age(node)
+                if min_age > 0 and max(times) < min_age:
+                    logger.info(
+                        f"    {taxon}: has a minimum age constraint {min_age:.2f}, "
+                        + f"but oldest generated time was {max(times):.2f}"
+                    )
+                    times2 = get_new_branching_times(
+                        rates, node, taxon_node, tyoung=min_age, min_ccp=min_ccp, num_new_times=1
+                    )
+                    # Drop the oldest time and add on our new time on the stem lineage
+                    times.sort()
+                    times.pop()
+                    times.append(times2.pop())
+
+            # Generate a new tree
+            new_tree = create_clade(tn, full_node_species, times)
+            # Update our current MRCA node (because we might have attached to stem)
+            node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp, taxon_namespace=tn)
+            report.placed(full_node_species, taxon, new_clade=clade)
+            # Update our view of what's in the tree
+            tree_tips.update(full_node_species)
+            extant_species = tree_tips.intersection(species)
+            # We've added this clade so pop it off our stack
+            full_clades.remove(clade)
+            if not is_binary(node):
+                raise ValueError("Tree is not binary!")
+            bar_update()
+
+        # Check to see if we need to continue adding species
+        if extant_species == species:
+            # Lock clade since it is monophyletic and filled
+            lock_clade(node)
+            # Skip taxon spray check
+            continue
+        if len(extant_species) == len(species):
+            raise ValueError("Enough species are present but mismatched?")
+
+        # Taxon spray
+        logger.info(f"    {taxon}: adding {len(species.difference(extant_species))} new species")
+        node = lookup.get(extant_species)
+        if node is None:
+            raise ValueError(f"{taxon} is no longer monophyletic after adding clades")
+        times = get_new_branching_times(rates, node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
+        new_species = sorted(species.difference(tree_tips))
+        node = fill_new_taxa(tn, node, new_species, times, ccp < min_ccp)
+        report.placed(new_species, taxon)
+        # Update stuff
+        tree_tips.update(species)
+        # Since only monophyletic nodes get to here, lock this clade
+        lock_clade(node)
+        if not is_binary(node):
+            # Shouldn't happen
+            raise ValueError("Tree is not binary!")
+        bar_update()
+
+    assert is_binary(tree.seed_node)
+    # Reset terminal because we aren't using the context manager
+    bar.finish()
 
 
 @click.command(cls=BackboneCommand)
@@ -332,167 +501,23 @@ def main(
         seed_rngs(seed)
 
     tree = backbone
-    tn = tree.taxon_namespace
     tree_tips = get_tip_labels(tree)
     all_possible_tips = get_tip_labels(taxonomy)
 
     logger.info(f"Backbone needs to add {len(tree_tips.symmetric_difference(all_possible_tips))} tips")
 
-    full_clades: set[str] = set()
-
-    fastmrca.initialize(tree)
     report = PlacementReport(output + ".placements.csv", taxonomy, tree_tips)
 
+    rates = run_precalcs(taxonomy, tree, min_ccp, yule=yule)
     with open(output + ".rates.csv", "w", encoding="utf-8") as wfile:
         writer = csv.writer(wfile)
         writer.writerow(("taxon", "birth", "death", "ccp", "source"))
-        for key, value in run_precalcs(taxonomy, tree, min_ccp, yule=yule).items():
+        for key, value in rates.items():
             row = [written_name(key)]
             row.extend(value)
             writer.writerow(row)
 
-    initial_length = len(tree_tips)
-
-    bar = progressbar(label="TACT", length=len(all_possible_tips) - initial_length, item_show_func=lambda x: x)
-
-    def bar_update() -> None:
-        diff = len(tree_tips) - initial_length - bar.pos
-        bar.update(diff, taxon if taxon else "")
-
-    for taxon_node in taxonomy.postorder_internal_node_iter(exclude_seed_node=True):
-        taxon = taxon_node.label
-        if not taxon:
-            continue
-        species = get_tip_labels(taxon_node)
-        extant_species = tree_tips.intersection(species)
-        logger.info(f"**  {taxon} ({len(extant_species)}/{len(species)})  **")
-        ccp = mrca_rates[taxon][2]
-
-        clades_to_generate = full_clades.intersection(
-            [x.label for x in taxon_node.postorder_internal_node_iter(exclude_seed_node=True)]
-        )
-
-        if not extant_species:
-            # No species sampled, so create a clade from whole cloth
-            logger.debug(f"    {taxon}: no species sampled, will create later")
-            full_clades.add(taxon)
-            bar_update()
-            continue
-
-        # Check for monophyly for this node
-        node = fastmrca.get(extant_species)
-        if not node:
-            mrca = tree.mrca(leafset_bitmask=fastmrca.bitmask(extant_species))
-            intruders = report.taxon_not_monophyletic(taxon, get_tip_labels(mrca), species)
-            logger.info(f"    {taxon}: is not monophyletic (from {fmt_species_list(intruders)})")
-            continue
-
-        if extant_species == species:
-            # Everything sampled and monophyletic, so skip this
-            lock_clade(node)
-            logger.debug(f"    {taxon}: all species accounted for")
-            continue
-
-        if tree_tips.issuperset(species):
-            # XXX: Does this check ever get triggered?
-            lock_clade(node)
-            logger.info(f"    {taxon}: all species already present in tree")
-            continue
-
-        clade_ranks = [(clade, taxonomy.find_node_with_label(clade).level()) for clade in sorted(clades_to_generate)]
-
-        # Now add clades of unsampled species. Go from the lowest rank to
-        # the highest (deepest level to lowest level). Shuffling before
-        # sorting will randomize the order since Python uses stable sorting
-        random.shuffle(clade_ranks)
-        for clade, _ in sorted(clade_ranks, key=operator.itemgetter(1), reverse=True):
-            full_node = taxonomy.find_node_with_label(clade)
-            full_node_species = get_tip_labels(full_node)
-            if tree_tips.issuperset(full_node_species):
-                logger.info(f"    {taxon}: skipping clade {clade} as all species already present in tree")
-                full_clades.remove(clade)
-                continue
-            logger.info(f"    {taxon}: adding clade {clade} (n={len(full_node.leaf_nodes())})")
-            # Generate all times needed to attach to the main clade
-            times = get_new_branching_times(
-                node, taxon_node, tyoung=0, min_ccp=min_ccp, num_new_times=len(full_node_species)
-            )
-
-            if is_fully_locked(node):
-                logger.info(f"    {taxon}: is fully locked, so attaching to stem")
-                # Must attach to stem for this clade, so generate a time on the stem lineage
-                times2 = get_new_branching_times(
-                    node,
-                    taxon_node,
-                    min_ccp=min_ccp,
-                    told=node.parent_node.age,
-                    tyoung=node_age(node),
-                    num_new_times=1,
-                )
-                # Drop the oldest time and add on our new time on the stem lineage
-                times.sort()
-                times.pop()
-                times.append(times2.pop())
-            else:
-                # Even if the main clade isn't fully locked, it might have a constraint on a valid attachment point
-                min_age = get_min_age(node)
-                if min_age > 0 and max(times) < min_age:
-                    logger.info(
-                        f"    {taxon}: has a minimum age constraint {min_age:.2f}, "
-                        + f"but oldest generated time was {max(times):.2f}"
-                    )
-                    times2 = get_new_branching_times(
-                        node, taxon_node, tyoung=min_age, min_ccp=min_ccp, num_new_times=1
-                    )
-                    # Drop the oldest time and add on our new time on the stem lineage
-                    times.sort()
-                    times.pop()
-                    times.append(times2.pop())
-
-            # Generate a new tree
-            new_tree = create_clade(tn, full_node_species, times)
-            # Update our current MRCA node (because we might have attached to stem)
-            node = graft_node(node, new_tree.seed_node, is_fully_locked(node) or ccp < min_ccp, taxon_namespace=tn)
-            report.placed(full_node_species, taxon, new_clade=clade)
-            # Update our view of what's in the tree
-            tree_tips.update(full_node_species)
-            extant_species = tree_tips.intersection(species)
-            # We've added this clade so pop it off our stack
-            full_clades.remove(clade)
-            if not is_binary(node):
-                raise ValueError("Tree is not binary!")
-            bar_update()
-
-        # Check to see if we need to continue adding species
-        if extant_species == species:
-            # Lock clade since it is monophyletic and filled
-            lock_clade(node)
-            # Skip taxon spray check
-            continue
-        if len(extant_species) == len(species):
-            raise ValueError("Enough species are present but mismatched?")
-
-        # Taxon spray
-        logger.info(f"    {taxon}: adding {len(species.difference(extant_species))} new species")
-        node = fastmrca.get(extant_species)
-        if node is None:
-            raise ValueError(f"{taxon} is no longer monophyletic after adding clades")
-        times = get_new_branching_times(node, taxon_node, tyoung=get_min_age(node), min_ccp=min_ccp)
-        new_species = sorted(species.difference(tree_tips))
-        node = fill_new_taxa(tn, node, new_species, times, ccp < min_ccp)
-        report.placed(new_species, taxon)
-        # Update stuff
-        tree_tips.update(species)
-        # Since only monophyletic nodes get to here, lock this clade
-        lock_clade(node)
-        if not is_binary(node):
-            # Shouldn't happen
-            raise ValueError("Tree is not binary!")
-        bar_update()
-
-    assert is_binary(tree.seed_node)
-    # Reset terminal because we aren't using the context manager
-    bar.finish()
+    add_missing_taxa(tree, taxonomy, rates, min_ccp, report)
     tree.ladderize()
     tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
     tree.write(path=output + ".nexus.tre", schema="nexus")

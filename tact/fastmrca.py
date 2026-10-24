@@ -1,100 +1,85 @@
-"""Singleton object that helps speed up MRCA lookups."""
+"""Fast MRCA lookups by taxon label."""
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
+
+import dendropy
 
 from .tree_util import get_tip_labels
 
-if TYPE_CHECKING:
-    import dendropy
 
-tree: "dendropy.Tree | None" = None
+class FastMRCA:
+    """MRCA lookups by taxon label on one tree.
 
-# Maps each label in a DendroPy tree to the combined bitmask of the taxa carrying that label.
-# `TaxonNamespace.taxa_bitmask(labels=...)` scans the whole namespace once per label, which
-# is quadratic. Cache per-label bitmasks to improve lookup speed for large clades.
-_label_bitmasks: dict[str, int] = {}
-_namespace_size = -1
-
-
-def _index_labels(tn: "dendropy.TaxonNamespace") -> None:
-    """Rebuild the label to bitmask index for a taxon namespace."""
-    global _namespace_size
-    _label_bitmasks.clear()
-    for taxon in tn:
-        if taxon.label is None:
-            continue
-        # normalize labels the same way DendroPy does when it matches them
-        key = taxon.label if tn.is_case_sensitive else str(taxon.label).lower()
-        _label_bitmasks[key] = _label_bitmasks.get(key, 0) | tn.taxon_bitmask(taxon)
-    _namespace_size = len(tn)
-
-
-def initialize(phy: "dendropy.Tree") -> None:
-    """Initialize the fastmrca singleton with a tree.
+    `TaxonNamespace.taxa_bitmask(labels=...)` scans the whole namespace once per label, which
+    is quadratic. This caches the bitmask of each label instead, and rebuilds the cache when taxa
+    are added to or removed from the namespace.
 
     Args:
-        phy: DendroPy tree object to use for MRCA lookups.
+        tree: Tree to look up MRCAs in. Its bitmasks must be kept up to date, for example with
+            `update_tree_view`, or by grafting with `graft_node(..., taxon_namespace=...)`.
     """
-    global tree
-    tree = phy
-    _index_labels(phy.taxon_namespace)
 
+    def __init__(self, tree: dendropy.Tree) -> None:
+        """See the class docstring for the arguments."""
+        self.tree = tree
+        # combined bitmask of the taxa carrying each label
+        self._label_bitmasks: dict[str, int] = {}
+        self._namespace_size = -1
+        self._index_labels()
 
-def bitmask(labels: Iterable[str]) -> int:
-    """Get a bitmask for the specified taxa labels.
+    def _index_labels(self) -> None:
+        """Rebuild the label to bitmask index for the tree's taxon namespace."""
+        tn = self.tree.taxon_namespace
+        self._label_bitmasks.clear()
+        for taxon in tn:
+            if taxon.label is None:
+                continue
+            # normalize labels the same way DendroPy does when it matches them
+            key = taxon.label if tn.is_case_sensitive else str(taxon.label).lower()
+            self._label_bitmasks[key] = self._label_bitmasks.get(key, 0) | tn.taxon_bitmask(taxon)
+        self._namespace_size = len(tn)
 
-    Intended to be equivalent to DendroPy's `TaxonNamespace.taxa_bitmask(labels=labels)`.
+    def bitmask(self, labels: Iterable[str]) -> int:
+        """Get a bitmask for the specified taxa labels.
 
-    * Labels that are not in the namespace are ignored
-    * Case sensitivity of the namespace is respected
+        Intended to be equivalent to DendroPy's `TaxonNamespace.taxa_bitmask(labels=labels)`.
 
-    Args:
-        labels: Iterable of taxon labels.
+        * Labels that are not in the namespace are ignored
+        * Case sensitivity of the namespace is respected
 
-    Returns:
-        Bitmask representing the taxa.
+        Args:
+            labels: Iterable of taxon labels.
 
-    Raises:
-        RuntimeError: If fastmrca has not been initialized.
-    """
-    global tree
-    if tree is None:
-        raise RuntimeError("fastmrca not initialized")
-    tn = tree.taxon_namespace
-    if len(tn) != _namespace_size:
-        # taxa were added to or removed from the namespace since the index was built
-        _index_labels(tn)
-    mask = 0
-    if tn.is_case_sensitive:
-        for label in labels:
-            mask |= _label_bitmasks.get(label, 0)
-    else:
-        for label in labels:
-            mask |= _label_bitmasks.get(str(label).lower(), 0)
-    return mask
+        Returns:
+            Bitmask representing the taxa.
+        """
+        tn = self.tree.taxon_namespace
+        if len(tn) != self._namespace_size:
+            # taxa were added to or removed from the namespace since the index was built
+            self._index_labels()
+        mask = 0
+        if tn.is_case_sensitive:
+            for label in labels:
+                mask |= self._label_bitmasks.get(label, 0)
+        else:
+            for label in labels:
+                mask |= self._label_bitmasks.get(str(label).lower(), 0)
+        return mask
 
+    def get(self, labels: Iterable[str]) -> dendropy.Node | None:
+        """Get the MRCA node for the specified taxa.
 
-def get(labels: Iterable[str]) -> "dendropy.Node | None":
-    """Get the MRCA node for the specified taxa.
+        Returns the most recent common ancestor node if all descendants of that
+        node are included in the label set, otherwise returns None.
 
-    Returns the most recent common ancestor node if all descendants of that
-    node are included in the label set, otherwise returns None.
+        Args:
+            labels: Iterable of taxon labels to find MRCA for.
 
-    Args:
-        labels: Iterable of taxon labels to find MRCA for.
-
-    Returns:
-        MRCA node if it forms a monophyletic group, None otherwise.
-
-    Raises:
-        RuntimeError: If fastmrca has not been initialized.
-    """
-    global tree
-    if tree is None:
-        raise RuntimeError("fastmrca not initialized")
-    labels_set = set(labels)
-    mrca = tree.mrca(leafset_bitmask=bitmask(labels_set))
-    if mrca and labels_set.issuperset(get_tip_labels(mrca)):
-        return mrca
-    return None
+        Returns:
+            MRCA node if it forms a monophyletic group, None otherwise.
+        """
+        labels_set = set(labels)
+        mrca = self.tree.mrca(leafset_bitmask=self.bitmask(labels_set))
+        if mrca and labels_set.issuperset(get_tip_labels(mrca)):
+            return mrca
+        return None

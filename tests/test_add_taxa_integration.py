@@ -69,3 +69,15 @@ def test_stem_clade_attachment(run_cli, execution_number, datadir, tmp_path):
     node = tacted.mrca(taxon_labels=["c1", "c2", "c3", "c4", "c5"])
     ages = [x.age < 15.16 for x in node.postorder_internal_node_iter()]
     assert any(ages)
+
+
+def test_runs_in_one_process_are_independent(add_taxa, datadir, tmp_path):
+    """Nothing carries over between runs in one process, so a run in between does not change the result."""
+
+    def files(stem):
+        return [os.path.join(datadir, f"{stem}.backbone.tre"), os.path.join(datadir, f"{stem}.taxonomy.tre")]
+
+    first = add_taxa(*files("stem2"), tmp_path / "first", seed=3)
+    add_taxa(*files("weirdness"), tmp_path / "between", seed=4)
+    again = add_taxa(*files("stem2"), tmp_path / "again", seed=3)
+    assert first == again
