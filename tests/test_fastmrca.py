@@ -1,4 +1,4 @@
-"""Parity tests for the label index in `tact.fastmrca` with DendroPy."""
+"""Parity tests for the label index in `FastMRCA` with DendroPy."""
 
 import os
 import random
@@ -6,15 +6,15 @@ import random
 import dendropy
 import pytest
 
-from tact import fastmrca
+from tact.fastmrca import FastMRCA
 from tact.tree_util import get_monophyletic_node, get_tip_labels, update_tree_view
 
 DATASETS = ["weirdness", "intrusion", "short_branch", "stem", "stem2"]
 
 
-def dendropy_bitmask(labels):
+def dendropy_bitmask(tree, labels):
     """DendroPy reference implementation."""
-    return fastmrca.tree.taxon_namespace.taxa_bitmask(labels=labels)
+    return tree.taxon_namespace.taxa_bitmask(labels=labels)
 
 
 def load_pair(datadir, stem):
@@ -44,36 +44,36 @@ def label_sets(taxonomy, rng):
 @pytest.mark.parametrize("stem", DATASETS)
 def test_bitmask_matches_dendropy(datadir, stem):
     taxonomy, backbone = load_pair(datadir, stem)
-    fastmrca.initialize(backbone)
+    lookup = FastMRCA(backbone)
     for labels in label_sets(taxonomy, random.Random(stem)):
-        assert fastmrca.bitmask(labels) == dendropy_bitmask(labels)
+        assert lookup.bitmask(labels) == dendropy_bitmask(lookup.tree, labels)
         # any iterable of labels is accepted
-        assert fastmrca.bitmask(iter(list(labels))) == dendropy_bitmask(list(labels))
+        assert lookup.bitmask(iter(list(labels))) == dendropy_bitmask(lookup.tree, list(labels))
 
 
 @pytest.mark.parametrize("stem", DATASETS)
 def test_get_matches_reference(datadir, stem):
     taxonomy, backbone = load_pair(datadir, stem)
-    fastmrca.initialize(backbone)
+    lookup = FastMRCA(backbone)
     backbone_tips = get_tip_labels(backbone)
     checked = 0
     for labels in label_sets(taxonomy, random.Random(stem)):
         extant = backbone_tips.intersection(labels)
         if not extant:
             continue
-        assert fastmrca.get(extant) is get_monophyletic_node(backbone, extant)
+        assert lookup.get(extant) is get_monophyletic_node(backbone, extant)
         checked += 1
     assert checked > 0
 
 
 def test_bitmask_ignores_unknown_labels(datadir):
     _taxonomy, backbone = load_pair(datadir, "weirdness")
-    fastmrca.initialize(backbone)
+    lookup = FastMRCA(backbone)
     known = sorted(get_tip_labels(backbone))[:3]
     with_unknown = [*known, "Not a taxon"]
-    assert fastmrca.bitmask(with_unknown) == dendropy_bitmask(with_unknown) == fastmrca.bitmask(known)
-    assert fastmrca.bitmask(["Not a taxon"]) == dendropy_bitmask(["Not a taxon"]) == 0
-    assert fastmrca.bitmask([]) == 0
+    assert lookup.bitmask(with_unknown) == dendropy_bitmask(lookup.tree, with_unknown) == lookup.bitmask(known)
+    assert lookup.bitmask(["Not a taxon"]) == dendropy_bitmask(lookup.tree, ["Not a taxon"]) == 0
+    assert lookup.bitmask([]) == 0
 
 
 @pytest.mark.parametrize("is_case_sensitive", [False, True])
@@ -86,10 +86,10 @@ def test_bitmask_respects_namespace_case_sensitivity(is_case_sensitive):
         case_sensitive_taxon_labels=is_case_sensitive,
     )
     update_tree_view(tree)
-    fastmrca.initialize(tree)
+    lookup = FastMRCA(tree)
     for labels in (["Aa bb"], ["aa bb"], ["AA BB", "Ee ff"], ["cc DD", "Cc dd"]):
-        assert fastmrca.bitmask(labels) == dendropy_bitmask(labels)
-    assert (fastmrca.bitmask(["aa bb"]) == 0) is is_case_sensitive
+        assert lookup.bitmask(labels) == dendropy_bitmask(lookup.tree, labels)
+    assert (lookup.bitmask(["aa bb"]) == 0) is is_case_sensitive
 
 
 def test_bitmask_combines_taxa_sharing_a_label():
@@ -97,36 +97,28 @@ def test_bitmask_combines_taxa_sharing_a_label():
     tn = tree.taxon_namespace
     duplicate = tn.new_taxon("A")
     update_tree_view(tree)
-    fastmrca.initialize(tree)
-    assert fastmrca.bitmask(["A"]) == dendropy_bitmask(["A"])
-    assert fastmrca.bitmask(["A"]) & tn.taxon_bitmask(duplicate)
+    lookup = FastMRCA(tree)
+    assert lookup.bitmask(["A"]) == dendropy_bitmask(lookup.tree, ["A"])
+    assert lookup.bitmask(["A"]) & tn.taxon_bitmask(duplicate)
 
 
 def test_bitmask_follows_namespace_changes():
     tree = dendropy.Tree.get(data="((A:1,B:1):1,C:2);", schema="newick")
     tn = tree.taxon_namespace
     update_tree_view(tree)
-    fastmrca.initialize(tree)
-    assert fastmrca.bitmask(["D"]) == 0
+    lookup = FastMRCA(tree)
+    assert lookup.bitmask(["D"]) == 0
     new_taxon = tn.new_taxon("D")
-    assert fastmrca.bitmask(["D"]) == dendropy_bitmask(["D"]) == tn.taxon_bitmask(new_taxon)
+    assert lookup.bitmask(["D"]) == dendropy_bitmask(lookup.tree, ["D"]) == tn.taxon_bitmask(new_taxon)
     tn.remove_taxon(new_taxon)
-    assert fastmrca.bitmask(["D"]) == dendropy_bitmask(["D"]) == 0
-
-
-def test_requires_initialization(monkeypatch):
-    monkeypatch.setattr(fastmrca, "tree", None)
-    with pytest.raises(RuntimeError):
-        fastmrca.bitmask(["A"])
-    with pytest.raises(RuntimeError):
-        fastmrca.get(["A"])
+    assert lookup.bitmask(["D"]) == dendropy_bitmask(lookup.tree, ["D"]) == 0
 
 
 def assert_output_unchanged(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed):
     """`tact_add_taxa` must write the same files with the label index as with DendroPy's lookup."""
     indexed = add_taxa(backbone, taxonomy, tmp_path / "indexed", seed=seed)
     with monkeypatch.context() as patch:
-        patch.setattr(fastmrca, "bitmask", dendropy_bitmask)
+        patch.setattr(FastMRCA, "bitmask", lambda self, labels: dendropy_bitmask(self.tree, labels))
         reference = add_taxa(backbone, taxonomy, tmp_path / "reference", seed=seed)
     assert indexed == reference
     # a different seed gives a different tree

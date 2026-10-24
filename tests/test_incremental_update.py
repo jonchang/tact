@@ -6,7 +6,7 @@ import random
 import dendropy
 import pytest
 
-from tact import cli_add_taxa, fastmrca
+from tact import cli_add_taxa
 from tact.tree_util import get_tip_labels, graft_node, update_tree_view
 
 DATASETS = ["weirdness", "intrusion", "short_branch", "stem", "stem2"]
@@ -104,14 +104,28 @@ def clade_ages(newick, tn):
     return {node.edge.bipartition.leafset_bitmask: node.age for node in tree.preorder_node_iter()}
 
 
+def record_trees(monkeypatch):
+    """Collect the trees that `cli_add_taxa` builds MRCA lookups for; the last one is being added to."""
+    trees = []
+
+    class RecordingFastMRCA(cli_add_taxa.FastMRCA):
+        def __init__(self, tree):
+            super().__init__(tree)
+            trees.append(tree)
+
+    monkeypatch.setattr(cli_add_taxa, "FastMRCA", RecordingFastMRCA)
+    return trees
+
+
 def check_every_graft(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed):
     """The tree view must be current after each graft over a whole run of `tact_add_taxa`."""
     grafts = 0
+    trees = record_trees(monkeypatch)
 
     def checked_graft_node(*args, **kwargs):
         nonlocal grafts
         result = graft_node(*args, **kwargs)
-        assert_tree_view_current(fastmrca.tree)
+        assert_tree_view_current(trees[-1])
         grafts += 1
         return result
 
@@ -123,9 +137,11 @@ def check_every_graft(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed)
 def check_matches_full_refresh(monkeypatch, add_taxa, tmp_path, backbone, taxonomy, seed):
     """`tact_add_taxa` must build the same tree as it did when refreshing the whole tree per graft."""
 
+    trees = record_trees(monkeypatch)
+
     def refreshing_graft_node(*args, **kwargs):
         result = graft_node(*args, **kwargs)
-        update_tree_view(fastmrca.tree)
+        update_tree_view(trees[-1])
         return result
 
     incremental = add_taxa(backbone, taxonomy, tmp_path / "incremental", seed=seed)
