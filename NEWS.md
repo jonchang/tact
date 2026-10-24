@@ -1,5 +1,10 @@
 # Change History
 
+## tact 1.0.1
+
+* `tact_add_config` gains a `--version` option, like the other commands.
+* This release has no other changes from 1.0.0, and replaces it to fix problems with how 1.0.0 was tagged and published.
+
 ## tact 1.0.0
 
 * TACT is much faster on large datasets. Taxon lookups now use a cached bitmask index ([#437](https://github.com/jonchang/tact/pull/437)), the tree is updated incrementally ([#439](https://github.com/jonchang/tact/pull/439)), and BLAS operations on Linux have been optimized ([#449](https://github.com/jonchang/tact/pull/449)). On the Percomorphaceae example (~17,000 species), `tact_add_taxa` now takes about 53 seconds, down from about 480 seconds ([#447](https://github.com/jonchang/tact/pull/447)).
