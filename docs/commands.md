@@ -79,11 +79,13 @@ tact_add_taxa [OPTIONS]
 * `--seed INTEGER`: Seed for the random number generators. Two runs with the same seed, inputs, options and TACT version write identical trees and CSV files. Without it, each run gives a different tree.
 * `--ultrametricity-precision FLOAT` (default: 1e-6): [Ultrametricity check precision](troubleshooting.md#tree-is-not-ultrametric)
 * `--fill-empty`: For a taxonomy CSV, fill empty rank cells with placeholder taxa, as with [`tact_build_taxonomic_tree --fill-empty`](#tact_build_taxonomic_tree). Not allowed with a taxonomy tree.
+* `--replicates INTEGER` (default: 1): Number of trees to make
+* `--cores INTEGER` (default: 1): Number of replicates to make at the same time
 * `-v, --verbose`: Show more log messages as TACT runs: `-v` for details of each step, `-vv` for debugging messages
 
 **Output files:**
 
-* `{output}.newick.tre`, `{output}.nexus.tre`: Complete binary ultrametric phylogenies (primary output)
+* `{output}.newick.tre`, `{output}.nexus.tre`: Complete binary ultrametric phylogenies (primary output), one per replicate
 * `{output}.rates.csv`: Estimated diversification rates (columns: `taxon`, `birth`, `death`, `ccp`, `source`)
 * `{output}.placements.csv`: Where each added species was placed
 * `{output}.log.txt`: Log of what TACT did and why (includes debugging messages with `-vv`)
@@ -108,6 +110,11 @@ tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --out
 Or, skipping `tact_build_taxonomic_tree`:
 ```bash
 tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.csv --output Carangaria.tacted
+```
+
+To make 100 trees, 4 at a time:
+```bash
+tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.csv --output Carangaria.tacted --replicates 100 --cores 4 --seed 42
 ```
 
 ## `tact_check_results`

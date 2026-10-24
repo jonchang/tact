@@ -3,23 +3,25 @@
 # Try to assign tips to a pre-existing tree based on a taxonomy
 # Jonathan Chang, May 13, 2016
 
-
 import csv
 import logging
 import operator
+import os
 import random
+import secrets
 from collections.abc import Iterable
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from time import time
 
 import click
 import dendropy
 
 from . import _blas_threads  # noqa: F401  # before anything imports NumPy
-from .console import progressbar, setup_logging
+from .console import progressbar, reset_logging, setup_logging
 from .fastmrca import FastMRCA
-from .lib import crown_capture_probability, get_new_times, seed_rngs
+from .lib import crown_capture_probability, get_new_times, replicate_seed, seed_rngs
 from .names import written_name
-from .report import PlacementReport, fmt_species_list
+from .report import PlacementReport, Placements, fmt_species_list
 from .tree_util import (
     get_ages,
     get_birth_death_rates,
@@ -31,6 +33,7 @@ from .tree_util import (
     is_fully_locked,
     lock_clade,
     node_age,
+    update_tree_view,
 )
 from .validation import BackboneCommand, validate_outgroups, validate_output, validate_taxonomy_tree
 
@@ -265,6 +268,7 @@ def add_missing_taxa(
     rates: Rates,
     min_ccp: float,
     report: PlacementReport,
+    show_progress: bool = True,
 ) -> None:
     """Add every species in `taxonomy` that is missing from `tree`.
 
@@ -276,6 +280,7 @@ def add_missing_taxa(
         rates: Rates for each taxon (e.g., from `run_precalcs`).
         min_ccp: Minimum crown capture probability for placing species within a clade's crown.
         report: Records for each placement.
+        show_progress: Whether to show a progress bar.
     """
     tn = tree.taxon_namespace
     tree_tips = get_tip_labels(tree)
@@ -284,9 +289,13 @@ def add_missing_taxa(
     full_clades: set[str] = set()
     initial_length = len(tree_tips)
 
-    bar = progressbar(label="TACT", length=len(all_possible_tips) - initial_length, item_show_func=lambda x: x)
+    bar = None
+    if show_progress:
+        bar = progressbar(label="TACT", length=len(all_possible_tips) - initial_length, item_show_func=lambda x: x)
 
     def bar_update() -> None:
+        if bar is None:
+            return
         diff = len(tree_tips) - initial_length - bar.pos
         bar.update(diff, taxon if taxon else "")
 
@@ -423,8 +432,61 @@ def add_missing_taxa(
         bar_update()
 
     assert is_binary(tree.seed_node)
-    # Reset terminal because we aren't using the context manager
-    bar.finish()
+    if bar is not None:
+        # Reset terminal because we aren't using the context manager
+        bar.finish()
+
+
+def make_replicate(
+    backbone: dendropy.Tree, taxonomy: dendropy.Tree, rates: Rates, min_ccp: float, seed: int
+) -> tuple[dendropy.Tree, Placements]:
+    """Add the missing species to a copy of `backbone` for one replicate.
+
+    The result depends only on the arguments, so it is the same whether this runs in a worker process or not.
+
+    Args:
+        backbone: Backbone tree, sharing its taxon namespace with `taxonomy`. It is not changed.
+        taxonomy: Taxonomy tree with every species.
+        rates: Rates for each taxon, from `run_precalcs`.
+        min_ccp: Minimum crown capture probability for placing species within a clade's crown.
+        seed: Seed for this replicate.
+
+    Returns:
+        The completed tree and where each species was placed.
+    """
+    seed_rngs(seed)
+    tree = backbone.clone(depth=1)
+    update_tree_view(tree)
+    report = PlacementReport(None, taxonomy, get_tip_labels(backbone))
+    add_missing_taxa(tree, taxonomy, rates, min_ccp, report, show_progress=False)
+    tree.ladderize()
+    return tree, report.placements
+
+
+def make_replicates(
+    backbone: dendropy.Tree,
+    taxonomy: dendropy.Tree,
+    rates: Rates,
+    min_ccp: float,
+    seed: int,
+    replicates: int,
+    cores: int,
+) -> list[tuple[dendropy.Tree, Placements]]:
+    """Make `replicates` completed trees, `cores` at a time, seeding each from `seed` and its index.
+
+    Returns:
+        The tree and placements of each replicate, in order.
+    """
+    seeds = [replicate_seed(seed, i) for i in range(replicates)]
+    if cores == 1:
+        with progressbar(seeds, label="Replicates", length=replicates) as bar:
+            return [make_replicate(backbone, taxonomy, rates, min_ccp, rep_seed) for rep_seed in bar]
+    with ProcessPoolExecutor(max_workers=cores, initializer=reset_logging) as executor:
+        futures = [executor.submit(make_replicate, backbone, taxonomy, rates, min_ccp, s) for s in seeds]
+        with progressbar(as_completed(futures), label="Replicates", length=replicates) as bar:
+            for future in bar:
+                future.result()
+    return [future.result() for future in futures]
 
 
 @click.command(cls=BackboneCommand)
@@ -479,6 +541,18 @@ def add_missing_taxa(
     help="for a taxonomy CSV, fill empty rank cells with a placeholder taxon named after the taxon below it, "
     "e.g. Gobius family",
 )
+@click.option(
+    "--replicates",
+    default=1,
+    type=click.IntRange(1),
+    help="number of trees to make",
+)
+@click.option(
+    "--cores",
+    default=os.cpu_count() or 1,
+    type=click.IntRange(1, (os.cpu_count() or 1) * 2, clamp=True),
+    help="number of replicates to make at the same time",
+)
 @click.option("-v", "--verbose", help="emit extra information (can be repeated)", count=True)
 def main(
     taxonomy: dendropy.Tree,
@@ -491,13 +565,12 @@ def main(
     seed: int | None,
     ultrametricity_precision: float,
     fill_empty: bool,
+    replicates: int,
+    cores: int,
 ) -> None:
-    """Add tips onto a BACKBONE phylogeny using a TAXONOMY.
-
-    The taxonomy can be the CSV file that tact_build_taxonomic_tree reads, or the tree it builds.
-    """
+    """Add tips onto a BACKBONE phylogeny using a TAXONOMY."""
     setup_logging(output, verbose)
-    if seed is not None:
+    if seed is not None and replicates == 1:
         seed_rngs(seed)
 
     tree = backbone
@@ -506,7 +579,7 @@ def main(
 
     logger.info(f"Backbone needs to add {len(tree_tips.symmetric_difference(all_possible_tips))} tips")
 
-    report = PlacementReport(output + ".placements.csv", taxonomy, tree_tips)
+    report = PlacementReport(output + ".placements.csv", taxonomy, tree_tips, replicates=replicates > 1)
 
     rates = run_precalcs(taxonomy, tree, min_ccp, yule=yule)
     with open(output + ".rates.csv", "w", encoding="utf-8") as wfile:
@@ -517,10 +590,22 @@ def main(
             row.extend(value)
             writer.writerow(row)
 
-    add_missing_taxa(tree, taxonomy, rates, min_ccp, report)
-    tree.ladderize()
-    tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
-    tree.write(path=output + ".nexus.tre", schema="nexus")
+    if replicates == 1:
+        add_missing_taxa(tree, taxonomy, rates, min_ccp, report)
+        tree.ladderize()
+        tree.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
+        tree.write(path=output + ".nexus.tre", schema="nexus")
+    else:
+        run_seed = secrets.randbits(32) if seed is None else seed
+        logger.info(f"Making {replicates} replicates with seed {run_seed}")
+        results = make_replicates(tree, taxonomy, rates, min_ccp, run_seed, replicates, cores)
+        for i, (_, placements) in enumerate(results, start=1):
+            report.add_replicate(i, placements)
+        forest = dendropy.TreeList([replicate for replicate, _ in results], taxon_namespace=tree.taxon_namespace)
+        forest.write(path=output + ".newick.tre", schema="newick", suppress_rooting=True)
+        forest.write(path=output + ".nexus.tre", schema="nexus")
+        if seed is None:
+            click.echo(f"Made {replicates} trees; use --seed {run_seed} to make the same trees again.")
     report.close()
     summary = report.summary()
     click.echo(summary)

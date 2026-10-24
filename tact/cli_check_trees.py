@@ -13,7 +13,13 @@ import dendropy
 from . import _blas_threads  # noqa: F401  # before anything imports NumPy
 from .console import progressbar
 from .names import adopt_names, written_name
-from .tree_util import get_birth_death_rates, get_monophyletic_node, get_tip_labels, update_tree_view
+from .tree_util import (
+    count_newick_trees,
+    get_birth_death_rates,
+    get_monophyletic_node,
+    get_tip_labels,
+    update_tree_view,
+)
 from .validation import read_newick, validate_newick_path
 
 
@@ -131,6 +137,11 @@ def main(simulated: str, backbone: str, taxonomy: str, output: TextIO, cores: in
     click.echo("Backbone OK", err=True)
     simulated_tree = read_tree(ctx, "simulated", simulated, tn)
     click.echo("Simulated OK", err=True)
+    n_trees = count_newick_trees(simulated)
+    if n_trees > 1:
+        click.echo(
+            f"Warning: {click.format_filename(simulated)} has {n_trees} trees; checking only the first one.", err=True
+        )
 
     with multiprocessing.Pool(processes=cores) as pool:
         click.echo(f"Using {cores} parallel cores", err=True)

@@ -2,6 +2,7 @@
 
 import math
 import random
+import re
 from collections.abc import Callable, Iterator
 
 import dendropy
@@ -99,6 +100,24 @@ def edge_iter(
         if filter_fn is None or filter_fn(edge):
             yield edge
         stack.extend(edge.head_node.child_edge_iter())
+
+
+# Quoted labels (with '' for a quote) and [comments], which may contain semicolons
+_NEWICK_QUOTES_AND_COMMENTS = re.compile(r"'(?:[^']|'')*'|\[[^\]]*\]")
+
+
+def count_newick_trees(path: str) -> int:
+    """Count the trees in a Newick file by their terminating semicolons.
+
+    Args:
+        path: File path to the tree file.
+
+    Returns:
+        Number of trees in the file.
+    """
+    with open(path, encoding="utf-8") as fh:
+        text = fh.read()
+    return _NEWICK_QUOTES_AND_COMMENTS.sub("", text).count(";")
 
 
 def get_tree(path: str, namespace: dendropy.TaxonNamespace | None = None) -> dendropy.Tree:

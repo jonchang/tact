@@ -69,6 +69,16 @@ If the output is not a terminal (for example, in the log of a cluster job), or i
 
 TACT places species at random, so each run gives a different tree. To get the same tree again, for example to share an analysis that others can reproduce, add `--seed` with any whole number, such as `--seed 42`, and keep it with the inputs and the TACT version you used.
 
+### Making many trees
+
+Each tree is one possible placement of the unsampled species, so an analysis should use many of them rather than just one. To make 100 trees, 4 at a time:
+
+```console
+$ tact_add_taxa --backbone Carangaria.tre --taxonomy Carangaria.taxonomy.tre --output Carangaria.tacted --replicates 100 --cores 4 --seed 42
+```
+
+`Carangaria.tacted.newick.tre` then holds one tree per line. Run your downstream analysis on each tree and summarize the results across trees, so that the uncertainty about where the missing species belong carries through to your conclusions.
+
 ### Understanding the output files
 
 TACT creates several files with the prefix `Carangaria.tacted` (the argument we passed to `--output`):
