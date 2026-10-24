@@ -46,6 +46,13 @@ def test_help(script_runner, script):
     assert result.stdout.startswith(f"Usage: {script} ")
 
 
+@pytest.mark.parametrize("script", SCRIPTS)
+def test_version(script_runner, script):
+    result = script_runner.run([script, "--version"])
+    assert result.returncode == 0
+    assert result.stdout.startswith(f"{script}, version ")
+
+
 def test_build_add_and_check(script_runner, tmp_path):
     taxonomy_csv = tmp_path / "taxonomy.csv"
     taxonomy_csv.write_text(

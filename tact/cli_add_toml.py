@@ -197,6 +197,7 @@ def do_replicate(
 
 
 @click.command(cls=BackboneCommand)
+@click.version_option(package_name="tact")
 @click.option("--config", help="configuration file", type=click.File("rb"), required=True)
 @click.option("--backbone", help="the backbone tree", type=click.File("r"), required=True)
 @click.option(
